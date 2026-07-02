@@ -12,7 +12,7 @@ const items = [
 export function BottomNav() {
   const { pathname } = useLocation();
   return (
-    <nav className="sticky bottom-0 z-20 mt-auto border-t border-border/70 bg-background/95 backdrop-blur-xl">
+    <nav className="md:hidden sticky bottom-0 z-20 mt-auto border-t border-border/70 bg-background/95 backdrop-blur-xl">
       <ul className="grid grid-cols-5 gap-1 px-2 py-2">
         {items.map(({ to, label, icon: Icon }) => {
           const active = pathname === to || pathname.startsWith(to + "/");
