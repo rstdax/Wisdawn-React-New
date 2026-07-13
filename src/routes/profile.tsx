@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode, useEffect } from "react";
 import {
   Bell,
@@ -7,12 +7,12 @@ import {
   Award,
   Settings,
   ChevronRight,
-  Check,
   User as UserIcon,
-  Signpost,
 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
+import { useAuth } from "@/hooks/use-auth";
+import { signOutUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — WisDawn" }] }),
@@ -21,18 +21,25 @@ export const Route = createFileRoute("/profile")({
 
 function Profile() {
   const location = useLocation();
+  const navigate = useNavigate();
   const search = location.search as Record<string, string | undefined>;
+  const { initials, displayName, displayEmail, profile, loading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState("Rahul Kumar");
-  const [email] = useState("rahulkumar@email.com");
+  const [name, setName] = useState("");
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [selectedItem, setSelectedItem] = useState("Study Reminders");
+
+  // Sync name with loaded profile — only update when profile actually loads
+  useEffect(() => {
+    if (!loading && displayName && displayName !== "Learner") {
+      setName(displayName);
+    }
+  }, [loading, displayName]);
 
   // Sync selected tab with search parameters if provided
   useEffect(() => {
     if (search?.tab) {
       const tabName = search.tab.toString();
-      // Match tabs case-insensitively or exactly
       const matched = [
         "Study Reminders",
         "Downloads",
@@ -40,11 +47,14 @@ function Profile() {
         "Achievements",
         "Settings",
       ].find((t) => t.toLowerCase() === tabName.toLowerCase());
-      if (matched) {
-        setSelectedItem(matched);
-      }
+      if (matched) setSelectedItem(matched);
     }
   }, [search?.tab]);
+
+  const handleSignOut = async () => {
+    await signOutUser();
+    navigate({ to: "/" });
+  };
 
   return (
     <MobileFrame>
@@ -73,7 +83,7 @@ function Profile() {
             <div className="rounded-3xl bg-primary-soft p-5 border border-primary/10">
               <div className="flex items-start gap-4">
                 <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-primary text-base font-bold text-primary-foreground">
-                  RK
+                  {initials}
                 </div>
                 <div className="min-w-0 flex-1">
                   {isEditing ? (
@@ -85,9 +95,9 @@ function Profile() {
                   ) : (
                     <p className="truncate text-base font-bold text-foreground">{name}</p>
                   )}
-                  <p className="truncate text-xs text-muted-foreground mt-0.5">{email}</p>
+                  <p className="truncate text-xs text-muted-foreground mt-0.5">{displayEmail}</p>
                   <span className="mt-2 inline-block rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-semibold text-primary">
-                    Active Learner
+                    {profile?.track || "Active Learner"}
                   </span>
                 </div>
                 <button
@@ -100,10 +110,10 @@ function Profile() {
 
               {/* Profile Stats Grid */}
               <div className="mt-5 grid grid-cols-4 gap-2 text-center">
-                <Stat label="Courses" value="12" />
-                <Stat label="Badges" value="8" />
-                <Stat label="XP Points" value="5,240" />
-                <Stat label="Rank" value="#12" />
+                <Stat label="Courses" value={String(profile?.stats?.courses ?? 0)} />
+                <Stat label="Badges" value={String(profile?.stats?.badges ?? 0)} />
+                <Stat label="XP Points" value={(profile?.stats?.xp ?? 0).toLocaleString()} />
+                <Stat label="Rank" value={profile?.stats?.rank ? `#${profile.stats.rank}` : "—"} />
               </div>
             </div>
 
@@ -141,12 +151,12 @@ function Profile() {
               />
             </ul>
 
-            <Link
-              to="/"
-              className="block rounded-2xl border border-destructive/20 bg-destructive/5 py-3.5 text-center text-xs font-semibold text-destructive transition hover:bg-destructive/10"
+            <button
+              onClick={handleSignOut}
+              className="block w-full rounded-2xl border border-destructive/20 bg-destructive/5 py-3.5 text-center text-xs font-semibold text-destructive transition hover:bg-destructive/10"
             >
               Sign out
-            </Link>
+            </button>
           </div>
 
           {/* RIGHT SIDE: DETAIL PANEL CARD (Master-Detail side-by-side layout on desktop) */}

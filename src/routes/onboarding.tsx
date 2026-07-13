@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
+import { getCurrentUser, saveOnboardingData, signInWithGoogle } from "@/lib/auth";
 import {
   ArrowLeft,
   ArrowRight,
@@ -88,15 +89,32 @@ function Onboarding() {
     email: "",
   });
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const total = 9;
 
   const next = () => setStep((s) => Math.min(total, s + 1));
   const back = () => (step === 0 ? navigate({ to: "/" }) : setStep(step - 1));
 
+  // Desktop step 0: Google login then proceed to step 1
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    setError("");
+    try {
+      await signInWithGoogle();
+      // Popup succeeds — move to next onboarding step
+      setStep(1);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
+      setError(message);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const validateStep = () => {
     switch (step) {
       case 0:
-        // Welcome step: validate email on desktop if entered
         return "";
       case 1:
         return d.name.trim().length >= 2 ? "" : "Please enter your full name to continue.";
@@ -115,17 +133,39 @@ function Onboarding() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const message = validateStep();
     if (message) {
       setError(message);
       return;
     }
     setError("");
+
+    // Final step — save to Firebase then go to dashboard
     if (step === total - 1) {
+      const user = getCurrentUser();
+      if (user) {
+        setSaving(true);
+        try {
+          await saveOnboardingData(user.uid, {
+            name: d.name,
+            guardian: d.guardian,
+            cls: d.cls,
+            track: d.track,
+            dob: d.dob,
+            district: d.district,
+            state: d.state,
+          });
+        } catch (err) {
+          console.error("Failed to save onboarding data:", err);
+        } finally {
+          setSaving(false);
+        }
+      }
       navigate({ to: "/home" });
       return;
     }
+
     if (step === 7) {
       setStep(8);
       return;
@@ -248,13 +288,14 @@ function Onboarding() {
 
                   {/* Buttons */}
                   <button
-                    onClick={handleNext}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:scale-[1.01] transition"
+                    onClick={handleGoogleLogin}
+                    disabled={googleLoading}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:scale-[1.01] transition disabled:opacity-70"
                   >
                     <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-primary">
                       G
                     </span>
-                    Continue with Google
+                    {googleLoading ? "Signing in…" : "Continue with Google"}
                   </button>
 
                   <div className="relative text-center my-1 text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
@@ -574,9 +615,10 @@ function Onboarding() {
 
                 <button
                   onClick={handleNext}
+                  disabled={saving}
                   className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-bold text-white shadow-md shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition disabled:opacity-50"
                 >
-                  {step === total - 1 ? "Go to Dashboard" : step === 7 ? "Finish ✓" : "Continue"}
+                  {saving ? "Saving..." : step === total - 1 ? "Go to Dashboard" : step === 7 ? "Finish ✓" : "Continue"}
                   {step !== 7 && step !== total - 1 && <ArrowRight className="h-4 w-4" />}
                 </button>
               </div>
@@ -799,9 +841,10 @@ function Onboarding() {
               )}
               <button
                 onClick={handleNext}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 active:scale-[0.99]"
+                disabled={saving}
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 active:scale-[0.99] disabled:opacity-50"
               >
-                {step === total - 1 ? "Go to Dashboard" : step === 7 ? "Finish ✓" : "Next"}
+                {saving ? "Saving..." : step === total - 1 ? "Go to Dashboard" : step === 7 ? "Finish ✓" : "Next"}
                 {step !== 7 && step !== total - 1 && <ArrowRight className="h-4 w-4" />}
               </button>
             </div>

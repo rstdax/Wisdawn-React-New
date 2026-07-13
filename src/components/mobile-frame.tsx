@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Home,
   BookOpen,
@@ -20,6 +20,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Wisby } from "@/components/wisby";
+import { useAuth } from "@/hooks/use-auth";
+import { signOutUser } from "@/lib/auth";
 
 type SubItem = {
   to: string;
@@ -37,9 +39,16 @@ type MenuItem = {
 
 export function MobileFrame({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const pathname = location.pathname;
   const search = location.search as Record<string, string | undefined>;
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { initials, displayName, profile, loading } = useAuth();
+
+  const handleLogOut = async () => {
+    await signOutUser();
+    navigate({ to: "/" });
+  };
 
   const isAuthRoute = pathname === "/" || pathname === "/onboarding";
 
@@ -286,16 +295,16 @@ export function MobileFrame({ children }: { children: ReactNode }) {
                 <Wisby variant="thumbs" className="absolute -bottom-3 -right-3 h-16 w-16" />
               </div>
             )}
-            <Link
-              to="/"
-              className={`flex items-center rounded-xl text-sm font-semibold text-destructive hover:bg-destructive/10 transition-all ${
+            <button
+              onClick={handleLogOut}
+              className={`flex items-center rounded-xl text-sm font-semibold text-destructive hover:bg-destructive/10 transition-all w-full ${
                 isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-2.5"
               }`}
               title={isCollapsed ? "Log Out" : undefined}
             >
               <LogOut className="h-5 w-5 shrink-0" />
               {!isCollapsed && <span>Log Out</span>}
-            </Link>
+            </button>
           </div>
         </aside>
 
@@ -336,11 +345,11 @@ export function MobileFrame({ children }: { children: ReactNode }) {
                 className="flex items-center gap-3 hover:bg-muted/50 p-1.5 rounded-full pr-3 transition"
               >
                 <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-xs">
-                  RK
+                  {loading ? "…" : initials}
                 </div>
                 <div className="text-left hidden lg:block">
-                  <p className="text-xs font-bold leading-none">Rahul Kumar</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Class 10</p>
+                  <p className="text-xs font-bold leading-none">{loading ? "Loading…" : displayName}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{profile?.cls || ""}</p>
                 </div>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden lg:block" />
               </Link>

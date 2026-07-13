@@ -4,13 +4,19 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { auth } from "../lib/firebase";
+
+// Routes that do NOT require authentication
+const PUBLIC_ROUTES = ["/", "/onboarding", "/admin"];
 
 function NotFoundComponent() {
   return (
@@ -149,9 +155,57 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <div id="main-content" className="min-h-screen">
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        <AuthGuard>
+          <Outlet />
+        </AuthGuard>
       </div>
     </QueryClientProvider>
   );
+}
+
+// ── Auth Guard ────────────────────────────────────────────────────────────────
+function AuthGuard({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const location = useLocation();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const isPublic = PUBLIC_ROUTES.some(
+    (route) => location.pathname === route || location.pathname.startsWith(route + "/")
+  );
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+      setAuthChecked(true);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!authChecked) return;
+    if (!isLoggedIn && !isPublic) {
+      // Redirect unauthenticated users to login
+      router.navigate({ to: "/" });
+    }
+  }, [authChecked, isLoggedIn, isPublic, location.pathname]);
+
+  // Show loading spinner while auth state is being determined
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-3 text-sm font-medium text-muted-foreground shadow-sm">
+          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
+          Loading…
+        </div>
+      </div>
+    );
+  }
+
+  // Block protected page render until redirect happens
+  if (!isLoggedIn && !isPublic) {
+    return null;
+  }
+
+  return <>{children}</>;
 }

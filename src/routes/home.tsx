@@ -1,12 +1,7 @@
 import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Bell,
-  FlaskConical,
-  Leaf,
-  Sigma,
-  TestTube2,
-  Play,
   Code2,
   Sparkles,
   ArrowRight,
@@ -15,13 +10,16 @@ import {
   ChevronRight,
   Calendar,
   Award,
-  TrendingUp,
   Flame,
   Clock,
+  Play,
 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
+import { useAuth } from "@/hooks/use-auth";
+import { getSubjects, type Subject } from "@/lib/admin";
+import { SubjectIcon } from "@/components/SubjectIcon";
 
 export const Route = createFileRoute("/home")({
   head: () => ({ meta: [{ title: "Home — WisDawn" }] }),
@@ -32,8 +30,19 @@ function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const search = location.search as Record<string, string | undefined>;
+  const { initials, displayName, profile, loading } = useAuth();
 
-  // Tab/Track is determined by URL search parameter ?track=coding or ?track=school (default)
+  // Real-time greeting based on current hour
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good Morning 🌅";
+    if (hour >= 12 && hour < 17) return "Good Afternoon ☀️";
+    if (hour >= 17 && hour < 21) return "Good Evening 🌆";
+    return "Good Night 🌙";
+  };
+
+  const greeting = getGreeting();
+
   const tab = search?.track === "coding" ? "coding" : "school";
   const setTab = (newTab: "school" | "coding") => {
     navigate({
@@ -43,6 +52,13 @@ function Home() {
   };
 
   const [showAlerts, setShowAlerts] = useState(false);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+
+  useEffect(() => {
+    getSubjects().then((all) =>
+      setSubjects(all.filter((s) => s.track === tab).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
+    );
+  }, [tab]);
 
   return (
     <MobileFrame>
@@ -111,11 +127,11 @@ function Home() {
             {/* MOBILE USER BADGE */}
             <div className="flex md:hidden items-center gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                RK
+                {loading ? "…" : initials}
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Good morning 👋</p>
-                <p className="text-base font-bold">Rahul Kumar</p>
+                <p className="text-xs text-muted-foreground">{greeting} 👋</p>
+                <p className="text-base font-bold">{loading ? "Loading…" : displayName}</p>
               </div>
             </div>
 
@@ -123,13 +139,13 @@ function Home() {
             {tab === "school" ? (
               <div className="relative overflow-hidden rounded-3xl bg-primary-soft p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
                 <p className="text-xs md:text-sm text-primary font-bold tracking-wider uppercase">
-                  Good morning, 👋
+                  {greeting}, 👋
                 </p>
                 <h2 className="text-xl md:text-3xl font-extrabold text-foreground mt-1">
-                  Rahul Kumar
+                  {loading ? "…" : displayName}
                 </h2>
                 <p className="text-xs md:text-sm text-muted-foreground mt-2 max-w-md">
-                  Learn better with School Academy for Class 10
+                  Learn better with School Academy for {loading ? "…" : (profile?.cls || "your class")}
                 </p>
                 <div className="mt-4 md:mt-6">
                   <Link
@@ -183,78 +199,43 @@ function Home() {
               </div>
             )}
 
-            {/* MOBILE QUICK ACTIONS */}
-            <div className="block md:hidden">
-              <SectionHeader title="Quick Actions" />
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <QuickActionCard
-                  icon={<BookOpen className="h-4 w-4" />}
-                  title="Learn"
-                  desc="Continue your lessons"
-                  to="/learn"
-                />
-                <QuickActionCard
-                  icon={<ClipboardCheck className="h-4 w-4" />}
-                  title="Tests"
-                  desc="Try fresh practice sets"
-                  to="/tests"
-                />
-              </div>
-            </div>
-
             {/* TRACK SPECIFIC CARDS: SUBJECTS OR COURSES */}
             {tab === "school" ? (
               <>
-                <SectionHeader title="Your Subjects" />
-                <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <SubjectCard
-                    icon={<FlaskConical className="h-5 w-5 text-primary" />}
-                    title="Physics"
-                    sub="Class 10"
-                    progress="65%"
-                    to="/learn"
-                  />
-                  <SubjectCard
-                    icon={<TestTube2 className="h-5 w-5 text-rose-500" />}
-                    title="Chemistry"
-                    sub="Class 10"
-                    progress="40%"
-                    to="/learn"
-                  />
-                  <SubjectCard
-                    icon={<Leaf className="h-5 w-5 text-emerald-500" />}
-                    title="Biology"
-                    sub="Class 10"
-                    progress="70%"
-                    to="/learn"
-                  />
-                  <SubjectCard
-                    icon={<Sigma className="h-5 w-5 text-violet-500" />}
-                    title="Mathematics"
-                    sub="Class 10"
-                    progress="55%"
-                    to="/learn"
-                  />
+                <SectionHeader title="Your Subjects" linkTo="/learn" />
+                <div className="relative rounded-3xl p-3 overflow-hidden mt-3"
+                  style={{ background: "linear-gradient(135deg, #ede9fe 0%, #dbeafe 40%, #fce7f3 70%, #d1fae5 100%)" }}>
+                  <div className="absolute -top-8 -left-8 h-32 w-32 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)" }} />
+                  <div className="absolute -bottom-8 -right-8 h-32 w-32 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%)" }} />
+                  <div className="grid grid-cols-2 gap-3 relative z-10">
+                    {subjects.length === 0 ? (
+                      <div className="col-span-2 rounded-2xl border border-dashed border-white/60 bg-white/40 p-6 text-center text-xs text-muted-foreground font-semibold">
+                        No subjects yet. Admin can add subjects from the dashboard.
+                      </div>
+                    ) : subjects.map((s) => (
+                      <FirebaseSubjectCard key={s.id} subject={s} />
+                    ))}
+                  </div>
                 </div>
               </>
             ) : (
               <>
-                <SectionHeader title="My Courses" />
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <CourseCard
-                    color="bg-emerald-100 text-emerald-700"
-                    icon={<Code2 className="h-5 w-5" />}
-                    title="Python for Beginners"
-                    sub="12 Lessons"
-                    progress={45}
-                  />
-                  <CourseCard
-                    color="bg-sky-100 text-sky-700"
-                    icon={<Code2 className="h-5 w-5" />}
-                    title="Web Development"
-                    sub="15 Lessons"
-                    progress={30}
-                  />
+                <SectionHeader title="Your Subjects" linkTo="/learn" />
+                <div className="relative rounded-3xl p-3 overflow-hidden mt-3"
+                  style={{ background: "linear-gradient(135deg, #ede9fe 0%, #dbeafe 40%, #fce7f3 70%, #d1fae5 100%)" }}>
+                  <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)" }} />
+                  <div className="grid grid-cols-2 gap-3 relative z-10">
+                    {subjects.length === 0 ? (
+                      <div className="col-span-2 rounded-2xl border border-dashed border-white/60 bg-white/40 p-6 text-center text-xs text-muted-foreground font-semibold">
+                        No coding subjects yet.
+                      </div>
+                    ) : subjects.map((s) => (
+                      <FirebaseSubjectCard key={s.id} subject={s} />
+                    ))}
+                  </div>
                 </div>
               </>
             )}
@@ -353,8 +334,8 @@ function Home() {
             {/* MOBILE ONLY FOOTER XP BANNER */}
             <div className="mt-6 flex md:hidden items-center justify-between rounded-2xl bg-primary-soft p-4">
               <div>
-                <p className="text-sm font-bold">Keep it up, Rahul!</p>
-                <p className="text-xs text-muted-foreground">5,240 XP · Rank #12</p>
+                <p className="text-sm font-bold">Keep it up, {loading ? "…" : displayName.split(" ")[0]}!</p>
+                <p className="text-xs text-muted-foreground">{(profile?.stats?.xp ?? 0).toLocaleString()} XP · {profile?.stats?.rank ? `Rank #${profile.stats.rank}` : "Unranked"}</p>
               </div>
               <Wisby variant="thumbs" className="-mb-2 -mr-2 h-20" />
             </div>
@@ -406,15 +387,15 @@ function Home() {
                   {/* Coding Stats Grid */}
                   <div className="w-full mt-6 grid grid-cols-3 gap-2 text-center text-xs">
                     <div className="p-2 bg-muted/40 rounded-xl">
-                      <p className="font-extrabold text-foreground">2</p>
+                      <p className="font-extrabold text-foreground">{profile?.stats?.courses ?? 0}</p>
                       <p className="text-[9px] text-muted-foreground mt-0.5">Enrolled</p>
                     </div>
                     <div className="p-2 bg-muted/40 rounded-xl">
-                      <p className="font-extrabold text-foreground">18 / 40</p>
+                      <p className="font-extrabold text-foreground">0 / 40</p>
                       <p className="text-[9px] text-muted-foreground mt-0.5">Lessons</p>
                     </div>
                     <div className="p-2 bg-muted/40 rounded-xl">
-                      <p className="font-extrabold text-primary">5,240</p>
+                      <p className="font-extrabold text-primary">{(profile?.stats?.xp ?? 0).toLocaleString()}</p>
                       <p className="text-[9px] text-muted-foreground mt-0.5">XP Earned</p>
                     </div>
                   </div>
@@ -467,19 +448,19 @@ function Home() {
                   <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
                     <div className="p-3 bg-muted/40 rounded-xl flex justify-between items-center">
                       <span className="text-muted-foreground">Courses</span>
-                      <span className="font-bold text-foreground">12</span>
+                      <span className="font-bold text-foreground">{profile?.stats?.courses ?? 0}</span>
                     </div>
                     <div className="p-3 bg-muted/40 rounded-xl flex justify-between items-center">
-                      <span className="text-muted-foreground">Lessons</span>
-                      <span className="font-bold text-foreground">28</span>
+                      <span className="text-muted-foreground">Badges</span>
+                      <span className="font-bold text-foreground">{profile?.stats?.badges ?? 0}</span>
                     </div>
                     <div className="p-3 bg-muted/40 rounded-xl flex justify-between items-center">
                       <span className="text-muted-foreground">Points</span>
-                      <span className="font-bold text-primary">5,240</span>
+                      <span className="font-bold text-primary">{(profile?.stats?.xp ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="p-3 bg-muted/40 rounded-xl flex justify-between items-center">
                       <span className="text-muted-foreground">Rank</span>
-                      <span className="font-bold text-foreground">#12</span>
+                      <span className="font-bold text-foreground">{profile?.stats?.rank ? `#${profile.stats.rank}` : "—"}</span>
                     </div>
                   </div>
                 </div>
@@ -501,7 +482,7 @@ function Home() {
                 {tab === "school" ? (
                   <>
                     <ScheduleRow
-                      icon={<FlaskConical className="h-4 w-4 text-primary" />}
+                      icon={<BookOpen className="h-4 w-4 text-primary" />}
                       title="Physics Live Class"
                       time="Today, 5:00 PM"
                       action={
@@ -584,11 +565,15 @@ function Home() {
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, linkTo }: { title: string; linkTo?: string }) {
   return (
     <div className="mt-6 flex items-center justify-between">
       <h2 className="text-base font-bold">{title}</h2>
-      <span className="text-xs font-semibold text-primary">View All</span>
+      {linkTo ? (
+        <Link to={linkTo} className="text-xs font-semibold text-primary">View All</Link>
+      ) : (
+        <span className="text-xs font-semibold text-primary">View All</span>
+      )}
     </div>
   );
 }
@@ -617,6 +602,64 @@ function QuickActionCard({
         <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
       <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </Link>
+  );
+}
+
+function FirebaseSubjectCard({ subject }: { subject: Subject }) {
+  return (
+    <Link
+      to="/subject/$id"
+      params={{ id: subject.id }}
+      className="relative flex flex-col rounded-3xl p-4 transition-all duration-300 hover:-translate-y-1 active:scale-[0.97] overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(240,244,255,0.60) 100%)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(255,255,255,0.6)",
+        boxShadow: "0 4px 24px -4px rgba(99,102,241,0.12), 0 1px 4px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
+      }}
+    >
+      {/* Liquid glass highlight — top glare */}
+      <div
+        className="absolute inset-x-0 top-0 h-1/2 rounded-t-3xl pointer-events-none"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%)",
+        }}
+      />
+
+      {/* Icon */}
+      <div
+        className="relative h-14 w-14 shrink-0 flex items-center justify-center rounded-2xl mb-4 overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 100%)",
+          boxShadow: "inset 0 1px 2px rgba(255,255,255,0.7), 0 2px 8px rgba(99,102,241,0.1)",
+          border: "1px solid rgba(255,255,255,0.5)",
+        }}
+      >
+        <SubjectIcon icon={subject.icon} className="h-full w-full text-2xl" />
+      </div>
+
+      {/* Text */}
+      <p className="font-extrabold text-sm text-foreground tracking-tight relative z-10">{subject.title}</p>
+      <p className="text-[11px] text-muted-foreground mt-0.5 font-medium relative z-10">{subject.class}</p>
+
+      {/* Bottom */}
+      <div
+        className="mt-4 pt-3 flex items-center justify-between relative z-10"
+        style={{ borderTop: "1px solid rgba(99,102,241,0.12)" }}
+      >
+        <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Explore</span>
+        <div
+          className="grid h-6 w-6 place-items-center rounded-full"
+          style={{
+            background: "rgba(99,102,241,0.1)",
+            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.6)",
+          }}
+        >
+          <ChevronRight className="h-3.5 w-3.5 text-primary" />
+        </div>
+      </div>
     </Link>
   );
 }

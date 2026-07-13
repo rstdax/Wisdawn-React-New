@@ -4,6 +4,7 @@ import { ArrowLeft, Filter, Trophy, Sparkles, Award, TrendingUp } from "lucide-r
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/rankings")({
   head: () => ({ meta: [{ title: "Rankings — WisDawn" }] }),
@@ -24,6 +25,7 @@ const topUsers = [
 
 function Rankings() {
   const navigate = useNavigate();
+  const { initials, displayName, profile } = useAuth();
   const [activeCategory, setActiveCategory] = useState<Category>("All");
   const visibleUsers = topUsers.filter(
     (user) => activeCategory === "All" || user.track === activeCategory,
@@ -152,16 +154,16 @@ function Rankings() {
               <div className="col-span-2 text-center text-sm font-bold text-primary">#12</div>
               <div className="col-span-6 flex items-center gap-3">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">
-                  RK
+                  {initials}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Rahul Kumar (You)</p>
+                  <p className="text-sm font-semibold text-foreground">{displayName} (You)</p>
                   <p className="text-[10px] text-muted-foreground">Current user status</p>
                 </div>
               </div>
-              <div className="col-span-2 text-xs font-semibold text-muted-foreground">Kamrup</div>
+              <div className="col-span-2 text-xs font-semibold text-muted-foreground">{profile?.district || "—"}</div>
               <div className="col-span-2 text-right font-extrabold text-primary text-sm">
-                5,240 XP
+                {(profile?.stats?.xp ?? 0).toLocaleString()} XP
               </div>
             </div>
           </div>
@@ -174,16 +176,18 @@ function Rankings() {
 
               <div className="flex flex-col items-center py-4 text-center">
                 <Wisby variant="cheer" className="h-28 w-28" />
-                <h4 className="text-lg font-extrabold text-foreground mt-2">Rank #12 in Assam</h4>
+                <h4 className="text-lg font-extrabold text-foreground mt-2">
+                  {profile?.stats?.rank ? `Rank #${profile.stats.rank} in Assam` : "Unranked"}
+                </h4>
                 <p className="text-xs text-muted-foreground mt-1 px-4">
-                  You're in the top 15%! Keep learning to climb to the top 10 list.
+                  Keep learning to climb to the top 10 list.
                 </p>
               </div>
 
               <div className="space-y-3.5 border-t border-border pt-4 text-xs font-semibold text-muted-foreground">
                 <div className="flex items-center justify-between">
                   <span>Current Points</span>
-                  <span className="text-primary font-bold">5,240 XP</span>
+                  <span className="text-primary font-bold">{(profile?.stats?.xp ?? 0).toLocaleString()} XP</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Next Rank (Rank #11)</span>
@@ -221,16 +225,16 @@ function Rankings() {
       {/* MOBILE STICKY FOOTER */}
       <div className="md:hidden border-t border-border bg-primary-soft px-5 py-3 mt-auto">
         <div className="flex items-center gap-3">
-          <div className="w-8 text-center text-sm font-bold text-primary">#12</div>
+          <div className="w-8 text-center text-sm font-bold text-primary">{profile?.stats?.rank ? `#${profile.stats.rank}` : "—"}</div>
           <div className="grid h-10 w-10 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            RK
+            {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">Rahul Kumar (You)</p>
-            <p className="truncate text-xs text-muted-foreground">Kamrup</p>
+            <p className="truncate text-sm font-semibold">{displayName} (You)</p>
+            <p className="truncate text-xs text-muted-foreground">{profile?.district || "—"}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm font-bold text-primary">5,240</p>
+            <p className="text-sm font-bold text-primary">{(profile?.stats?.xp ?? 0).toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">XP Points</p>
           </div>
         </div>
