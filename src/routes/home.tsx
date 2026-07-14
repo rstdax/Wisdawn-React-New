@@ -66,27 +66,24 @@ function Home() {
       <header className="flex md:hidden items-center justify-between gap-3 px-5 pt-2">
         <div className="relative flex-1 rounded-full bg-muted p-1">
           <div
-            className={`absolute inset-1 w-1/2 rounded-full shadow-lg transition-all duration-300 ${
-              tab === "coding"
+            className={`absolute inset-1 w-1/2 rounded-full shadow-lg transition-all duration-300 ${tab === "coding"
                 ? "bg-linear-to-r from-violet-700 to-violet-500 translate-x-full"
                 : "bg-primary translate-x-0"
-            }`}
+              }`}
             aria-hidden
           />
           <div className="relative grid grid-cols-2">
             <button
               onClick={() => setTab("school")}
-              className={`relative z-10 rounded-full py-2 text-xs font-semibold ${
-                tab === "school" ? "text-white" : "text-muted-foreground"
-              }`}
+              className={`relative z-10 rounded-full py-2 text-xs font-semibold ${tab === "school" ? "text-white" : "text-muted-foreground"
+                }`}
             >
               School Academy
             </button>
             <button
               onClick={() => setTab("coding")}
-              className={`relative z-10 rounded-full py-2 text-xs font-semibold ${
-                tab === "coding" ? "text-white" : "text-muted-foreground"
-              }`}
+              className={`relative z-10 rounded-full py-2 text-xs font-semibold ${tab === "coding" ? "text-white" : "text-muted-foreground"
+                }`}
             >
               Coding
             </button>
@@ -203,39 +200,27 @@ function Home() {
             {tab === "school" ? (
               <>
                 <SectionHeader title="Your Subjects" linkTo="/learn" />
-                <div className="relative rounded-3xl p-3 overflow-hidden mt-3"
-                  style={{ background: "linear-gradient(135deg, #ede9fe 0%, #dbeafe 40%, #fce7f3 70%, #d1fae5 100%)" }}>
-                  <div className="absolute -top-8 -left-8 h-32 w-32 rounded-full pointer-events-none"
-                    style={{ background: "radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)" }} />
-                  <div className="absolute -bottom-8 -right-8 h-32 w-32 rounded-full pointer-events-none"
-                    style={{ background: "radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%)" }} />
-                  <div className="grid grid-cols-2 gap-3 relative z-10">
-                    {subjects.length === 0 ? (
-                      <div className="col-span-2 rounded-2xl border border-dashed border-white/60 bg-white/40 p-6 text-center text-xs text-muted-foreground font-semibold">
-                        No subjects yet. Admin can add subjects from the dashboard.
-                      </div>
-                    ) : subjects.map((s) => (
-                      <FirebaseSubjectCard key={s.id} subject={s} />
-                    ))}
-                  </div>
+                <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {subjects.length === 0 ? (
+                    <div className="col-span-2 md:col-span-4 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
+                      No subjects yet. Admin can add subjects from the dashboard.
+                    </div>
+                  ) : subjects.map((s) => (
+                    <FirebaseSubjectCard key={s.id} subject={s} type="school" />
+                  ))}
                 </div>
               </>
             ) : (
               <>
-                <SectionHeader title="Your Subjects" linkTo="/learn" />
-                <div className="relative rounded-3xl p-3 overflow-hidden mt-3"
-                  style={{ background: "linear-gradient(135deg, #ede9fe 0%, #dbeafe 40%, #fce7f3 70%, #d1fae5 100%)" }}>
-                  <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full pointer-events-none"
-                    style={{ background: "radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)" }} />
-                  <div className="grid grid-cols-2 gap-3 relative z-10">
-                    {subjects.length === 0 ? (
-                      <div className="col-span-2 rounded-2xl border border-dashed border-white/60 bg-white/40 p-6 text-center text-xs text-muted-foreground font-semibold">
-                        No coding subjects yet.
-                      </div>
-                    ) : subjects.map((s) => (
-                      <FirebaseSubjectCard key={s.id} subject={s} />
-                    ))}
-                  </div>
+                <SectionHeader title="My Courses" linkTo="/learn" />
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {subjects.length === 0 ? (
+                    <div className="col-span-1 md:col-span-2 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
+                      No coding courses yet. Admin can add them from the dashboard.
+                    </div>
+                  ) : subjects.map((s) => (
+                    <FirebaseSubjectCard key={s.id} subject={s} type="coding" />
+                  ))}
                 </div>
               </>
             )}
@@ -606,61 +591,33 @@ function QuickActionCard({
   );
 }
 
-function FirebaseSubjectCard({ subject }: { subject: Subject }) {
+function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; type?: "school" | "coding" }) {
+  const progressNum = subject.title.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % 60 + 40;
+
+  if (type === "coding") {
+    const isWeb = subject.title.toLowerCase().includes("web");
+    const color = isWeb ? "bg-sky-100 text-sky-700" : "bg-emerald-100 text-emerald-700";
+    return (
+      <Link to="/subject/$id" params={{ id: subject.id }} className="block">
+        <CourseCard
+          color={color}
+          icon={<SubjectIcon icon={subject.icon} className="h-5 w-5 !rounded-none !bg-transparent currentColor" />}
+          title={subject.title}
+          sub={subject.class || "12 Lessons"}
+          progress={progressNum}
+        />
+      </Link>
+    );
+  }
+
   return (
-    <Link
-      to="/subject/$id"
-      params={{ id: subject.id }}
-      className="relative flex flex-col rounded-3xl p-4 transition-all duration-300 hover:-translate-y-1 active:scale-[0.97] overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(240,244,255,0.60) 100%)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(255,255,255,0.6)",
-        boxShadow: "0 4px 24px -4px rgba(99,102,241,0.12), 0 1px 4px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
-      }}
-    >
-      {/* Liquid glass highlight — top glare */}
-      <div
-        className="absolute inset-x-0 top-0 h-1/2 rounded-t-3xl pointer-events-none"
-        style={{
-          background: "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%)",
-        }}
-      />
-
-      {/* Icon */}
-      <div
-        className="relative h-14 w-14 shrink-0 flex items-center justify-center rounded-2xl mb-4 overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 100%)",
-          boxShadow: "inset 0 1px 2px rgba(255,255,255,0.7), 0 2px 8px rgba(99,102,241,0.1)",
-          border: "1px solid rgba(255,255,255,0.5)",
-        }}
-      >
-        <SubjectIcon icon={subject.icon} className="h-full w-full text-2xl" />
-      </div>
-
-      {/* Text */}
-      <p className="font-extrabold text-sm text-foreground tracking-tight relative z-10">{subject.title}</p>
-      <p className="text-[11px] text-muted-foreground mt-0.5 font-medium relative z-10">{subject.class}</p>
-
-      {/* Bottom */}
-      <div
-        className="mt-4 pt-3 flex items-center justify-between relative z-10"
-        style={{ borderTop: "1px solid rgba(99,102,241,0.12)" }}
-      >
-        <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Explore</span>
-        <div
-          className="grid h-6 w-6 place-items-center rounded-full"
-          style={{
-            background: "rgba(99,102,241,0.1)",
-            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.6)",
-          }}
-        >
-          <ChevronRight className="h-3.5 w-3.5 text-primary" />
-        </div>
-      </div>
-    </Link>
+    <SubjectCard
+      icon={<SubjectIcon icon={subject.icon} className="h-5 w-5 !rounded-none !bg-transparent text-primary" />}
+      title={subject.title}
+      sub={subject.class || ""}
+      progress={`${progressNum}%`}
+      to={`/subject/${subject.id}`}
+    />
   );
 }
 

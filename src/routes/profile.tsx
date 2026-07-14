@@ -8,6 +8,8 @@ import {
   Settings,
   ChevronRight,
   User as UserIcon,
+  MessageSquare,
+  HelpCircle,
 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
@@ -29,6 +31,57 @@ function Profile() {
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [selectedItem, setSelectedItem] = useState("Study Reminders");
 
+  // Messages / Chat State
+  const [chats, setChats] = useState([
+    {
+      id: "wisby",
+      name: "Wisby AI Companion",
+      avatar: "🤖",
+      lastMessage: "Hey Rahul! Ready to finish Chapter 2 Chemical Reactions today?",
+      time: "10:30 AM",
+      unread: true,
+      messages: [
+        { sender: "other", text: "Hello Rahul! Welcome to Wisdawn. I am Wisby, your learning partner.", time: "Yesterday" },
+        { sender: "user", text: "Hi Wisby! Can you help me study Chemistry?", time: "Yesterday" },
+        { sender: "other", text: "Absolutely! I can explain concepts, quiz you, or help you solve equations.", time: "Yesterday" },
+        { sender: "other", text: "Hey Rahul! Ready to finish Chapter 2 Chemical Reactions today?", time: "10:30 AM" }
+      ]
+    },
+    {
+      id: "amit",
+      name: "Dr. Amit (Chemistry)",
+      avatar: "👨‍🏫",
+      lastMessage: "Great job on the practice test. Let me know if you have questions.",
+      time: "Yesterday",
+      unread: false,
+      messages: [
+        { sender: "user", text: "Hello Sir, I finished the homework on balancing equations.", time: "Yesterday" },
+        { sender: "other", text: "Great job on the practice test. Let me know if you have questions.", time: "Yesterday" }
+      ]
+    },
+    {
+      id: "group",
+      name: "Class 10 Study Group",
+      avatar: "👥",
+      lastMessage: "Who's up for a study session tonight at 8?",
+      time: "2 days ago",
+      unread: false,
+      messages: [
+        { sender: "other", senderName: "Sneha", text: "Did anyone solve question 4 on page 24?", time: "2 days ago" },
+        { sender: "other", senderName: "Aman", text: "Yes, I got 12g as the answer.", time: "2 days ago" },
+        { sender: "other", senderName: "Sneha", text: "Ah, thanks! I made a calculation error.", time: "2 days ago" },
+        { sender: "other", senderName: "Aman", text: "Who's up for a study session tonight at 8?", time: "2 days ago" }
+      ]
+    }
+  ]);
+  const [activeChatId, setActiveChatId] = useState("wisby");
+  const [newMessageText, setNewMessageText] = useState("");
+
+  // Help & Support Form State
+  const [ticketSubject, setTicketSubject] = useState("");
+  const [ticketMessage, setTicketMessage] = useState("");
+  const [ticketStatus, setTicketStatus] = useState<"idle" | "submitting" | "success">("idle");
+
   // Sync name with loaded profile — only update when profile actually loads
   useEffect(() => {
     if (!loading && displayName && displayName !== "Learner") {
@@ -45,8 +98,13 @@ function Profile() {
         "Downloads",
         "Bookmarks",
         "Achievements",
+        "Messages",
+        "Help & Support",
         "Settings",
-      ].find((t) => t.toLowerCase() === tabName.toLowerCase());
+      ].find((t) => {
+        if (t === "Help & Support" && tabName.toLowerCase() === "help") return true;
+        return t.toLowerCase() === tabName.toLowerCase();
+      });
       if (matched) setSelectedItem(matched);
     }
   }, [search?.tab]);
@@ -142,6 +200,18 @@ function Profile() {
                 label="Achievements"
                 active={selectedItem === "Achievements"}
                 onClick={() => setSelectedItem("Achievements")}
+              />
+              <Item
+                icon={<MessageSquare className="h-4 w-4" />}
+                label="Messages"
+                active={selectedItem === "Messages"}
+                onClick={() => setSelectedItem("Messages")}
+              />
+              <Item
+                icon={<HelpCircle className="h-4 w-4" />}
+                label="Help & Support"
+                active={selectedItem === "Help & Support"}
+                onClick={() => setSelectedItem("Help & Support")}
               />
               <Item
                 icon={<Settings className="h-4 w-4" />}
@@ -263,6 +333,243 @@ function Profile() {
                       points="+150 XP"
                       icon="🔬"
                     />
+                  </div>
+                </div>
+              )}
+
+              {selectedItem === "Messages" && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[400px]">
+                  {/* Chat conversations list */}
+                  <div className="md:col-span-1 border-r border-border/60 pr-4 overflow-y-auto space-y-2 h-full">
+                    {chats.map((chat) => (
+                      <button
+                        key={chat.id}
+                        onClick={() => {
+                          setActiveChatId(chat.id);
+                          // Clear unread status
+                          setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unread: false } : c));
+                        }}
+                        className={`flex items-start gap-3 w-full p-2.5 rounded-xl text-left transition ${activeChatId === chat.id ? "bg-primary-soft text-primary font-semibold" : "hover:bg-muted/40 text-muted-foreground hover:text-foreground"
+                          }`}
+                      >
+                        <div className="text-xl bg-card border border-border/60 rounded-xl p-2 h-10 w-10 flex items-center justify-center shrink-0 shadow-xs">
+                          {chat.avatar}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex justify-between items-baseline">
+                            <span className={`text-xs truncate ${chat.unread ? "font-bold text-foreground" : "font-semibold"}`}>
+                              {chat.name}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground shrink-0">{chat.time}</span>
+                          </div>
+                          <p className="text-[10px] truncate text-muted-foreground mt-0.5">{chat.lastMessage}</p>
+                        </div>
+                        {chat.unread && (
+                          <span className="h-2 w-2 rounded-full bg-destructive mt-2 shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Active chat window */}
+                  <div className="md:col-span-2 flex flex-col h-full min-h-[300px]">
+                    {/* Chat messages */}
+                    <div className="flex-1 overflow-y-auto space-y-3 pb-4 pr-1">
+                      {chats.find((c) => c.id === activeChatId)?.messages.map((msg, idx) => {
+                        const isUser = msg.sender === "user";
+                        return (
+                          <div
+                            key={idx}
+                            className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+                          >
+                            <div className="max-w-[80%]">
+                              {!isUser && "senderName" in msg && (
+                                <span className="text-[9px] text-muted-foreground ml-2 mb-0.5 block font-bold">
+                                  {msg.senderName}
+                                </span>
+                              )}
+                              <div
+                                className={`p-3 rounded-2xl text-xs ${isUser
+                                  ? "bg-primary text-primary-foreground rounded-tr-none"
+                                  : "bg-muted text-foreground rounded-tl-none border border-border/30"
+                                  }`}
+                              >
+                                <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                              </div>
+                              <span className="text-[9px] text-muted-foreground mt-1 ml-1 block text-right">
+                                {msg.time}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Chat Input form */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!newMessageText.trim()) return;
+
+                        const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        // Append user message
+                        setChats(prev => prev.map(c => {
+                          if (c.id === activeChatId) {
+                            return {
+                              ...c,
+                              lastMessage: newMessageText,
+                              time: timeString,
+                              messages: [
+                                ...c.messages,
+                                { sender: "user", text: newMessageText, time: timeString }
+                              ]
+                            };
+                          }
+                          return c;
+                        }));
+
+                        const userQuery = newMessageText;
+                        setNewMessageText("");
+
+                        // Add a mock response from Wisby AI if active chat is wisby
+                        if (activeChatId === "wisby") {
+                          setTimeout(() => {
+                            setChats(prev => prev.map(c => {
+                              if (c.id === "wisby") {
+                                const botMsg = {
+                                  sender: "other",
+                                  text: `I'm on it! Let me help you with: "${userQuery}". You can also check out the 'Learn' tab for more courses!`,
+                                  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                };
+                                return {
+                                  ...c,
+                                  lastMessage: botMsg.text,
+                                  time: botMsg.time,
+                                  messages: [...c.messages, botMsg]
+                                };
+                              }
+                              return c;
+                            }));
+                          }, 1000);
+                        }
+                      }}
+                      className="border-t border-border pt-3 flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={newMessageText}
+                        onChange={(e) => setNewMessageText(e.target.value)}
+                        placeholder="Type a message..."
+                        className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
+                      />
+                      <button
+                        type="submit"
+                        className="bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2 text-xs font-semibold shadow-xs"
+                      >
+                        Send
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {selectedItem === "Help & Support" && (
+                <div className="space-y-6 text-xs text-muted-foreground">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* FAQs Accordion */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold text-foreground mb-3 font-semibold">Frequently Asked Questions</h3>
+                      <div className="space-y-3">
+                        <FAQItem
+                          question="How do I study offline?"
+                          answer="Go to the Profile tab, select Downloads, and you will see your saved offline materials. You can download lessons by clicking the download icon next to any chapter."
+                        />
+                        <FAQItem
+                          question="How is my Rank calculated?"
+                          answer="Your rank is updated daily based on the total XP points you earn from completing quizzes, viewing lessons, and maintaining your daily study streak."
+                        />
+                        <FAQItem
+                          question="Can I reset my progress?"
+                          answer="Yes, you can reset your progress for specific subjects or your entire account in the Settings tab, under the Privacy options."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Support Ticket Form */}
+                    <div className="bg-muted/10 border border-border/40 rounded-2xl p-4">
+                      <h3 className="text-sm font-bold text-foreground mb-3">Contact Support</h3>
+                      {ticketStatus === "success" ? (
+                        <div className="text-center py-6 space-y-2">
+                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 text-lg">
+                            ✓
+                          </div>
+                          <p className="font-bold text-foreground">Ticket Submitted!</p>
+                          <p className="text-[10px] text-muted-foreground">We've received your query. Our support team will email you back within 24 hours.</p>
+                          <button
+                            onClick={() => setTicketStatus("idle")}
+                            className="text-xs font-semibold text-primary underline pt-2 block mx-auto cursor-pointer"
+                          >
+                            Send another message
+                          </button>
+                        </div>
+                      ) : (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!ticketSubject.trim() || !ticketMessage.trim()) return;
+                            setTicketStatus("submitting");
+                            setTimeout(() => {
+                              setTicketStatus("success");
+                              setTicketSubject("");
+                              setTicketMessage("");
+                            }, 800);
+                          }}
+                          className="space-y-3 text-xs"
+                        >
+                          <div>
+                            <label className="block font-bold text-foreground mb-1">Subject</label>
+                            <input
+                              type="text"
+                              value={ticketSubject}
+                              onChange={(e) => setTicketSubject(e.target.value)}
+                              placeholder="e.g. Account setup, Billing issue..."
+                              className="w-full bg-card border border-border rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block font-bold text-foreground mb-1">Message</label>
+                            <textarea
+                              value={ticketMessage}
+                              onChange={(e) => setTicketMessage(e.target.value)}
+                              placeholder="Describe your problem or request in detail..."
+                              rows={3}
+                              className="w-full bg-card border border-border rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                              required
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={ticketStatus === "submitting"}
+                            className="w-full bg-primary hover:bg-primary/95 text-white rounded-xl py-2 font-bold transition shadow-xs disabled:opacity-50 cursor-pointer"
+                          >
+                            {ticketStatus === "submitting" ? "Submitting..." : "Submit Ticket"}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Other Channels */}
+                  <div className="pt-4 border-t border-border/60 flex flex-wrap gap-4 items-center justify-between">
+                    <div>
+                      <p className="font-bold text-foreground text-xs">Still need help?</p>
+                      <p className="text-[10px] text-muted-foreground">Reach us via email at support@wisdawn.com or call +1 (800) 555-LEARN.</p>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground bg-primary-soft/50 border border-primary/10 rounded-xl px-3 py-1.5 font-medium">
+                      Support Hours: Mon-Fri, 9:00 AM - 6:00 PM EST
+                    </div>
                   </div>
                 </div>
               )}
@@ -394,6 +701,28 @@ function BadgeCard({
       <span className="text-[9px] font-extrabold text-primary bg-primary-soft px-2 py-0.5 rounded-md mt-3 block">
         {points}
       </span>
+    </div>
+  );
+}
+
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border border-border/85 bg-card rounded-2xl overflow-hidden transition-all duration-200">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between p-3.5 text-left text-xs font-bold text-foreground hover:bg-muted/40 transition cursor-pointer"
+      >
+        <span>{question}</span>
+        <span className={`text-muted-foreground text-sm font-semibold transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}>
+          ›
+        </span>
+      </button>
+      {isOpen && (
+        <div className="p-3.5 pt-0 text-[11px] text-muted-foreground border-t border-border/20 bg-muted/10 leading-relaxed animate-fade-in">
+          {answer}
+        </div>
+      )}
     </div>
   );
 }

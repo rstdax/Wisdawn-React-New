@@ -93,6 +93,7 @@ export function MobileFrame({ children }: { children: ReactNode }) {
     if (!toQuery) {
       if (pathname === "/home" && search?.track === "coding") return false;
       if (pathname === "/learn" && search?.track === "coding") return false;
+      if (pathname === "/learn" && search?.tab === "courses") return false;
       if (pathname === "/profile" && search?.tab) return false;
       return true;
     }
@@ -128,6 +129,7 @@ export function MobileFrame({ children }: { children: ReactNode }) {
           if (!toQuery) {
             if (pathname === "/home" && search?.track === "coding") return false;
             if (pathname === "/learn" && search?.track === "coding") return false;
+            if (pathname === "/learn" && search?.tab === "courses") return false;
             if (pathname === "/profile" && search?.tab) return false;
             return true;
           }
