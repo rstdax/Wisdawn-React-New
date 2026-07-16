@@ -340,11 +340,6 @@ function Chapter() {
                         You've reached the last chapter in this subject 🎉
                       </div>
                     )}
-                    <Link to="/practice/$id" params={{ id }}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition active:scale-[0.99]"
-                    >
-                      <ListChecks className="h-4 w-4" /> Start Practice Test
-                    </Link>
                   </div>
 
                   <div className="hidden md:flex justify-between items-center pt-4 border-t border-border">

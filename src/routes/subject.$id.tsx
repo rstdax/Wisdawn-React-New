@@ -109,6 +109,40 @@ function SubjectPage() {
           <div className="rounded-3xl border border-dashed border-border bg-card p-10 text-center mt-4">
             <p className="text-sm font-semibold text-muted-foreground">No chapters available yet.</p>
           </div>
+        ) : subject?.track === "coding" ? (
+          // Coding: flat video list, no accordion
+          <div className="space-y-2 mt-3">
+            {chapters
+              .sort((a, b) => (a.videoOrder ?? a.order ?? 0) - (b.videoOrder ?? b.order ?? 0))
+              .map((chapter, idx) => (
+                <Link
+                  key={chapter.id}
+                  to="/chapter/$id"
+                  params={{ id: chapter.id }}
+                  className="flex items-center gap-4 px-4 py-3.5 rounded-2xl border border-border bg-card hover:bg-primary-soft/40 transition"
+                >
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold text-sm">
+                    {chapter.videoOrder ?? idx + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm text-foreground truncate">{chapter.title}</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      {chapter.duration && (
+                        <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-semibold">
+                          <Clock className="h-3 w-3" /> {chapter.duration}
+                        </span>
+                      )}
+                      {chapter.difficulty && (
+                        <span className="text-[11px] text-muted-foreground font-semibold">{chapter.difficulty}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-sm shadow-primary/25">
+                    <Play className="h-3.5 w-3.5 fill-current translate-x-0.5" />
+                  </div>
+                </Link>
+              ))}
+          </div>
         ) : (
           <div className="space-y-4 mt-3">
             {groups.map((group) => {

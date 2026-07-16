@@ -22,6 +22,7 @@ export function Wisby({
       src={map[variant].url}
       alt="Wisby the WisDawn owl"
       className={className}
+      style={{ mixBlendMode: "multiply" }}
       draggable={false}
     />
   );

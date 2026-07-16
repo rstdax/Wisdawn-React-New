@@ -108,9 +108,8 @@ function LessonPage() {
     setSubmitting(false);
   };
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:8081";
   const iframeSrc = videoId
-    ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1&origin=${encodeURIComponent(origin)}&widget_referrer=${encodeURIComponent(origin)}${startTime ? `&start=${startTime}` : ""}`
+    ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1${startTime ? `&start=${startTime}` : ""}`
     : null;
 
   return (
@@ -326,11 +325,6 @@ function LessonPage() {
                         You've reached the last lesson in this chapter.
                       </div>
                     )}
-
-                    <Link to="/practice/$id" params={{ id: chapterId }}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition active:scale-[0.99]">
-                      <ListChecks className="h-4 w-4" /> Start Practice Test
-                    </Link>
                   </div>
 
                   {/* Prev / Next desktop */}

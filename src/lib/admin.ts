@@ -9,6 +9,7 @@ export type Subject = {
   class: string;
   track: "school" | "coding";
   icon?: string;
+  coverImage?: string;
   color?: string;
   order?: number;
 };
@@ -382,6 +383,80 @@ export async function addDiscussion(
 
 export async function deleteDiscussion(chapterId: string, discussionId: string): Promise<void> {
   await remove(ref(db, `discussions/${chapterId}/${discussionId}`));
+}
+
+// ─── User Last Watched ────────────────────────────────────────────────────────
+
+export type LastWatchedEntry = {
+  chapterId: string;
+  chapterTitle: string;
+  subjectId: string;
+  subjectTitle: string;
+  watchedAt: number;
+};
+
+export async function saveLastWatched(
+  uid: string,
+  entry: Omit<LastWatchedEntry, "watchedAt">
+): Promise<void> {
+  await set(ref(db, `userLastWatched/${uid}/${entry.chapterId}`), {
+    ...entry,
+    watchedAt: Date.now(),
+  });
+}
+
+export async function getLastWatched(
+  uid: string,
+  limit = 3
+): Promise<LastWatchedEntry[]> {
+  const snap = await get(ref(db, `userLastWatched/${uid}`));
+  if (!snap.exists()) return [];
+  const entries: LastWatchedEntry[] = Object.values(snap.val());
+  return entries
+    .sort((a, b) => b.watchedAt - a.watchedAt)
+    .slice(0, limit);
+}
+
+// ─── User Progress ────────────────────────────────────────────────────────────
+
+/**
+ * Mark a chapter as watched/completed for a user under a subject.
+ * Path: userProgress/{uid}/{subjectId}/watched/{chapterId} = true
+ */
+export async function markChapterWatched(
+  uid: string,
+  subjectId: string,
+  chapterId: string
+): Promise<void> {
+  await set(ref(db, `userProgress/${uid}/${subjectId}/watched/${chapterId}`), true);
+}
+
+/**
+ * Returns { watched: string[], total: number, percent: number }
+ * total = published chapters in the subject
+ * watched = chapter IDs the user has completed
+ */
+export async function getSubjectProgress(
+  uid: string,
+  subjectId: string
+): Promise<{ watched: string[]; total: number; percent: number }> {
+  const [chaptersSnap, watchedSnap] = await Promise.all([
+    getChaptersBySubject(subjectId),
+    get(ref(db, `userProgress/${uid}/${subjectId}/watched`)),
+  ]);
+
+  const publishedChapters = chaptersSnap.filter((c) => c.published);
+  const total = publishedChapters.length;
+
+  if (!watchedSnap.exists() || total === 0) {
+    return { watched: [], total, percent: 0 };
+  }
+
+  const watchedMap: Record<string, boolean> = watchedSnap.val();
+  const watched = Object.keys(watchedMap).filter((id) => watchedMap[id]);
+  const percent = Math.round((watched.length / total) * 100);
+
+  return { watched, total, percent };
 }
 
 // ─── Admin auth ───────────────────────────────────────────────────────────────

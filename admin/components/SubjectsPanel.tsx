@@ -15,12 +15,15 @@ const emptySubject: Omit<Subject, "id"> = {
 
 export function SubjectsPanel() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [track, setTrack] = useState<"school" | "coding">("school");
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Subject> | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,6 +53,28 @@ export function SubjectsPanel() {
     }
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("Please select an image file."); return; }
+    if (file.size > 5 * 1024 * 1024) { setError("Cover image must be under 5MB."); return; }
+    setUploadingCover(true);
+    setError("");
+    try {
+      const path = `subjects/covers/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+      const sRef = storageRef(storage, path);
+      await uploadBytes(sRef, file);
+      const url = await getDownloadURL(sRef);
+      setEditing((prev) => ({ ...prev, coverImage: url }));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Cover upload failed: ${msg.slice(0, 100)}`);
+    } finally {
+      setUploadingCover(false);
+      if (coverInputRef.current) coverInputRef.current.value = "";
+    }
+  };
+
   const load = () => {
     setLoading(true);
     getSubjects().then(setSubjects).finally(() => setLoading(false));
@@ -57,7 +82,7 @@ export function SubjectsPanel() {
 
   useEffect(load, []);
 
-  const openNew = () => setEditing({ ...emptySubject });
+  const openNew = () => setEditing({ ...emptySubject, track });
   const openEdit = (s: Subject) => setEditing({ ...s });
   const closeEdit = () => { setEditing(null); setError(""); };
 
@@ -94,6 +119,16 @@ export function SubjectsPanel() {
         </button>
       </div>
 
+      {/* Track tabs */}
+      <div className="flex gap-2 border-b border-border pb-0">
+        {(["school", "coding"] as const).map((t) => (
+          <button key={t} onClick={() => { setTrack(t); setEditing(null); }}
+            className={`px-5 py-2.5 text-sm font-bold border-b-2 transition-all -mb-px ${track === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+            {t === "school" ? "🏫 School Academy" : "💻 Coding Bootcamp"}
+          </button>
+        ))}
+      </div>
+
       {editing && (
         <div className="rounded-3xl border border-primary/30 bg-card p-6 shadow-md space-y-4">
           <div className="flex items-center justify-between">
@@ -119,42 +154,44 @@ export function SubjectsPanel() {
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-muted-foreground uppercase">Subject Icon (Image)</label>
               <div className="flex items-center gap-3">
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleIconUpload}
-                  className="hidden"
-                />
-                {/* Upload button */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="flex items-center gap-2 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted transition disabled:opacity-50 flex-1"
-                >
-                  {uploading ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>
-                  ) : (
-                    <><Upload className="h-4 w-4" /> Choose Image</>
-                  )}
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleIconUpload} className="hidden" />
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                  className="flex items-center gap-2 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted transition disabled:opacity-50 flex-1">
+                  {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="h-4 w-4" /> Choose Image</>}
                 </button>
-                {/* Preview */}
                 {editing.icon && !uploading && (
                   <div className="relative h-12 w-12 shrink-0 rounded-xl border border-border overflow-hidden bg-muted/20">
                     <img src={editing.icon} alt="preview" className="h-full w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setEditing({ ...editing, icon: "" })}
-                      className="absolute top-0.5 right-0.5 grid h-4 w-4 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                    >
+                    <button type="button" onClick={() => setEditing({ ...editing, icon: "" })}
+                      className="absolute top-0.5 right-0.5 grid h-4 w-4 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80">
                       <X className="h-2.5 w-2.5" />
                     </button>
                   </div>
                 )}
               </div>
               <p className="text-[10px] text-muted-foreground">PNG, JPG, SVG, WebP · Max 2MB</p>
+            </div>
+
+            {/* Cover image upload */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Card Cover Image</label>
+              <div className="flex items-center gap-3">
+                <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
+                  className="flex items-center gap-2 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted transition disabled:opacity-50 flex-1">
+                  {uploadingCover ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="h-4 w-4" /> Choose Cover</>}
+                </button>
+                {editing.coverImage && !uploadingCover && (
+                  <div className="relative h-12 w-20 shrink-0 rounded-xl border border-border overflow-hidden bg-muted/20">
+                    <img src={editing.coverImage} alt="cover preview" className="h-full w-full object-cover" />
+                    <button type="button" onClick={() => setEditing({ ...editing, coverImage: "" })}
+                      className="absolute top-0.5 right-0.5 grid h-4 w-4 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80">
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Background image shown on subject card · Max 5MB</p>
             </div>
             <Field label="Order" value={String(editing.order ?? 0)} onChange={(v) => setEditing({ ...editing, order: Number(v) })} placeholder="0" type="number" />
           </div>
@@ -173,11 +210,11 @@ export function SubjectsPanel() {
 
       {loading ? (
         <LoadingSkeleton rows={3} />
-      ) : subjects.length === 0 ? (
-        <EmptyState message="No subjects yet. Add your first subject above." />
+      ) : subjects.filter(s => s.track === track).length === 0 ? (
+        <EmptyState message={`No ${track === "school" ? "School Academy" : "Coding Bootcamp"} subjects yet.`} />
       ) : (
         <div className="space-y-3">
-          {subjects.map((s) => (
+          {subjects.filter(s => s.track === track).map((s) => (
             <div key={s.id} className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 transition hover:shadow-xs">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="h-10 w-10 shrink-0 rounded-xl border border-border bg-muted/20 overflow-hidden flex items-center justify-center">

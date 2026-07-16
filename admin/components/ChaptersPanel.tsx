@@ -23,6 +23,7 @@ const empty: Omit<Chapter, "id"> = {
 
 export function ChaptersPanel() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [track, setTrack] = useState<"school" | "coding">("school");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,8 @@ export function ChaptersPanel() {
   useEffect(() => {
     getSubjects().then((subs) => {
       setSubjects(subs);
-      if (subs.length) setSelectedSubject(subs[0].id);
+      const schoolSubs = subs.filter(s => s.track === "school");
+      if (schoolSubs.length) setSelectedSubject(schoolSubs[0].id);
     });
   }, []);
 
@@ -91,10 +93,25 @@ export function ChaptersPanel() {
         </button>
       </div>
 
-      {/* Subject pills */}
-      {subjects.length > 0 && (
+      {/* Track tabs */}
+      <div className="flex gap-2 border-b border-border pb-0">
+        {(["school", "coding"] as const).map((t) => (
+          <button key={t} onClick={() => {
+            setTrack(t);
+            closeEdit();
+            const filtered = subjects.filter(s => s.track === t);
+            setSelectedSubject(filtered[0]?.id ?? "");
+          }}
+            className={`px-5 py-2.5 text-sm font-bold border-b-2 transition-all -mb-px ${track === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+            {t === "school" ? "🏫 School Academy" : "💻 Coding Bootcamp"}
+          </button>
+        ))}
+      </div>
+
+      {/* Subject pills — filtered by track */}
+      {subjects.filter(s => s.track === track).length > 0 && (
         <div className="flex gap-2 flex-wrap">
-          {subjects.map((s) => (
+          {subjects.filter(s => s.track === track).map((s) => (
             <button key={s.id} onClick={() => { setSelectedSubject(s.id); closeEdit(); }}
               className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${selectedSubject === s.id ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}>
               {s.icon} {s.title}
@@ -120,7 +137,7 @@ export function ChaptersPanel() {
               <select value={editing.subjectId ?? ""} onChange={(e) => setEditing({ ...editing, subjectId: e.target.value })}
                 className="w-full rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20">
                 <option value="">Select subject…</option>
-                {subjects.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.title} — {s.class}</option>)}
+                {subjects.filter(s => s.track === track).map((s) => <option key={s.id} value={s.id}>{s.icon} {s.title} — {s.class}</option>)}
               </select>
             </div>
             <div className="space-y-1">
@@ -130,7 +147,15 @@ export function ChaptersPanel() {
                 <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
               </select>
             </div>
-            <Field label="Duration (e.g. 12:34)" value={editing.duration ?? ""} onChange={(v) => setEditing({ ...editing, duration: v })} placeholder="12:34" />
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Video Order <span className="text-muted-foreground font-normal normal-case">(1, 2, 3… within chapter)</span></label>
+              <input type="number" min={1}
+                value={editing.videoOrder ?? 1}
+                onChange={(e) => setEditing({ ...editing, videoOrder: Number(e.target.value) })}
+                className="w-full rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+              <p className="text-[10px] text-muted-foreground">Order of this video in the subject.</p>
+            </div>
+            {track === "school" && (
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-muted-foreground uppercase">Chapter ID <span className="text-muted-foreground font-normal normal-case">(1, 2, 3…)</span></label>
               <input type="number" min={1}
@@ -139,14 +164,7 @@ export function ChaptersPanel() {
                 className="w-full rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
               <p className="text-[10px] text-muted-foreground">Videos with same Chapter ID belong to the same chapter group.</p>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Video Order <span className="text-muted-foreground font-normal normal-case">(1, 2, 3… within chapter)</span></label>
-              <input type="number" min={1}
-                value={editing.videoOrder ?? 1}
-                onChange={(e) => setEditing({ ...editing, videoOrder: Number(e.target.value) })}
-                className="w-full rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
-              <p className="text-[10px] text-muted-foreground">Restarts from 1 for each Chapter ID.</p>
-            </div>
+            )}
           </div>
 
           {/* YouTube */}

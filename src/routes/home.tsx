@@ -18,7 +18,7 @@ import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
 import { useAuth } from "@/hooks/use-auth";
-import { getSubjects, type Subject } from "@/lib/admin";
+import { getSubjects, getLastWatched, type LastWatchedEntry, type Subject } from "@/lib/admin";
 import { SubjectIcon } from "@/components/SubjectIcon";
 
 export const Route = createFileRoute("/home")({
@@ -30,7 +30,7 @@ function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const search = location.search as Record<string, string | undefined>;
-  const { initials, displayName, profile, loading } = useAuth();
+  const { initials, displayName, profile, loading, user } = useAuth();
 
   // Real-time greeting based on current hour
   const getGreeting = () => {
@@ -53,12 +53,21 @@ function Home() {
 
   const [showAlerts, setShowAlerts] = useState(false);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [lastWatched, setLastWatched] = useState<LastWatchedEntry[]>([]);
 
   useEffect(() => {
     getSubjects().then((all) =>
       setSubjects(all.filter((s) => s.track === tab).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
     );
   }, [tab]);
+
+  useEffect(() => {
+    if (user) {
+      getLastWatched(user.uid, 3).then(setLastWatched);
+    } else {
+      setLastWatched([]);
+    }
+  }, [user]);
 
   return (
     <MobileFrame>
@@ -189,10 +198,6 @@ function Home() {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
-                <Wisby
-                  variant="cheer"
-                  className="absolute -bottom-3 -right-3 h-28 md:h-44 w-auto"
-                />
               </div>
             )}
 
@@ -212,10 +217,10 @@ function Home() {
               </>
             ) : (
               <>
-                <SectionHeader title="My Courses" linkTo="/learn" />
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SectionHeader title="Your Courses" linkTo="/learn?tab=courses" />
+                <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
                   {subjects.length === 0 ? (
-                    <div className="col-span-1 md:col-span-2 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
+                    <div className="col-span-2 md:col-span-4 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
                       No coding courses yet. Admin can add them from the dashboard.
                     </div>
                   ) : subjects.map((s) => (
@@ -228,68 +233,34 @@ function Home() {
             {/* CONTINUE LEARNING */}
             <SectionHeader title="Continue Learning" />
             <div className="mt-3 space-y-3">
-              <Link to="/chapter/$id" params={{ id: "chemical-reactions" }} className="block">
-                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-sm">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold">
-                    W
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">Chemical Reactions</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      Chapter 2 · Science · Class 10
-                    </p>
-                    <div className="mt-2 flex items-center gap-3">
-                      <div className="h-1.5 flex-1 rounded-full bg-muted">
-                        <div className="h-full w-[65%] rounded-full bg-primary" />
-                      </div>
-                      <span className="text-xs font-bold text-primary">65% Complete</span>
+              {lastWatched.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
+                  Start watching a chapter to track your progress here.
+                </div>
+              ) : lastWatched.map((entry) => (
+                <Link key={entry.chapterId} to="/chapter/$id" params={{ id: entry.chapterId }} className="block">
+                  <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-sm">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold text-lg">
+                      📖
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{entry.chapterTitle}</p>
+                      <p className="truncate text-xs text-muted-foreground">{entry.subjectTitle}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(entry.watchedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      </p>
+                    </div>
+                    <div className="grid md:hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+                      <Play className="h-4 w-4 fill-current" />
+                    </div>
+                    <div className="hidden md:flex flex-col items-end gap-1.5 ml-4">
+                      <span className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/95">
+                        Continue
+                      </span>
                     </div>
                   </div>
-                  <div className="hidden md:flex flex-col items-end gap-1.5 ml-4">
-                    <span className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/95">
-                      Continue
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      Last watched yesterday
-                    </span>
-                  </div>
-                  <div className="grid md:hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-                    <Play className="h-4 w-4 fill-current" />
-                  </div>
-                </div>
-              </Link>
-
-              {/* Second lesson (Coding specific / general) */}
-              <Link to="/chapter/$id" params={{ id: "python-variables" }} className="block">
-                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-sm">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold">
-                    P
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">Python Variables & Data Types</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      Lesson 3 · Python for Beginners
-                    </p>
-                    <div className="mt-2 flex items-center gap-3">
-                      <div className="h-1.5 flex-1 rounded-full bg-muted">
-                        <div className="h-full w-[45%] rounded-full bg-primary" />
-                      </div>
-                      <span className="text-xs font-bold text-primary">45% Complete</span>
-                    </div>
-                  </div>
-                  <div className="hidden md:flex flex-col items-end gap-1.5 ml-4">
-                    <span className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/95">
-                      Continue
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      Last watched 2 days ago
-                    </span>
-                  </div>
-                  <div className="grid md:hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-                    <Play className="h-4 w-4 fill-current" />
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              ))}
             </div>
 
             {/* RECOMMENDED FOR YOU (only visible on school layout) */}
@@ -592,30 +563,12 @@ function QuickActionCard({
 }
 
 function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; type?: "school" | "coding" }) {
-  const progressNum = subject.title.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % 60 + 40;
-
-  if (type === "coding") {
-    const isWeb = subject.title.toLowerCase().includes("web");
-    const color = isWeb ? "bg-sky-100 text-sky-700" : "bg-emerald-100 text-emerald-700";
-    return (
-      <Link to="/subject/$id" params={{ id: subject.id }} className="block">
-        <CourseCard
-          color={color}
-          icon={<SubjectIcon icon={subject.icon} className="h-5 w-5 !rounded-none !bg-transparent currentColor" />}
-          title={subject.title}
-          sub={subject.class || "12 Lessons"}
-          progress={progressNum}
-        />
-      </Link>
-    );
-  }
-
   return (
     <SubjectCard
       icon={<SubjectIcon icon={subject.icon} className="h-5 w-5 !rounded-none !bg-transparent text-primary" />}
       title={subject.title}
       sub={subject.class || ""}
-      progress={`${progressNum}%`}
+      coverImage={subject.coverImage}
       to={`/subject/${subject.id}`}
     />
   );
@@ -625,31 +578,35 @@ function SubjectCard({
   icon,
   title,
   sub,
-  progress,
+  coverImage,
   to,
 }: {
   icon: ReactNode;
   title: string;
   sub: string;
-  progress?: string;
+  coverImage?: string;
   to: string;
 }) {
   return (
     <Link
       to={to}
-      className="rounded-2xl border border-border bg-card p-4 flex flex-col justify-between transition hover:shadow-sm"
+      className="relative rounded-2xl border border-border bg-card overflow-hidden flex flex-col justify-between transition hover:shadow-sm min-h-[140px]"
     >
-      <div>
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft">{icon}</div>
-        <p className="mt-3 text-sm font-bold">{title}</p>
-        <p className="text-[11px] text-muted-foreground">{sub}</p>
-      </div>
-      {progress && (
-        <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between text-[10px] font-bold text-primary">
-          <span>Progress</span>
-          <span>{progress}</span>
-        </div>
+      {/* Cover image background */}
+      {coverImage && (
+        <img
+          src={coverImage}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-20"
+        />
       )}
+      <div className="relative p-4 flex flex-col justify-between h-full">
+        <div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft">{icon}</div>
+          <p className="mt-3 text-sm font-bold">{title}</p>
+          <p className="text-[11px] text-muted-foreground">{sub}</p>
+        </div>
+      </div>
     </Link>
   );
 }
@@ -659,28 +616,25 @@ function CourseCard({
   icon,
   title,
   sub,
-  progress,
+  coverImage,
 }: {
   color: string;
   icon: ReactNode;
   title: string;
   sub: string;
-  progress: number;
+  coverImage?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-sm">
-      <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${color}`}>{icon}</div>
-      <div className="min-w-0 flex-1">
+    <div className="relative flex items-center gap-3 rounded-2xl border border-border bg-card p-4 overflow-hidden transition hover:shadow-sm">
+      {coverImage && (
+        <img src={coverImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-20" />
+      )}
+      <div className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-xl ${color}`}>{icon}</div>
+      <div className="relative min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{title}</p>
         <p className="text-xs text-muted-foreground">{sub}</p>
-        <div className="mt-2 flex items-center gap-3">
-          <div className="h-1.5 flex-1 rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
-          </div>
-          <span className="text-xs font-bold text-primary">{progress}%</span>
-        </div>
       </div>
-      <span className="hidden md:grid h-8 w-8 place-items-center rounded-full bg-muted/60 text-muted-foreground transition hover:bg-muted">
+      <span className="relative hidden md:grid h-8 w-8 place-items-center rounded-full bg-muted/60 text-muted-foreground transition hover:bg-muted">
         <ChevronRight className="h-4 w-4" />
       </span>
     </div>

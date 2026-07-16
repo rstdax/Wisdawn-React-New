@@ -22,6 +22,7 @@ import {
 import { Wisby } from "@/components/wisby";
 import { useAuth } from "@/hooks/use-auth";
 import { signOutUser } from "@/lib/auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type SubItem = {
   to: string;
@@ -44,6 +45,7 @@ export function MobileFrame({ children }: { children: ReactNode }) {
   const search = location.search as Record<string, string | undefined>;
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { initials, displayName, profile, loading } = useAuth();
+  const isMobile = useIsMobile();
 
   const handleLogOut = async () => {
     await signOutUser();
@@ -359,13 +361,13 @@ export function MobileFrame({ children }: { children: ReactNode }) {
           </header>
 
           {/* Main Workspace Body */}
-          <main className="flex-1 p-8 bg-slate-50/50">{children}</main>
+          <main className="flex-1 p-8 bg-slate-50/50">{!isMobile && children}</main>
         </div>
       </div>
 
       {/* MOBILE LAYOUT (less than md) */}
       <div className="md:hidden mx-auto flex min-h-screen w-full max-w-110 flex-col border-x border-border/70 bg-background shadow-[0_25px_80px_-32px_rgba(15,23,42,0.35)]">
-        <div className="flex min-h-screen flex-1 flex-col">{children}</div>
+        <div className="flex min-h-screen flex-1 flex-col">{isMobile && children}</div>
       </div>
     </div>
   );

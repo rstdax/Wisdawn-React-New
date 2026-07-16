@@ -7,8 +7,9 @@ import {
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
-import { getSubjects, type Subject } from "@/lib/admin";
+import { getSubjects, getSubjectProgress, type Subject } from "@/lib/admin";
 import { SubjectIcon } from "@/components/SubjectIcon";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/learn")({
   head: () => ({ meta: [{ title: "Learn — WisDawn" }] }),
@@ -270,13 +271,31 @@ function Learn() {
   // Backend state
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+
+  const { user } = useAuth();
 
   useEffect(() => {
     setLoading(true);
     getSubjects()
-      .then((all) => setSubjects(all.filter((s) => s.track === track).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))))
+      .then((all) => {
+        const trackFiltered = all.filter((s) => s.track === track).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        setSubjects(trackFiltered);
+        // Fetch real progress for each subject if user is logged in
+        if (user) {
+          Promise.all(
+            trackFiltered.map((s) =>
+              getSubjectProgress(user.uid, s.id).then((p) => ({ id: s.id, percent: p.percent }))
+            )
+          ).then((results) => {
+            const map: Record<string, number> = {};
+            results.forEach((r) => { map[r.id] = r.percent; });
+            setProgressMap(map);
+          });
+        }
+      })
       .finally(() => setLoading(false));
-  }, [track]);
+  }, [track, user]);
 
   const filtered = subjects.filter((s) =>
     !query.trim() || s.title.toLowerCase().includes(query.trim().toLowerCase())
@@ -353,22 +372,6 @@ function Learn() {
           </div>
         </div>
 
-        {activeTab === 'lessons' && (
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-            {filters[track as keyof typeof filters].map((f) => (
-              <button
-                key={f}
-                onClick={() => setActive(f)}
-                className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold ${active === f
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-card text-muted-foreground'
-                  }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto md:overflow-visible px-0 pb-5">
@@ -438,22 +441,6 @@ function Learn() {
           </button>
         </div>
 
-        {activeTab === 'lessons' && (
-          <div className="hidden md:flex gap-2 mb-6 overflow-x-auto pb-1 px-5 md:px-0">
-            {filters[track as keyof typeof filters].map((f) => (
-              <button
-                key={f}
-                onClick={() => setActive(f)}
-                className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${active === f
-                  ? 'bg-primary text-white border-primary'
-                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
-                  }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-5 md:px-0">
           <div className="lg:col-span-2 space-y-6">
@@ -471,48 +458,45 @@ function Learn() {
                 </div>
 
                 <div>
-                  <h2 className="text-base font-bold text-foreground mb-3">Continue Learning</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredContinue.length > 0 ? (
-                      filteredContinue.map((item) => (
-                        <Link
-                          key={item.id}
-                          to="/chapter/$id"
-                          params={{ id: item.id }}
-                          className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-xs"
-                        >
-                          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold">
-                            W
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold">{item.title}</p>
-                            <p className="truncate text-xs text-muted-foreground">{item.sub}</p>
-                            {typeof item.progress === 'number' && (
-                              <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-                                <div
-                                  className="h-full rounded-full bg-primary"
-                                  style={{ width: `${item.progress}%` }}
-                                />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col items-end shrink-0 ml-2">
-                            {typeof item.progress === 'number' ? (
-                              <span className="text-xs font-bold text-primary">{item.progress}%</span>
-                            ) : (
-                              <span className="grid h-8 w-8 place-items-center rounded-full bg-primary-soft text-primary transition hover:bg-primary hover:text-white">
-                                <Play className="h-3.5 w-3.5 fill-current" />
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      ))
-                    ) : (
-                      <div className="col-span-full rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-center text-muted-foreground">
-                        No lessons match that search yet.
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-base font-bold text-foreground">Your Subjects</h2>
+                    <Link to="/learn" search={{ tab: "courses" }} className="text-xs font-semibold text-primary hover:underline">
+                      View All
+                    </Link>
                   </div>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : filtered.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-center text-muted-foreground">
+                      No subjects found.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {filtered.map((subject) => {
+                        const progressNum = progressMap[subject.id] ?? 0;
+                        return (
+                          <Link
+                            key={subject.id}
+                            to="/subject/$id"
+                            params={{ id: subject.id }}
+                            className="flex flex-col rounded-2xl border border-border bg-card p-4 gap-3 transition hover:shadow-sm hover:border-primary/30"
+                          >
+                            <SubjectIcon icon={subject.icon} className="h-14 w-14 text-2xl" />
+                            <div>
+                              <p className="text-sm font-bold text-foreground leading-tight">{subject.title}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{subject.class || track}</p>
+                            </div>
+                            <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
+                              <span className="text-xs font-semibold text-primary">Progress</span>
+                              <span className="text-xs font-bold text-primary">{progressNum}%</span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -625,7 +609,7 @@ function Learn() {
                         "from-rose-500 to-red-600"
                       ];
                       const color = colors[index % colors.length];
-                      const progressNum = subject.title.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % 60 + 40;
+                      const progressNum = progressMap[subject.id] ?? 0;
                       return (
                         <div
                           key={subject.id}
