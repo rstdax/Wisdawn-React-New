@@ -249,8 +249,9 @@ function Learn() {
   const location = useLocation();
   const search = location.search as Record<string, string | undefined>;
 
-  const track = search?.track === "coding" ? "coding" : "school";
+  const track = search?.track === "coding" ? "coding" : (search?.track === "school" ? "school" : (typeof window !== "undefined" ? (localStorage.getItem("wisdawn_track") as "school" | "coding" || "school") : "school"));
   const setTrack = (newTrack: "school" | "coding") => {
+    if (typeof window !== "undefined") localStorage.setItem("wisdawn_track", newTrack);
     navigate({
       to: "/learn",
       search: { ...search, track: newTrack },
@@ -273,13 +274,20 @@ function Learn() {
   const [loading, setLoading] = useState(true);
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
 
-  const { user } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
 
   useEffect(() => {
     setLoading(true);
+    // Wait for auth/profile to load first
+    if (authLoading) return;
     getSubjects()
       .then((all) => {
-        const trackFiltered = all.filter((s) => s.track === track).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const trackFiltered = all.filter((s) => {
+          if (s.track !== track) return false;
+          // For school track, filter by user's class
+          if (track === "school" && profile?.cls && s.class && s.class !== profile.cls) return false;
+          return true;
+        }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         setSubjects(trackFiltered);
         // Fetch real progress for each subject if user is logged in
         if (user) {
@@ -295,7 +303,7 @@ function Learn() {
         }
       })
       .finally(() => setLoading(false));
-  }, [track, user]);
+  }, [track, user, profile, authLoading]);
 
   const filtered = subjects.filter((s) =>
     !query.trim() || s.title.toLowerCase().includes(query.trim().toLowerCase())
@@ -420,31 +428,11 @@ function Learn() {
           </div>
         </div>
 
-        <div className="flex border-b border-border/80 px-5 md:px-0 mb-6 gap-6">
-          <button
-            onClick={() => setActiveTab('lessons')}
-            className={`pb-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${activeTab === 'lessons'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-          >
-            Subject Lessons
-          </button>
-          <button
-            onClick={() => setActiveTab('courses')}
-            className={`pb-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${activeTab === 'courses'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-          >
-            Courses
-          </button>
-        </div>
 
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-5 md:px-0">
           <div className="lg:col-span-2 space-y-6">
-            {activeTab === 'lessons' ? (
+            {true ? (
               <>
                 <div className="rounded-2xl border border-border bg-primary-soft p-3 text-sm md:hidden">
                   <div className="flex items-center gap-2 font-semibold text-primary">
@@ -460,9 +448,6 @@ function Learn() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-base font-bold text-foreground">Your Subjects</h2>
-                    <Link to="/learn" search={{ tab: "courses" }} className="text-xs font-semibold text-primary hover:underline">
-                      View All
-                    </Link>
                   </div>
                   {loading ? (
                     <div className="flex items-center justify-center py-10">
@@ -481,16 +466,32 @@ function Learn() {
                             key={subject.id}
                             to="/subject/$id"
                             params={{ id: subject.id }}
-                            className="flex flex-col rounded-2xl border border-border bg-card p-4 gap-3 transition hover:shadow-sm hover:border-primary/30"
+                            className="relative flex flex-col rounded-2xl overflow-hidden transition hover:shadow-md min-h-[140px]"
                           >
-                            <SubjectIcon icon={subject.icon} className="h-14 w-14 text-2xl" />
-                            <div>
-                              <p className="text-sm font-bold text-foreground leading-tight">{subject.title}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">{subject.class || track}</p>
-                            </div>
-                            <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
-                              <span className="text-xs font-semibold text-primary">Progress</span>
-                              <span className="text-xs font-bold text-primary">{progressNum}%</span>
+                            {/* Cover image */}
+                            {subject.coverImage ? (
+                              <img
+                                src={subject.coverImage}
+                                alt=""
+                                className="absolute inset-0 h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-card border border-border rounded-2xl" />
+                            )}
+                            {/* Gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                            {/* Content */}
+                            <div className="relative p-3 flex flex-col justify-between h-full">
+                              <div className="mt-auto pt-2">
+                                <p className="text-sm font-bold text-white drop-shadow-md leading-tight">{subject.title}</p>
+                                <p className="text-[11px] text-white/75 mt-0.5">{subject.class || track}</p>
+                                <div className="mt-2 hidden items-center gap-2">
+                                  <div className="h-1 flex-1 rounded-full bg-white/30 overflow-hidden">
+                                    <div className="h-full rounded-full bg-white" style={{ width: `${progressNum}%` }} />
+                                  </div>
+                                  <span className="text-[10px] font-bold text-white/90">{progressNum}%</span>
+                                </div>
+                              </div>
                             </div>
                           </Link>
                         );

@@ -4,18 +4,16 @@ import {
   onAuthStateChanged,
   type User,
 } from "firebase/auth";
-import { ref, set, get, serverTimestamp } from "firebase/database";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db, googleProvider } from "./firebase";
 
-// ─── Google Sign-In (popup-based) ────────────────────────────────────────────
+// ─── Google Sign-In ───────────────────────────────────────────────────────────
 
 export async function signInWithGoogle(): Promise<User> {
   const result = await signInWithPopup(auth, googleProvider);
   await saveUserToDatabase(result.user);
   return result.user;
 }
-
-// ─── Kept for backward compatibility — no longer needed with popup flow ───────
 
 export async function handleGoogleRedirectResult(): Promise<User | null> {
   return null;
@@ -33,21 +31,18 @@ export function onAuthChange(callback: (user: User | null) => void) {
   return onAuthStateChanged(auth, callback);
 }
 
-// ─── Get Current User ─────────────────────────────────────────────────────────
-
 export function getCurrentUser(): User | null {
   return auth.currentUser;
 }
 
-// ─── Save User to Firebase Realtime Database ─────────────────────────────────
+// ─── Save User to Firestore ───────────────────────────────────────────────────
 
 async function saveUserToDatabase(user: User): Promise<void> {
-  const userRef = ref(db, `users/${user.uid}`);
-  const snapshot = await get(userRef);
+  const userRef = doc(db, "users", user.uid);
+  const snapshot = await getDoc(userRef);
 
   if (!snapshot.exists()) {
-    // New user — create full profile with default stats
-    await set(userRef, {
+    await setDoc(userRef, {
       uid: user.uid,
       name: user.displayName ?? "",
       email: user.email ?? "",
@@ -64,32 +59,23 @@ async function saveUserToDatabase(user: User): Promise<void> {
       },
     });
   } else {
-    // Existing user — update last login only
-    const existingData = snapshot.val();
-    await set(userRef, {
-      ...existingData,
+    await updateDoc(userRef, {
       lastLoginAt: serverTimestamp(),
     });
   }
 }
 
-// ─── Get Chapter Video from Database ─────────────────────────────────────────
+// ─── Get Chapter Video (now uses Firestore via admin.ts) ──────────────────────
 
 export async function getChapterVideo(
   chapterId: string
 ): Promise<{ videoId: string; startTime?: number } | null> {
-  const chapterRef = ref(db, `chapters/${chapterId}`);
-  const snapshot = await get(chapterRef);
-  if (!snapshot.exists()) return null;
-  const data = snapshot.val();
+  const snap = await getDoc(doc(db, "chapters", chapterId));
+  if (!snap.exists()) return null;
+  const data = snap.data();
   if (!data.videoId) return null;
-  return {
-    videoId: data.videoId,
-    startTime: data.startTime ?? 0,
-  };
+  return { videoId: data.videoId, startTime: data.startTime ?? 0 };
 }
-
-// ─── Get Chapter Video ID from Database (legacy) ─────────────────────────────
 
 export async function getChapterVideoId(chapterId: string): Promise<string | null> {
   const result = await getChapterVideo(chapterId);
@@ -97,12 +83,11 @@ export async function getChapterVideoId(chapterId: string): Promise<string | nul
 }
 
 export async function getUserProfile(uid: string) {
-  const userRef = ref(db, `users/${uid}`);
-  const snapshot = await get(userRef);
-  return snapshot.exists() ? snapshot.val() : null;
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? snap.data() : null;
 }
 
-// ─── Update Onboarding Data ───────────────────────────────────────────────────
+// ─── Onboarding ───────────────────────────────────────────────────────────────
 
 export async function saveOnboardingData(
   uid: string,
@@ -116,12 +101,11 @@ export async function saveOnboardingData(
     state: string;
   }
 ): Promise<void> {
-  const userRef = ref(db, `users/${uid}`);
-  const snapshot = await get(userRef);
+  const userRef = doc(db, "users", uid);
+  const snapshot = await getDoc(userRef);
 
   if (snapshot.exists()) {
-    await set(userRef, {
-      ...snapshot.val(),
+    await updateDoc(userRef, {
       ...data,
       onboardingCompleted: true,
       onboardingCompletedAt: serverTimestamp(),

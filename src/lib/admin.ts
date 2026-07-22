@@ -1,4 +1,7 @@
-import { ref, set, get, push, remove, update } from "firebase/database";
+import {
+  collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc,
+  query, where, orderBy, updateDoc, serverTimestamp, Timestamp,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,9 +28,9 @@ export type Chapter = {
   difficulty?: "Beginner" | "Intermediate" | "Advanced";
   whatYouLearn?: string[];
   resourcesNote?: string;
-  chapterId?: number;    // numeric group ID: 1, 2, 3... (same chapterId = same chapter group)
-  videoOrder?: number;   // order within the chapter group: 1, 2, 3...
-  order?: number;        // global order for sorting
+  chapterId?: number;
+  videoOrder?: number;
+  order?: number;
   published?: boolean;
 };
 
@@ -38,17 +41,14 @@ export type Lesson = {
   chapterId: string;
   title: string;
   lessonType: LessonType;
-  // Video-specific
   youtubeVideoId?: string;
   youtubeUrl?: string;
   durationSeconds?: number;
-  durationDisplay?: string;   // e.g. "12:34"
+  durationDisplay?: string;
   startTimeSeconds?: number;
-  // Content
   description?: string;
   whatYouLearn?: string[];
   resourcesNote?: string;
-  // Meta
   order: number;
   isFreePreview?: boolean;
   published?: boolean;
@@ -85,61 +85,72 @@ export type Discussion = {
   createdAt?: number;
 };
 
-// Navigation helpers
 export type LessonNavContext = {
   lesson: Lesson;
   chapter: Chapter;
-  lessonIndex: number;       // 0-based within chapter
+  lessonIndex: number;
+  nextLessonIndex: number | null;
   totalLessonsInChapter: number;
   nextLesson: Lesson | null;
-  nextLessonChapter: Chapter | null;  // if next lesson is in next chapter
+  nextLessonChapter: Chapter | null;
   prevLesson: Lesson | null;
   prevLessonChapter: Chapter | null;
   isLastLessonOfSubject: boolean;
 };
 
+export type LastWatchedEntry = {
+  chapterId: string;
+  chapterTitle: string;
+  subjectId: string;
+  subjectTitle: string;
+  watchedAt: number;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function stripUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>;
+}
+
 // ─── Subjects ─────────────────────────────────────────────────────────────────
 
 export async function getSubjects(): Promise<Subject[]> {
-  const snap = await get(ref(db, "subjects"));
-  if (!snap.exists()) return [];
-  return Object.entries(snap.val())
-    .map(([id, val]) => ({ id, ...(val as Omit<Subject, "id">) }))
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const snap = await getDocs(query(collection(db, "subjects"), orderBy("order", "asc")));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Subject));
 }
 
 export async function saveSubject(subject: Omit<Subject, "id"> & { id?: string }): Promise<string> {
+  const data = stripUndefined(subject);
   if (subject.id) {
-    await set(ref(db, `subjects/${subject.id}`), subject);
+    await setDoc(doc(db, "subjects", subject.id), data, { merge: true });
     return subject.id;
   }
-  const newRef = push(ref(db, "subjects"));
-  await set(newRef, { ...subject, id: newRef.key });
-  return newRef.key!;
+  const ref = await addDoc(collection(db, "subjects"), data);
+  await setDoc(doc(db, "subjects", ref.id), { ...data, id: ref.id }, { merge: true });
+  return ref.id;
 }
 
 export async function deleteSubject(id: string): Promise<void> {
-  await remove(ref(db, `subjects/${id}`));
+  await deleteDoc(doc(db, "subjects", id));
 }
 
 // ─── Chapters ─────────────────────────────────────────────────────────────────
 
 export async function getChaptersBySubject(subjectId: string): Promise<Chapter[]> {
-  const snap = await get(ref(db, "chapters"));
-  if (!snap.exists()) return [];
-  return Object.entries(snap.val())
-    .map(([id, val]) => ({ id, ...(val as Omit<Chapter, "id">) }))
-    .filter((c) => c.subjectId === subjectId)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const snap = await getDocs(
+    query(collection(db, "chapters"), where("subjectId", "==", subjectId), orderBy("order", "asc"))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Chapter));
 }
 
 export async function getChapter(chapterId: string): Promise<Chapter | null> {
-  const snap = await get(ref(db, `chapters/${chapterId}`));
+  const snap = await getDoc(doc(db, "chapters", chapterId));
   if (!snap.exists()) return null;
-  return { id: chapterId, ...snap.val() };
+  return { id: snap.id, ...snap.data() } as Chapter;
 }
 
-// Get all chapters in the same chapterId group within a subject
 export async function getChaptersByGroupId(subjectId: string, chapterGroupId: number): Promise<Chapter[]> {
   const all = await getChaptersBySubject(subjectId);
   return all
@@ -148,59 +159,55 @@ export async function getChaptersByGroupId(subjectId: string, chapterGroupId: nu
 }
 
 export async function saveChapter(chapter: Omit<Chapter, "id"> & { id?: string }): Promise<string> {
+  const data = stripUndefined(chapter);
   if (chapter.id) {
-    await set(ref(db, `chapters/${chapter.id}`), chapter);
+    await setDoc(doc(db, "chapters", chapter.id), data, { merge: true });
     return chapter.id;
   }
-  const newRef = push(ref(db, "chapters"));
-  const id = newRef.key!;
-  await set(newRef, { ...chapter, id });
-  return id;
+  const ref = await addDoc(collection(db, "chapters"), data);
+  await setDoc(doc(db, "chapters", ref.id), { ...data, id: ref.id }, { merge: true });
+  return ref.id;
 }
 
 export async function deleteChapter(id: string): Promise<void> {
-  await remove(ref(db, `chapters/${id}`));
+  await deleteDoc(doc(db, "chapters", id));
 }
 
 // ─── Lessons ──────────────────────────────────────────────────────────────────
 
 export async function getLessonsByChapter(chapterId: string): Promise<Lesson[]> {
-  const snap = await get(ref(db, `lessons/${chapterId}`));
-  if (!snap.exists()) return [];
-  return Object.entries(snap.val())
-    .map(([id, val]) => ({ id, ...(val as Omit<Lesson, "id">) }))
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const snap = await getDocs(
+    query(collection(db, "lessons"), where("chapterId", "==", chapterId), orderBy("order", "asc"))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Lesson));
 }
 
 export async function getLesson(chapterId: string, lessonId: string): Promise<Lesson | null> {
-  const snap = await get(ref(db, `lessons/${chapterId}/${lessonId}`));
+  const snap = await getDoc(doc(db, "lessons", lessonId));
   if (!snap.exists()) return null;
-  return { id: lessonId, ...(snap.val() as Omit<Lesson, "id">) };
+  return { id: snap.id, ...snap.data() } as Lesson;
 }
 
 export async function saveLesson(lesson: Omit<Lesson, "id"> & { id?: string }): Promise<string> {
-  const path = `lessons/${lesson.chapterId}`;
   const now = Date.now();
+  const data = stripUndefined({ ...lesson, updatedAt: now });
   if (lesson.id) {
-    await set(ref(db, `${path}/${lesson.id}`), { ...lesson, updatedAt: now });
+    await setDoc(doc(db, "lessons", lesson.id), data, { merge: true });
     return lesson.id;
   }
-  const newRef = push(ref(db, path));
-  const id = newRef.key!;
-  await set(newRef, { ...lesson, id, createdAt: now, updatedAt: now });
-  return id;
+  const ref = await addDoc(collection(db, "lessons"), { ...data, createdAt: now });
+  await setDoc(doc(db, "lessons", ref.id), { ...data, id: ref.id, createdAt: now }, { merge: true });
+  return ref.id;
 }
 
 export async function deleteLesson(chapterId: string, lessonId: string): Promise<void> {
-  await remove(ref(db, `lessons/${chapterId}/${lessonId}`));
+  await deleteDoc(doc(db, "lessons", lessonId));
 }
 
 export async function reorderLessons(chapterId: string, orderedIds: string[]): Promise<void> {
-  const updates: Record<string, number> = {};
-  orderedIds.forEach((id, idx) => {
-    updates[`lessons/${chapterId}/${id}/order`] = idx;
-  });
-  await update(ref(db), updates);
+  await Promise.all(
+    orderedIds.map((id, idx) => updateDoc(doc(db, "lessons", id), { order: idx }))
+  );
 }
 
 // ─── Navigation: build lesson nav context ─────────────────────────────────────
@@ -212,7 +219,6 @@ export async function getLessonNavContext(
   const chapter = await getChapter(chapterId);
   if (!chapter) return null;
 
-  // Get all published lessons in this chapter
   const chapterLessons = (await getLessonsByChapter(chapterId)).filter((l) => l.published);
   const lessonIndex = chapterLessons.findIndex((l) => l.id === lessonId);
   const lesson = chapterLessons[lessonIndex];
@@ -221,11 +227,9 @@ export async function getLessonNavContext(
   const isLastInChapter = lessonIndex === chapterLessons.length - 1;
   const isFirstInChapter = lessonIndex === 0;
 
-  // Next lesson within chapter
   let nextLesson: Lesson | null = chapterLessons[lessonIndex + 1] ?? null;
   let nextLessonChapter: Chapter | null = null;
 
-  // If last lesson in chapter → find first lesson of next chapter
   if (!nextLesson && isLastInChapter && chapter.subjectId) {
     const allChapters = (await getChaptersBySubject(chapter.subjectId)).filter((c) => c.published);
     const chapterIdx = allChapters.findIndex((c) => c.id === chapterId);
@@ -239,11 +243,9 @@ export async function getLessonNavContext(
     }
   }
 
-  // Prev lesson within chapter
   let prevLesson: Lesson | null = chapterLessons[lessonIndex - 1] ?? null;
   let prevLessonChapter: Chapter | null = null;
 
-  // If first lesson in chapter → find last lesson of prev chapter
   if (!prevLesson && isFirstInChapter && chapter.subjectId) {
     const allChapters = (await getChaptersBySubject(chapter.subjectId)).filter((c) => c.published);
     const chapterIdx = allChapters.findIndex((c) => c.id === chapterId);
@@ -257,7 +259,6 @@ export async function getLessonNavContext(
     }
   }
 
-  // Is this the absolute last lesson in the subject?
   let isLastLessonOfSubject = false;
   if (!nextLesson && chapter.subjectId) {
     const allChapters = (await getChaptersBySubject(chapter.subjectId)).filter((c) => c.published);
@@ -269,6 +270,7 @@ export async function getLessonNavContext(
     lesson,
     chapter,
     lessonIndex,
+    nextLessonIndex: nextLesson ? (nextLessonChapter ? 0 : lessonIndex + 1) : null,
     totalLessonsInChapter: chapterLessons.length,
     nextLesson,
     nextLessonChapter,
@@ -278,20 +280,15 @@ export async function getLessonNavContext(
   };
 }
 
-// ─── Migration: convert legacy chapter video → Lesson 1 ───────────────────────
+// ─── Migration: legacy chapter → Lesson 1 ─────────────────────────────────────
 
 export async function migrateLegacyChapterToLesson(chapterId: string): Promise<boolean> {
   const chapter = await getChapter(chapterId);
   if (!chapter) return false;
-
-  // Skip if no legacy video data
   if (!chapter.videoId && !chapter.duration) return false;
-
-  // Check if already migrated (lessons exist)
   const existing = await getLessonsByChapter(chapterId);
   if (existing.length > 0) return false;
 
-  // Create Lesson 1 from legacy chapter data
   await saveLesson({
     chapterId,
     title: chapter.title,
@@ -314,146 +311,121 @@ export async function migrateLegacyChapterToLesson(chapterId: string): Promise<b
 // ─── Resources ────────────────────────────────────────────────────────────────
 
 export async function getResources(chapterId: string): Promise<Resource[]> {
-  const snap = await get(ref(db, `resources/${chapterId}`));
-  if (!snap.exists()) return [];
-  return Object.entries(snap.val())
-    .map(([id, val]) => ({ id, ...(val as Omit<Resource, "id">) }))
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const snap = await getDocs(
+    query(collection(db, "resources"), where("chapterId", "==", chapterId), orderBy("order", "asc"))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Resource));
 }
 
 export async function saveResource(resource: Omit<Resource, "id"> & { id?: string }): Promise<string> {
-  const path = `resources/${resource.chapterId}`;
+  const data = stripUndefined(resource);
   if (resource.id) {
-    await set(ref(db, `${path}/${resource.id}`), resource);
+    await setDoc(doc(db, "resources", resource.id), data, { merge: true });
     return resource.id;
   }
-  const newRef = push(ref(db, path));
-  const id = newRef.key!;
-  await set(newRef, { ...resource, id });
-  return id;
+  const ref = await addDoc(collection(db, "resources"), data);
+  await setDoc(doc(db, "resources", ref.id), { ...data, id: ref.id }, { merge: true });
+  return ref.id;
 }
 
 export async function deleteResource(chapterId: string, resourceId: string): Promise<void> {
-  await remove(ref(db, `resources/${chapterId}/${resourceId}`));
+  await deleteDoc(doc(db, "resources", resourceId));
 }
 
 // ─── Q&A ──────────────────────────────────────────────────────────────────────
 
 export async function getQA(chapterId: string): Promise<QAItem[]> {
-  const snap = await get(ref(db, `qa/${chapterId}`));
-  if (!snap.exists()) return [];
-  return Object.entries(snap.val())
-    .map(([id, val]) => ({ id, ...(val as Omit<QAItem, "id">) }))
-    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  const snap = await getDocs(
+    query(collection(db, "qa"), where("chapterId", "==", chapterId), orderBy("createdAt", "desc"))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as QAItem));
 }
 
 export async function addQA(chapterId: string, question: string, authorUid: string): Promise<string> {
-  const newRef = push(ref(db, `qa/${chapterId}`));
-  const id = newRef.key!;
-  await set(newRef, { id, chapterId, question, answer: "", askedBy: authorUid, createdAt: Date.now() });
-  return id;
+  const ref = await addDoc(collection(db, "qa"), {
+    chapterId, question, answer: "", askedBy: authorUid, createdAt: Date.now(),
+  });
+  await updateDoc(doc(db, "qa", ref.id), { id: ref.id });
+  return ref.id;
 }
 
 export async function answerQA(chapterId: string, qaId: string, answer: string): Promise<void> {
-  await update(ref(db, `qa/${chapterId}/${qaId}`), { answer, answeredBy: "admin" });
+  await updateDoc(doc(db, "qa", qaId), { answer, answeredBy: "admin" });
 }
 
 export async function deleteQA(chapterId: string, qaId: string): Promise<void> {
-  await remove(ref(db, `qa/${chapterId}/${qaId}`));
+  await deleteDoc(doc(db, "qa", qaId));
 }
 
 // ─── Discussions ──────────────────────────────────────────────────────────────
 
 export async function getDiscussions(chapterId: string): Promise<Discussion[]> {
-  const snap = await get(ref(db, `discussions/${chapterId}`));
-  if (!snap.exists()) return [];
-  return Object.entries(snap.val())
-    .map(([id, val]) => ({ id, ...(val as Omit<Discussion, "id">) }))
-    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  const snap = await getDocs(
+    query(collection(db, "discussions"), where("chapterId", "==", chapterId), orderBy("createdAt", "desc"))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Discussion));
 }
 
 export async function addDiscussion(
   chapterId: string, message: string, authorName: string, authorUid: string
 ): Promise<string> {
-  const newRef = push(ref(db, `discussions/${chapterId}`));
-  const id = newRef.key!;
-  await set(newRef, { id, chapterId, message, authorName, authorUid, createdAt: Date.now() });
-  return id;
+  const ref = await addDoc(collection(db, "discussions"), {
+    chapterId, message, authorName, authorUid, createdAt: Date.now(),
+  });
+  await updateDoc(doc(db, "discussions", ref.id), { id: ref.id });
+  return ref.id;
 }
 
 export async function deleteDiscussion(chapterId: string, discussionId: string): Promise<void> {
-  await remove(ref(db, `discussions/${chapterId}/${discussionId}`));
+  await deleteDoc(doc(db, "discussions", discussionId));
 }
 
 // ─── User Last Watched ────────────────────────────────────────────────────────
-
-export type LastWatchedEntry = {
-  chapterId: string;
-  chapterTitle: string;
-  subjectId: string;
-  subjectTitle: string;
-  watchedAt: number;
-};
 
 export async function saveLastWatched(
   uid: string,
   entry: Omit<LastWatchedEntry, "watchedAt">
 ): Promise<void> {
-  await set(ref(db, `userLastWatched/${uid}/${entry.chapterId}`), {
-    ...entry,
-    watchedAt: Date.now(),
-  });
+  await setDoc(
+    doc(db, "userLastWatched", uid, "entries", entry.chapterId),
+    { ...entry, watchedAt: Date.now() }
+  );
 }
 
-export async function getLastWatched(
-  uid: string,
-  limit = 3
-): Promise<LastWatchedEntry[]> {
-  const snap = await get(ref(db, `userLastWatched/${uid}`));
-  if (!snap.exists()) return [];
-  const entries: LastWatchedEntry[] = Object.values(snap.val());
-  return entries
-    .sort((a, b) => b.watchedAt - a.watchedAt)
-    .slice(0, limit);
+export async function getLastWatched(uid: string, limit = 3): Promise<LastWatchedEntry[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, "userLastWatched", uid, "entries"),
+      orderBy("watchedAt", "desc")
+    )
+  );
+  return snap.docs.slice(0, limit).map((d) => d.data() as LastWatchedEntry);
 }
 
 // ─── User Progress ────────────────────────────────────────────────────────────
 
-/**
- * Mark a chapter as watched/completed for a user under a subject.
- * Path: userProgress/{uid}/{subjectId}/watched/{chapterId} = true
- */
-export async function markChapterWatched(
-  uid: string,
-  subjectId: string,
-  chapterId: string
-): Promise<void> {
-  await set(ref(db, `userProgress/${uid}/${subjectId}/watched/${chapterId}`), true);
+export async function markChapterWatched(uid: string, subjectId: string, chapterId: string): Promise<void> {
+  await setDoc(
+    doc(db, "userProgress", uid, subjectId, chapterId),
+    { watched: true, watchedAt: Date.now() }
+  );
 }
 
-/**
- * Returns { watched: string[], total: number, percent: number }
- * total = published chapters in the subject
- * watched = chapter IDs the user has completed
- */
 export async function getSubjectProgress(
   uid: string,
   subjectId: string
 ): Promise<{ watched: string[]; total: number; percent: number }> {
-  const [chaptersSnap, watchedSnap] = await Promise.all([
+  const [chapters, watchedSnap] = await Promise.all([
     getChaptersBySubject(subjectId),
-    get(ref(db, `userProgress/${uid}/${subjectId}/watched`)),
+    getDocs(collection(db, "userProgress", uid, subjectId)),
   ]);
 
-  const publishedChapters = chaptersSnap.filter((c) => c.published);
+  const publishedChapters = chapters.filter((c) => c.published);
   const total = publishedChapters.length;
 
-  if (!watchedSnap.exists() || total === 0) {
-    return { watched: [], total, percent: 0 };
-  }
+  if (total === 0) return { watched: [], total, percent: 0 };
 
-  const watchedMap: Record<string, boolean> = watchedSnap.val();
-  const watched = Object.keys(watchedMap).filter((id) => watchedMap[id]);
+  const watched = watchedSnap.docs.map((d) => d.id);
   const percent = Math.round((watched.length / total) * 100);
 
   return { watched, total, percent };
@@ -462,17 +434,17 @@ export async function getSubjectProgress(
 // ─── Admin auth ───────────────────────────────────────────────────────────────
 
 export async function isAdmin(uid: string): Promise<boolean> {
-  const snap = await get(ref(db, `admins/${uid}`));
-  return snap.exists() && snap.val() === true;
+  const snap = await getDoc(doc(db, "admins", uid));
+  return snap.exists() && snap.data()?.admin === true;
 }
 
 export async function setAdmin(uid: string, value: boolean): Promise<void> {
-  await set(ref(db, `admins/${uid}`), value);
+  await setDoc(doc(db, "admins", uid), { admin: value });
 }
 
 // ─── User profile ─────────────────────────────────────────────────────────────
 
 export async function getUserProfile(uid: string) {
-  const snap = await get(ref(db, `users/${uid}`));
-  return snap.exists() ? snap.val() : null;
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? snap.data() : null;
 }

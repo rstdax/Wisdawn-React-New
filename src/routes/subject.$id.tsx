@@ -77,7 +77,7 @@ function SubjectPage() {
         </button>
         <div className="min-w-0">
           <h1 className="text-base font-bold truncate">
-            {subject?.icon} {subject?.title ?? "Subject"}
+            {subject?.title ?? "Subject"}
           </h1>
           <p className="text-[11px] text-muted-foreground">{subject?.class ?? ""}</p>
         </div>
@@ -90,7 +90,6 @@ function SubjectPage() {
           <ArrowLeft className="h-4 w-4" /> Back to Learn
         </button>
         <div className="flex items-center gap-4">
-          <span className="text-4xl">{subject?.icon ?? "📘"}</span>
           <div>
             <h1 className="text-2xl font-extrabold text-foreground">{subject?.title}</h1>
             <p className="text-sm text-muted-foreground">

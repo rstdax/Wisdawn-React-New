@@ -298,19 +298,14 @@ function LessonPage() {
                         className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:shadow-xs hover:border-primary/30"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="grid h-12 w-16 place-items-center rounded-xl bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
-                            {navCtx.nextLesson.durationDisplay ?? "—"}
-                          </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-foreground">{navCtx.nextLesson.title}</p>
-                            {navCtx.nextLessonChapter && (
-                              <p className="text-[10px] text-primary font-semibold mt-0.5">
-                                Next Chapter: {navCtx.nextLessonChapter.title}
-                              </p>
-                            )}
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">
                               {navCtx.nextLessonChapter ? navCtx.nextLessonChapter.title : chapterTitle}
                             </p>
+                            {navCtx.nextLesson.durationDisplay && (
+                              <p className="text-[10px] text-primary font-semibold mt-0.5">{navCtx.nextLesson.durationDisplay}</p>
+                            )}
                           </div>
                         </div>
                         <Play className="h-4 w-4 text-primary shrink-0" />

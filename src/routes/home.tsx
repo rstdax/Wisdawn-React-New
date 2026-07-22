@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import {
   Bell,
   Code2,
@@ -20,6 +20,26 @@ import { Wisby } from "@/components/wisby";
 import { useAuth } from "@/hooks/use-auth";
 import { getSubjects, getLastWatched, type LastWatchedEntry, type Subject } from "@/lib/admin";
 import { SubjectIcon } from "@/components/SubjectIcon";
+import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+type Banner = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  buttonText?: string;
+  buttonLink?: string;
+  imageUrl?: string;
+  order: number;
+  active: boolean;
+};
+
+async function getActiveBanners(): Promise<Banner[]> {
+  const snap = await getDocs(
+    query(collection(db, "banners"), where("active", "==", true), orderBy("order", "asc"))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Banner));
+}
 
 export const Route = createFileRoute("/home")({
   head: () => ({ meta: [{ title: "Home — WisDawn" }] }),
@@ -35,16 +55,17 @@ function Home() {
   // Real-time greeting based on current hour
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Good Morning 🌅";
-    if (hour >= 12 && hour < 17) return "Good Afternoon ☀️";
-    if (hour >= 17 && hour < 21) return "Good Evening 🌆";
-    return "Good Night 🌙";
+    if (hour >= 5 && hour < 12) return "Good Morning";
+    if (hour >= 12 && hour < 17) return "Good Afternoon";
+    if (hour >= 17 && hour < 21) return "Good Evening";
+    return "Good Night";
   };
 
   const greeting = getGreeting();
 
-  const tab = search?.track === "coding" ? "coding" : "school";
+  const tab = search?.track === "coding" ? "coding" : (search?.track === "school" ? "school" : (typeof window !== "undefined" ? (localStorage.getItem("wisdawn_track") as "school" | "coding" || "school") : "school"));
   const setTab = (newTab: "school" | "coding") => {
+    if (typeof window !== "undefined") localStorage.setItem("wisdawn_track", newTab);
     navigate({
       to: "/home",
       search: { track: newTab },
@@ -54,12 +75,35 @@ function Home() {
   const [showAlerts, setShowAlerts] = useState(false);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [lastWatched, setLastWatched] = useState<LastWatchedEntry[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const bannerTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-slide banners every 4 seconds
+  useEffect(() => {
+    getActiveBanners().then(setBanners);
+  }, []);
 
   useEffect(() => {
+    if (banners.length <= 1) return;
+    bannerTimer.current = setInterval(() => {
+      setBannerIndex((i) => (i + 1) % banners.length);
+    }, 4000);
+    return () => { if (bannerTimer.current) clearInterval(bannerTimer.current); };
+  }, [banners.length]);
+
+  useEffect(() => {
+    // Wait for profile to load before fetching subjects
+    if (loading) return;
     getSubjects().then((all) =>
-      setSubjects(all.filter((s) => s.track === tab).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
+      setSubjects(all.filter((s) => {
+        if (s.track !== tab) return false;
+        // Filter by user class for school track
+        if (tab === "school" && profile?.cls && s.class && s.class !== profile.cls) return false;
+        return true;
+      }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4))
     );
-  }, [tab]);
+  }, [tab, profile, loading]);
 
   useEffect(() => {
     if (user) {
@@ -132,41 +176,90 @@ function Home() {
           <div className="lg:col-span-2 space-y-6">
             {/* MOBILE USER BADGE */}
             <div className="flex md:hidden items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                {loading ? "…" : initials}
-              </div>
               <div>
-                <p className="text-xs text-muted-foreground">{greeting} 👋</p>
+                <p className="text-xs text-muted-foreground">{greeting}</p>
                 <p className="text-base font-bold">{loading ? "Loading…" : displayName}</p>
               </div>
             </div>
 
-            {/* HERO BANNER */}
+            {/* HERO BANNER CAROUSEL */}
             {tab === "school" ? (
-              <div className="relative overflow-hidden rounded-3xl bg-primary-soft p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
-                <p className="text-xs md:text-sm text-primary font-bold tracking-wider uppercase">
-                  {greeting}, 👋
-                </p>
-                <h2 className="text-xl md:text-3xl font-extrabold text-foreground mt-1">
-                  {loading ? "…" : displayName}
-                </h2>
-                <p className="text-xs md:text-sm text-muted-foreground mt-2 max-w-md">
-                  Learn better with School Academy for {loading ? "…" : (profile?.cls || "your class")}
-                </p>
-                <div className="mt-4 md:mt-6">
-                  <Link
-                    to="/learn"
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
-                  >
-                    Explore Now
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+              banners.length > 0 ? (
+                <div className="relative overflow-hidden rounded-3xl min-h-[180px] md:min-h-[220px]">
+                  {banners.map((banner, idx) => (
+                    <div
+                      key={banner.id}
+                      className={`absolute inset-0 transition-opacity duration-700 ${idx === bannerIndex ? "opacity-100 z-10" : "opacity-0 z-0"}`}
+                    >
+                      {banner.imageUrl ? (
+                        <img src={banner.imageUrl} alt={banner.title} className="absolute inset-0 h-full w-full object-cover" />
+                      ) : null}
+                      <div className={`absolute inset-0 ${banner.imageUrl ? "bg-black/40" : "bg-primary-soft"}`} />
+                      <div className="relative z-10 p-6 md:p-8 flex flex-col justify-center h-full">
+                        <p className={`text-xs md:text-sm font-bold tracking-wider uppercase ${banner.imageUrl ? "text-white/80" : "text-primary"}`}>
+                          {greeting},
+                        </p>
+                        <h2 className={`text-xl md:text-3xl font-extrabold mt-1 ${banner.imageUrl ? "text-white" : "text-foreground"}`}>
+                          {banner.title}
+                        </h2>
+                        {banner.subtitle && (
+                          <p className={`text-xs md:text-sm mt-2 max-w-md ${banner.imageUrl ? "text-white/80" : "text-muted-foreground"}`}>
+                            {banner.subtitle}
+                          </p>
+                        )}
+                        {banner.buttonText && (
+                          <div className="mt-4 md:mt-6">
+                            <Link
+                              to={(banner.buttonLink as "/learn") || "/learn"}
+                              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
+                            >
+                              {banner.buttonText}
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {/* Dots */}
+                  {banners.length > 1 && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+                      {banners.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => { setBannerIndex(idx); if (bannerTimer.current) clearInterval(bannerTimer.current); }}
+                          className={`h-1.5 rounded-full transition-all ${idx === bannerIndex ? "bg-white w-4" : "bg-white/50 w-1.5"}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <Wisby
-                  variant="thumbs"
-                  className="absolute -bottom-3 -right-3 h-28 md:h-44 w-auto"
-                />
-              </div>
+              ) : (
+                <div className="relative overflow-hidden rounded-3xl bg-primary-soft p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
+                  <p className="text-xs md:text-sm text-primary font-bold tracking-wider uppercase">
+                    {greeting},
+                  </p>
+                  <h2 className="text-xl md:text-3xl font-extrabold text-foreground mt-1">
+                    {loading ? "…" : displayName}
+                  </h2>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-2 max-w-md">
+                    Learn better with School Academy for {loading ? "…" : (profile?.cls || "your class")}
+                  </p>
+                  <div className="mt-4 md:mt-6">
+                    <Link
+                      to="/learn"
+                      className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
+                    >
+                      Explore Now
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                  <Wisby
+                    variant="thumbs"
+                    className="absolute -bottom-3 -right-3 h-28 md:h-44 w-auto"
+                  />
+                </div>
+              )
             ) : (
               <div className="relative overflow-hidden rounded-3xl bg-[oklch(0.32_0.13_278)] text-white p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
                 <h2 className="text-xl md:text-3xl font-extrabold tracking-tight">
@@ -565,7 +658,7 @@ function QuickActionCard({
 function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; type?: "school" | "coding" }) {
   return (
     <SubjectCard
-      icon={<SubjectIcon icon={subject.icon} className="h-5 w-5 !rounded-none !bg-transparent text-primary" />}
+      icon={<SubjectIcon icon={subject.icon} className="h-10 w-10 rounded-xl" />}
       title={subject.title}
       sub={subject.class || ""}
       coverImage={subject.coverImage}
@@ -590,21 +683,24 @@ function SubjectCard({
   return (
     <Link
       to={to}
-      className="relative rounded-2xl border border-border bg-card overflow-hidden flex flex-col justify-between transition hover:shadow-sm min-h-[140px]"
+      className="relative rounded-2xl overflow-hidden flex flex-col justify-between transition hover:shadow-sm min-h-[140px]"
     >
-      {/* Cover image background */}
-      {coverImage && (
+      {/* Cover image — full opacity, fills card completely */}
+      {coverImage ? (
         <img
           src={coverImage}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-20"
+          className="absolute inset-0 h-full w-full object-cover"
         />
+      ) : (
+        <div className="absolute inset-0 bg-card border border-border rounded-2xl" />
       )}
+      {/* Gradient overlay bottom — keeps text readable */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
       <div className="relative p-4 flex flex-col justify-between h-full">
-        <div>
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft">{icon}</div>
-          <p className="mt-3 text-sm font-bold">{title}</p>
-          <p className="text-[11px] text-muted-foreground">{sub}</p>
+        <div className="mt-auto pt-3">
+          <p className="text-sm font-bold text-white drop-shadow-md">{title}</p>
+          <p className="text-[11px] text-white/75">{sub}</p>
         </div>
       </div>
     </Link>

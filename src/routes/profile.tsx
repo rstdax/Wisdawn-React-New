@@ -1,20 +1,30 @@
-import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode, useEffect } from "react";
 import {
-  Bell,
   Download,
-  Bookmark,
   Award,
   Settings,
   ChevronRight,
   User as UserIcon,
-  MessageSquare,
   HelpCircle,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { useAuth } from "@/hooks/use-auth";
-import { signOutUser } from "@/lib/auth";
+import { signOutUser, saveOnboardingData } from "@/lib/auth";
+
+const ASSAM_DISTRICTS = [
+  "Bajali","Baksa","Barpeta","Biswanath","Bongaigaon","Cachar",
+  "Charaideo","Chirang","Darrang","Dhemaji","Dhubri","Dibrugarh",
+  "Dima Hasao","Goalpara","Golaghat","Hailakandi","Hojai","Jorhat",
+  "Kamrup","Kamrup Metropolitan (Guwahati)","Karbi Anglong","Karimganj",
+  "Kokrajhar","Lakhimpur","Majuli","Morigaon (Marigaon)","Nagaon",
+  "Nalbari","Sivasagar","Sonitpur","South Salmara–Mankachar",
+  "Tamulpur","Tinsukia","Udalguri","West Karbi Anglong",
+];
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — WisDawn" }] }),
@@ -25,57 +35,12 @@ function Profile() {
   const location = useLocation();
   const navigate = useNavigate();
   const search = location.search as Record<string, string | undefined>;
-  const { initials, displayName, displayEmail, profile, loading } = useAuth();
+  const { initials, displayName, displayEmail, profile, loading, user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
-  const [remindersEnabled, setRemindersEnabled] = useState(true);
-  const [selectedItem, setSelectedItem] = useState("Study Reminders");
-
-  // Messages / Chat State
-  const [chats, setChats] = useState([
-    {
-      id: "wisby",
-      name: "Wisby AI Companion",
-      avatar: "🤖",
-      lastMessage: "Hey Rahul! Ready to finish Chapter 2 Chemical Reactions today?",
-      time: "10:30 AM",
-      unread: true,
-      messages: [
-        { sender: "other", text: "Hello Rahul! Welcome to Wisdawn. I am Wisby, your learning partner.", time: "Yesterday" },
-        { sender: "user", text: "Hi Wisby! Can you help me study Chemistry?", time: "Yesterday" },
-        { sender: "other", text: "Absolutely! I can explain concepts, quiz you, or help you solve equations.", time: "Yesterday" },
-        { sender: "other", text: "Hey Rahul! Ready to finish Chapter 2 Chemical Reactions today?", time: "10:30 AM" }
-      ]
-    },
-    {
-      id: "amit",
-      name: "Dr. Amit (Chemistry)",
-      avatar: "👨‍🏫",
-      lastMessage: "Great job on the practice test. Let me know if you have questions.",
-      time: "Yesterday",
-      unread: false,
-      messages: [
-        { sender: "user", text: "Hello Sir, I finished the homework on balancing equations.", time: "Yesterday" },
-        { sender: "other", text: "Great job on the practice test. Let me know if you have questions.", time: "Yesterday" }
-      ]
-    },
-    {
-      id: "group",
-      name: "Class 10 Study Group",
-      avatar: "👥",
-      lastMessage: "Who's up for a study session tonight at 8?",
-      time: "2 days ago",
-      unread: false,
-      messages: [
-        { sender: "other", senderName: "Sneha", text: "Did anyone solve question 4 on page 24?", time: "2 days ago" },
-        { sender: "other", senderName: "Aman", text: "Yes, I got 12g as the answer.", time: "2 days ago" },
-        { sender: "other", senderName: "Sneha", text: "Ah, thanks! I made a calculation error.", time: "2 days ago" },
-        { sender: "other", senderName: "Aman", text: "Who's up for a study session tonight at 8?", time: "2 days ago" }
-      ]
-    }
-  ]);
-  const [activeChatId, setActiveChatId] = useState("wisby");
-  const [newMessageText, setNewMessageText] = useState("");
+  const [editForm, setEditForm] = useState({ name: "", guardian: "", cls: "", dob: "", district: "", state: "", track: "" });
+  const [saving, setSaving] = useState(false);
+  const [selectedItem, setSelectedItem] = useState("Downloads");
 
   // Help & Support Form State
   const [ticketSubject, setTicketSubject] = useState("");
@@ -87,18 +52,26 @@ function Profile() {
     if (!loading && displayName && displayName !== "Learner") {
       setName(displayName);
     }
-  }, [loading, displayName]);
+    if (!loading && profile) {
+      setEditForm({
+        name: profile.name || displayName || "",
+        guardian: profile.guardian || "",
+        cls: profile.cls || "",
+        dob: profile.dob || "",
+        district: profile.district || "",
+        state: profile.state || "",
+        track: profile.track || "",
+      });
+    }
+  }, [loading, displayName, profile]);
 
   // Sync selected tab with search parameters if provided
   useEffect(() => {
     if (search?.tab) {
       const tabName = search.tab.toString();
       const matched = [
-        "Study Reminders",
         "Downloads",
-        "Bookmarks",
         "Achievements",
-        "Messages",
         "Help & Support",
         "Settings",
       ].find((t) => {
@@ -159,10 +132,10 @@ function Profile() {
                   </span>
                 </div>
                 <button
-                  onClick={() => setIsEditing((value) => !value)}
+                  onClick={() => { setIsEditing(true); }}
                   className="rounded-full bg-card px-3 py-1.5 text-[10px] font-bold text-muted-foreground border border-border transition hover:bg-muted shrink-0"
                 >
-                  {isEditing ? "Save" : "Edit Profile"}
+                  Edit Profile
                 </button>
               </div>
 
@@ -178,34 +151,16 @@ function Profile() {
             {/* SELECTION ITEMS LIST */}
             <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
               <Item
-                icon={<Bell className="h-4 w-4" />}
-                label="Study Reminders"
-                active={selectedItem === "Study Reminders"}
-                onClick={() => setSelectedItem("Study Reminders")}
-              />
-              <Item
                 icon={<Download className="h-4 w-4" />}
                 label="Downloads"
                 active={selectedItem === "Downloads"}
                 onClick={() => setSelectedItem("Downloads")}
               />
               <Item
-                icon={<Bookmark className="h-4 w-4" />}
-                label="Bookmarks"
-                active={selectedItem === "Bookmarks"}
-                onClick={() => setSelectedItem("Bookmarks")}
-              />
-              <Item
                 icon={<Award className="h-4 w-4" />}
                 label="Achievements"
                 active={selectedItem === "Achievements"}
                 onClick={() => setSelectedItem("Achievements")}
-              />
-              <Item
-                icon={<MessageSquare className="h-4 w-4" />}
-                label="Messages"
-                active={selectedItem === "Messages"}
-                onClick={() => setSelectedItem("Messages")}
               />
               <Item
                 icon={<HelpCircle className="h-4 w-4" />}
@@ -236,35 +191,6 @@ function Profile() {
                 {selectedItem}
               </h2>
 
-              {selectedItem === "Study Reminders" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Daily study reminders</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Receive gentle nudges for your next class or practice set.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setRemindersEnabled((value) => !value)}
-                      className={`rounded-full px-4 py-2 text-xs font-bold transition shadow-xs ${
-                        remindersEnabled
-                          ? "bg-primary text-white"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {remindersEnabled ? "Enabled" : "Disabled"}
-                    </button>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-primary-soft/50 border border-primary/5 text-xs text-muted-foreground font-medium">
-                    {remindersEnabled
-                      ? "Notifications will be delivered to your device at 9:00 AM daily."
-                      : "Reminders are paused. You will not receive any daily study streaks warnings."}
-                  </div>
-                </div>
-              )}
-
               {selectedItem === "Downloads" && (
                 <div className="space-y-4">
                   <p className="text-sm font-semibold text-foreground">Offline Saved Materials</p>
@@ -284,29 +210,6 @@ function Profile() {
                     Total offline cache storage used: <strong>48 MB</strong>. You can clear the
                     cache in Settings.
                   </p>
-                </div>
-              )}
-
-              {selectedItem === "Bookmarks" && (
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Bookmarked Chapters</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <BookmarkCard
-                      title="Chemical Reactions"
-                      desc="Class 10 Science"
-                      to="/chapter/chemical-reactions"
-                    />
-                    <BookmarkCard
-                      title="Cell Structure &amp; Division"
-                      desc="Class 9 Science"
-                      to="/learn"
-                    />
-                    <BookmarkCard
-                      title="Python basics for beginners"
-                      desc="Coding Bootcamp"
-                      to="/learn"
-                    />
-                  </div>
                 </div>
               )}
 
@@ -333,143 +236,6 @@ function Profile() {
                       points="+150 XP"
                       icon="🔬"
                     />
-                  </div>
-                </div>
-              )}
-
-              {selectedItem === "Messages" && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[400px]">
-                  {/* Chat conversations list */}
-                  <div className="md:col-span-1 border-r border-border/60 pr-4 overflow-y-auto space-y-2 h-full">
-                    {chats.map((chat) => (
-                      <button
-                        key={chat.id}
-                        onClick={() => {
-                          setActiveChatId(chat.id);
-                          // Clear unread status
-                          setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unread: false } : c));
-                        }}
-                        className={`flex items-start gap-3 w-full p-2.5 rounded-xl text-left transition ${activeChatId === chat.id ? "bg-primary-soft text-primary font-semibold" : "hover:bg-muted/40 text-muted-foreground hover:text-foreground"
-                          }`}
-                      >
-                        <div className="text-xl bg-card border border-border/60 rounded-xl p-2 h-10 w-10 flex items-center justify-center shrink-0 shadow-xs">
-                          {chat.avatar}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex justify-between items-baseline">
-                            <span className={`text-xs truncate ${chat.unread ? "font-bold text-foreground" : "font-semibold"}`}>
-                              {chat.name}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground shrink-0">{chat.time}</span>
-                          </div>
-                          <p className="text-[10px] truncate text-muted-foreground mt-0.5">{chat.lastMessage}</p>
-                        </div>
-                        {chat.unread && (
-                          <span className="h-2 w-2 rounded-full bg-destructive mt-2 shrink-0" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Active chat window */}
-                  <div className="md:col-span-2 flex flex-col h-full min-h-[300px]">
-                    {/* Chat messages */}
-                    <div className="flex-1 overflow-y-auto space-y-3 pb-4 pr-1">
-                      {chats.find((c) => c.id === activeChatId)?.messages.map((msg, idx) => {
-                        const isUser = msg.sender === "user";
-                        return (
-                          <div
-                            key={idx}
-                            className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-                          >
-                            <div className="max-w-[80%]">
-                              {!isUser && "senderName" in msg && (
-                                <span className="text-[9px] text-muted-foreground ml-2 mb-0.5 block font-bold">
-                                  {msg.senderName}
-                                </span>
-                              )}
-                              <div
-                                className={`p-3 rounded-2xl text-xs ${isUser
-                                  ? "bg-primary text-primary-foreground rounded-tr-none"
-                                  : "bg-muted text-foreground rounded-tl-none border border-border/30"
-                                  }`}
-                              >
-                                <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                              </div>
-                              <span className="text-[9px] text-muted-foreground mt-1 ml-1 block text-right">
-                                {msg.time}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Chat Input form */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (!newMessageText.trim()) return;
-
-                        const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                        // Append user message
-                        setChats(prev => prev.map(c => {
-                          if (c.id === activeChatId) {
-                            return {
-                              ...c,
-                              lastMessage: newMessageText,
-                              time: timeString,
-                              messages: [
-                                ...c.messages,
-                                { sender: "user", text: newMessageText, time: timeString }
-                              ]
-                            };
-                          }
-                          return c;
-                        }));
-
-                        const userQuery = newMessageText;
-                        setNewMessageText("");
-
-                        // Add a mock response from Wisby AI if active chat is wisby
-                        if (activeChatId === "wisby") {
-                          setTimeout(() => {
-                            setChats(prev => prev.map(c => {
-                              if (c.id === "wisby") {
-                                const botMsg = {
-                                  sender: "other",
-                                  text: `I'm on it! Let me help you with: "${userQuery}". You can also check out the 'Learn' tab for more courses!`,
-                                  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                };
-                                return {
-                                  ...c,
-                                  lastMessage: botMsg.text,
-                                  time: botMsg.time,
-                                  messages: [...c.messages, botMsg]
-                                };
-                              }
-                              return c;
-                            }));
-                          }, 1000);
-                        }
-                      }}
-                      className="border-t border-border pt-3 flex gap-2"
-                    >
-                      <input
-                        type="text"
-                        value={newMessageText}
-                        onChange={(e) => setNewMessageText(e.target.value)}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
-                      />
-                      <button
-                        type="submit"
-                        className="bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2 text-xs font-semibold shadow-xs"
-                      >
-                        Send
-                      </button>
-                    </form>
                   </div>
                 </div>
               )}
@@ -574,6 +340,89 @@ function Profile() {
                 </div>
               )}
 
+              {selectedItem === "Edit Profile" && (
+                <div className="space-y-4">
+                  <p className="text-sm font-bold text-foreground">Personal Information</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Full Name</label>
+                      <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Guardian Name</label>
+                      <input value={editForm.guardian} onChange={(e) => setEditForm({ ...editForm, guardian: e.target.value })}
+                        className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Class</label>
+                      <select value={editForm.cls} onChange={(e) => setEditForm({ ...editForm, cls: e.target.value })}
+                        className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Select Class</option>
+                        <option value="Class 9">Class 9</option>
+                        <option value="Class 10">Class 10</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Date of Birth</label>
+                      <input type="date" value={editForm.dob} onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })}
+                        className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">State</label>
+                      <select value={editForm.state} onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                        className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Select State</option>
+                        <option value="Assam">Assam</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">District</label>
+                      <select value={editForm.district} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
+                        className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Select District</option>
+                        {ASSAM_DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Track</label>
+                      <select value={editForm.track} onChange={(e) => setEditForm({ ...editForm, track: e.target.value })}
+                        className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Select Track</option>
+                        <option value="School Academy">School Academy</option>
+                        <option value="Coding Bootcamp">Coding Bootcamp</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button
+                    disabled={saving}
+                    onClick={async () => {
+                      if (!user) return;
+                      setSaving(true);
+                      try {
+                        await saveOnboardingData(user.uid, {
+                          name: editForm.name,
+                          guardian: editForm.guardian,
+                          cls: editForm.cls,
+                          track: editForm.track,
+                          dob: editForm.dob,
+                          district: editForm.district,
+                          state: editForm.state,
+                        });
+                        setName(editForm.name);
+                        setSelectedItem("Downloads");
+                        setIsEditing(false);
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                    className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {saving ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              )}
+
               {selectedItem === "Settings" && (
                 <div className="space-y-4 text-xs font-semibold text-muted-foreground">
                   <p className="text-sm font-bold text-foreground mb-1">
@@ -609,6 +458,106 @@ function Profile() {
         </div>
       </div>
       <BottomNav />
+
+      {/* EDIT PROFILE MODAL */}
+      {isEditing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg rounded-3xl bg-card border border-border shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-bold text-foreground">Edit Profile</h2>
+              <button onClick={() => setIsEditing(false)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-muted hover:bg-muted/80 transition">
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Full Name</label>
+                <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Guardian Name</label>
+                <input value={editForm.guardian} onChange={(e) => setEditForm({ ...editForm, guardian: e.target.value })}
+                  className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Class</label>
+                <select value={editForm.cls} onChange={(e) => setEditForm({ ...editForm, cls: e.target.value })}
+                  className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Select Class</option>
+                  <option value="Class 9">Class 9</option>
+                  <option value="Class 10">Class 10</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Date of Birth</label>
+                <input type="date" value={editForm.dob} onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })}
+                  className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">State</label>
+                <select value={editForm.state} onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                  className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Select State</option>
+                  <option value="Assam">Assam</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">District</label>
+                <select value={editForm.district} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
+                  className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Select District</option>
+                  {ASSAM_DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Track</label>
+                <select value={editForm.track} onChange={(e) => setEditForm({ ...editForm, track: e.target.value })}
+                  className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Select Track</option>
+                  <option value="School Academy">School Academy</option>
+                  <option value="Coding Bootcamp">Coding Bootcamp</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setIsEditing(false)}
+                className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-muted-foreground hover:bg-muted transition">
+                Cancel
+              </button>
+              <button
+                disabled={saving}
+                onClick={async () => {
+                  if (!user) return;
+                  setSaving(true);
+                  try {
+                    await saveOnboardingData(user.uid, {
+                      name: editForm.name,
+                      guardian: editForm.guardian,
+                      cls: editForm.cls,
+                      track: editForm.track,
+                      dob: editForm.dob,
+                      district: editForm.district,
+                      state: editForm.state,
+                    });
+                    setName(editForm.name);
+                    setIsEditing(false);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MobileFrame>
   );
 }
@@ -666,19 +615,6 @@ function DownloadRow({ title, type, size }: { title: string; type: string; size:
       </div>
       <span className="text-muted-foreground font-bold">{size}</span>
     </div>
-  );
-}
-
-function BookmarkCard({ title, desc, to }: { title: string; desc: string; to: string }) {
-  return (
-    <Link
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      to={to as any}
-      className="block rounded-2xl border border-border bg-card p-4 transition hover:shadow-xs"
-    >
-      <p className="text-xs font-bold text-foreground leading-tight">{title}</p>
-      <p className="text-[10px] text-muted-foreground mt-1 font-semibold">{desc}</p>
-    </Link>
   );
 }
 

@@ -25,11 +25,21 @@ export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
 });
 
+const ASSAM_DISTRICTS = [
+  "Bajali", "Baksa", "Barpeta", "Biswanath", "Bongaigaon", "Cachar",
+  "Charaideo", "Chirang", "Darrang", "Dhemaji", "Dhubri", "Dibrugarh",
+  "Dima Hasao", "Goalpara", "Golaghat", "Hailakandi", "Hojai", "Jorhat",
+  "Kamrup", "Kamrup Metropolitan (Guwahati)", "Karbi Anglong", "Karimganj",
+  "Kokrajhar", "Lakhimpur", "Majuli", "Morigaon (Marigaon)", "Nagaon",
+  "Nalbari", "Sivasagar", "Sonitpur", "South Salmara–Mankachar",
+  "Tamulpur", "Tinsukia", "Udalguri", "West Karbi Anglong",
+];
+
 type Data = {
   name: string;
   guardian: string;
   cls: "Class 9" | "Class 10" | "";
-  track: "School (Science)" | "Coding Bootcamp" | "";
+  track: "School Academy" | "Coding Bootcamp" | "";
   dob: string;
   district: string;
   state: string;
@@ -430,11 +440,11 @@ function Onboarding() {
                   <div className="space-y-3 pt-2">
                     <button
                       onClick={() => {
-                        setD({ ...d, track: "School (Science)" });
+                        setD({ ...d, track: "School Academy" });
                         if (error) setError("");
                       }}
                       className={`flex w-full items-center gap-4 rounded-2xl border bg-muted/10 px-5 py-4 text-left transition ${
-                        d.track === "School (Science)"
+                        d.track === "School Academy"
                           ? "border-primary bg-primary-soft/50 ring-2 ring-primary/10"
                           : "border-border hover:bg-muted/50"
                       }`}
@@ -443,7 +453,7 @@ function Onboarding() {
                         <Atom className="h-5 w-5" />
                       </span>
                       <div className="min-w-0">
-                        <p className="font-bold text-sm text-foreground">School (Science)</p>
+                        <p className="font-bold text-sm text-foreground">School Academy</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           Physics, Chemistry, Biology &amp; more
                         </p>
@@ -521,17 +531,15 @@ function Onboarding() {
                         District
                       </label>
                       <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <input
-                          type="text"
-                          placeholder="Select District"
+                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <select
                           value={d.district}
-                          onChange={(e) => {
-                            setD({ ...d, district: e.target.value });
-                            if (error) setError("");
-                          }}
-                          className="flex-1 bg-transparent placeholder:text-muted-foreground focus:outline-none"
-                        />
+                          onChange={(e) => { setD({ ...d, district: e.target.value }); if (error) setError(""); }}
+                          className="flex-1 bg-transparent focus:outline-none text-sm"
+                        >
+                          <option value="">Select District</option>
+                          {ASSAM_DISTRICTS.map((dist) => <option key={dist} value={dist}>{dist}</option>)}
+                        </select>
                       </div>
                     </div>
 
@@ -540,17 +548,15 @@ function Onboarding() {
                         State
                       </label>
                       <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <input
-                          type="text"
-                          placeholder="Select State"
+                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <select
                           value={d.state}
-                          onChange={(e) => {
-                            setD({ ...d, state: e.target.value });
-                            if (error) setError("");
-                          }}
-                          className="flex-1 bg-transparent placeholder:text-muted-foreground focus:outline-none"
-                        />
+                          onChange={(e) => { setD({ ...d, state: e.target.value }); if (error) setError(""); }}
+                          className="flex-1 bg-transparent focus:outline-none text-sm"
+                        >
+                          <option value="">Select State</option>
+                          <option value="Assam">Assam</option>
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -723,13 +729,13 @@ function Onboarding() {
               <p className="mt-2 text-sm text-muted-foreground">You can choose one for now.</p>
               <div className="mt-6 space-y-3">
                 <Choice
-                  active={d.track === "School (Science)"}
+                  active={d.track === "School Academy"}
                   onClick={() => {
-                    setD({ ...d, track: "School (Science)" });
+                    setD({ ...d, track: "School Academy" });
                     if (error) setError("");
                   }}
                   icon={<Atom className="h-5 w-5 text-primary" />}
-                  title="School (Science)"
+                  title="School Academy"
                   sub="Physics, Chemistry, Biology & more"
                 />
                 <Choice
@@ -769,24 +775,28 @@ function Onboarding() {
             <StepWrap>
               <Title bold="live?">Where do you</Title>
               <p className="mt-2 text-sm text-muted-foreground">Tell us your location.</p>
-              <Field
-                icon={<MapPin className="h-4 w-4" />}
-                placeholder="Select District"
-                value={d.district}
-                onChange={(v) => {
-                  setD({ ...d, district: v });
-                  if (error) setError("");
-                }}
-              />
-              <Field
-                icon={<MapPin className="h-4 w-4" />}
-                placeholder="Select State"
-                value={d.state}
-                onChange={(v) => {
-                  setD({ ...d, state: v });
-                  if (error) setError("");
-                }}
-              />
+              <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                <select
+                  value={d.district}
+                  onChange={(e) => { setD({ ...d, district: e.target.value }); if (error) setError(""); }}
+                  className="flex-1 bg-transparent focus:outline-none text-sm"
+                >
+                  <option value="">Select District</option>
+                  {ASSAM_DISTRICTS.map((dist) => <option key={dist} value={dist}>{dist}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                <select
+                  value={d.state}
+                  onChange={(e) => { setD({ ...d, state: e.target.value }); if (error) setError(""); }}
+                  className="flex-1 bg-transparent focus:outline-none text-sm"
+                >
+                  <option value="">Select State</option>
+                  <option value="Assam">Assam</option>
+                </select>
+              </div>
               <MascotArea bubble={"So we can show you the best content near you."} />
             </StepWrap>
           )}
