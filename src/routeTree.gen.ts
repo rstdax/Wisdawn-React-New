@@ -10,12 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TestsRouteImport } from './routes/tests'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SubjectIdRouteImport } from './routes/subject.$id'
 import { Route as PracticeIdRouteImport } from './routes/practice.$id'
@@ -25,6 +27,11 @@ import { Route as LessonChapterIdLessonIdRouteImport } from './routes/lesson.$ch
 const TestsRoute = TestsRouteImport.update({
   id: '/tests',
   path: '/tests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RankingsRoute = RankingsRouteImport.update({
@@ -57,6 +64,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -85,12 +97,14 @@ const LessonChapterIdLessonIdRoute = LessonChapterIdLessonIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/home': typeof HomeRoute
   '/learn': typeof LearnRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
+  '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
@@ -99,12 +113,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/home': typeof HomeRoute
   '/learn': typeof LearnRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
+  '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
@@ -114,12 +130,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/home': typeof HomeRoute
   '/learn': typeof LearnRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
+  '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
@@ -130,12 +148,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/admin'
     | '/home'
     | '/learn'
     | '/onboarding'
     | '/profile'
     | '/rankings'
+    | '/support'
     | '/tests'
     | '/chapter/$id'
     | '/practice/$id'
@@ -144,12 +164,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/admin'
     | '/home'
     | '/learn'
     | '/onboarding'
     | '/profile'
     | '/rankings'
+    | '/support'
     | '/tests'
     | '/chapter/$id'
     | '/practice/$id'
@@ -158,12 +180,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/admin'
     | '/home'
     | '/learn'
     | '/onboarding'
     | '/profile'
     | '/rankings'
+    | '/support'
     | '/tests'
     | '/chapter/$id'
     | '/practice/$id'
@@ -173,12 +197,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   HomeRoute: typeof HomeRoute
   LearnRoute: typeof LearnRoute
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   RankingsRoute: typeof RankingsRoute
+  SupportRoute: typeof SupportRoute
   TestsRoute: typeof TestsRoute
   ChapterIdRoute: typeof ChapterIdRoute
   PracticeIdRoute: typeof PracticeIdRoute
@@ -193,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/tests'
       fullPath: '/tests'
       preLoaderRoute: typeof TestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rankings': {
@@ -237,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -277,12 +317,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   HomeRoute: HomeRoute,
   LearnRoute: LearnRoute,
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   RankingsRoute: RankingsRoute,
+  SupportRoute: SupportRoute,
   TestsRoute: TestsRoute,
   ChapterIdRoute: ChapterIdRoute,
   PracticeIdRoute: PracticeIdRoute,

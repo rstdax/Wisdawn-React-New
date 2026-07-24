@@ -19,7 +19,7 @@ import {
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
-import { getChapter, getChaptersBySubject, getChaptersByGroupId } from "@/lib/admin";
+import { getChapter, getChaptersBySubject, getChaptersByGroupId, saveLastWatched, getSubject } from "@/lib/admin";
 import {
   getResources,
   getQA,
@@ -102,6 +102,22 @@ function Chapter() {
       setDataLoading(false);
     });
   }, [id]);
+
+  useEffect(() => {
+    if (chapterData && user?.uid && chapterData.subjectId) {
+      getSubject(chapterData.subjectId).then((sub) => {
+        if (sub) {
+          saveLastWatched(user.uid, {
+            chapterId: chapterData.id,
+            chapterTitle: chapterData.title,
+            subjectId: sub.id,
+            subjectTitle: sub.title,
+            videoId: chapterData.videoId,
+          }).catch(console.error);
+        }
+      });
+    }
+  }, [chapterData, user?.uid]);
 
   const chapterTitle = chapterData?.title ?? id.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const lessonTitle = chapterTitle;
@@ -214,18 +230,11 @@ function Chapter() {
                 </div>
               ) : videoId ? (
                 <>
-                  {/* Expand button — mobile only */}
-                  <button
-                    onClick={() => setVideoExpanded(true)}
-                    className="md:hidden absolute top-2 right-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white hover:bg-black/70 transition"
-                    aria-label="Expand video"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </button>
+
                   <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden" }}>
                     <iframe
                       key={videoId}
-                      src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "http://localhost:8081")}&widget_referrer=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "http://localhost:8081")}${startTime ? `&start=${startTime}` : ""}`}
+                      src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1&iv_load_policy=3&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "http://localhost:8081")}&widget_referrer=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "http://localhost:8081")}${startTime ? `&start=${startTime}` : ""}`}
                       title={chapterTitle}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                       allowFullScreen
@@ -323,9 +332,13 @@ function Chapter() {
                         className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:shadow-xs hover:border-primary/30"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="grid h-12 w-16 place-items-center rounded-xl bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
-                            {nextChapter.duration ?? "—"}
-                          </div>
+                          {nextChapter.videoId ? (
+                            <img src={`https://img.youtube.com/vi/${nextChapter.videoId}/mqdefault.jpg`} alt={nextChapter.title} className="h-12 w-16 rounded-md object-cover shrink-0 bg-primary-soft" />
+                          ) : (
+                            <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
+                              {nextChapter.duration ?? "—"}
+                            </div>
+                          )}
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-foreground">{nextChapter.title}</p>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -395,9 +408,13 @@ function Chapter() {
                           params={{ id: v.id }}
                           className={`flex items-center gap-3 rounded-2xl border p-3.5 transition hover:shadow-xs ${isCurrent ? "border-primary bg-primary-soft/50" : "border-border bg-card"}`}
                         >
-                          <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xs font-bold ${isCurrent ? "bg-primary text-white" : "bg-primary-soft text-primary"}`}>
-                            {v.videoOrder ?? idx + 1}
-                          </div>
+                          {v.videoId ? (
+                            <img src={`https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg`} alt={v.title} className="h-10 w-14 rounded-md object-cover shrink-0 bg-primary-soft" />
+                          ) : (
+                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-bold ${isCurrent ? "bg-primary text-white" : "bg-primary-soft text-primary"}`}>
+                              {v.videoOrder ?? idx + 1}
+                            </div>
+                          )}
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-foreground">{v.title}</p>
                             <p className="text-[11px] text-muted-foreground mt-0.5">{v.duration ?? "—"}</p>

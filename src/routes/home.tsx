@@ -75,6 +75,7 @@ function Home() {
   };
 
   const [showAlerts, setShowAlerts] = useState(false);
+  const [showAllLastWatched, setShowAllLastWatched] = useState(false);
   const [bannerIndex, setBannerIndex] = useState(0);
   const bannerTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -110,7 +111,7 @@ function Home() {
 
   const { data: lastWatched = [], isLoading: lastWatchedLoading } = useQuery({
     queryKey: ["lastWatched", user?.uid],
-    queryFn: () => user ? getLastWatched(user.uid, 3) : Promise.resolve([]),
+    queryFn: () => user ? getLastWatched(user.uid, 10) : Promise.resolve([]),
     enabled: !!user,
     staleTime: 30 * 1000,
   });
@@ -250,117 +251,83 @@ function Home() {
                 <p className="text-base font-bold">{loading ? "Loading…" : displayName}</p>
               </div>
             </div>            {/* HERO BANNER CAROUSEL */}
-            {tab === "school" ? (
-              bannersLoading ? (
-                <Skeleton className="h-[180px] md:h-[220px] w-full rounded-3xl animate-pulse" />
-              ) : banners.length > 0 ? (
-                <div className="relative overflow-hidden rounded-3xl min-h-[180px] md:min-h-[220px]">
-                  {banners.map((banner, idx) => (
-                    <div
-                      key={banner.id}
-                      className={`absolute inset-0 transition-opacity duration-700 ${idx === bannerIndex ? "opacity-100 z-10" : "opacity-0 z-0"}`}
-                    >
-                      {banner.imageUrl ? (
-                        <img src={banner.imageUrl} alt={banner.title} className="absolute inset-0 h-full w-full object-cover" />
-                      ) : null}
-                      <div className={`absolute inset-0 ${banner.imageUrl ? "bg-black/40" : "bg-primary-soft"}`} />
-                      <div className="relative z-10 p-6 md:p-8 flex flex-col justify-center h-full">
-                        <h2 className={`text-xl md:text-3xl font-extrabold mt-1 ${banner.imageUrl ? "text-white" : "text-foreground"}`}>
-                          {banner.title}
-                        </h2>
-                        {banner.subtitle && (
-                          <p className={`text-xs md:text-sm mt-2 max-w-md ${banner.imageUrl ? "text-white/80" : "text-muted-foreground"}`}>
-                            {banner.subtitle}
-                          </p>
-                        )}
-                        {banner.buttonText && (
-                          <div className="mt-4 md:mt-6">
-                            <Link
-                               to={(banner.buttonLink as "/learn") || "/learn"}
-                              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
-                            >
-                              {banner.buttonText}
-                              <ArrowRight className="h-4 w-4" />
-                            </Link>
-                          </div>
-                        )}
-                      </div>
+            {bannersLoading ? (
+              <Skeleton className="h-[180px] md:h-[220px] w-full rounded-3xl animate-pulse" />
+            ) : banners.length > 0 ? (
+              <div className="relative overflow-hidden rounded-3xl min-h-[180px] md:min-h-[220px]">
+                {banners.map((banner, idx) => (
+                  <div
+                    key={banner.id}
+                    className={`absolute inset-0 transition-opacity duration-700 ${idx === bannerIndex ? "opacity-100 z-10" : "opacity-0 z-0"}`}
+                  >
+                    {banner.imageUrl ? (
+                      <img src={banner.imageUrl} alt={banner.title} className="absolute inset-0 h-full w-full object-cover" fetchPriority={idx === 0 ? "high" : "auto"} loading={idx === 0 ? "eager" : "lazy"} decoding="async" />
+                    ) : null}
+                    <div className={`absolute inset-0 ${banner.imageUrl ? "bg-black/40" : "bg-primary-soft"}`} />
+                    <div className="relative z-10 p-6 md:p-8 flex flex-col justify-center h-full">
+                      <h2 className={`text-xl md:text-3xl font-extrabold mt-1 ${banner.imageUrl ? "text-white" : "text-foreground"}`}>
+                        {banner.title}
+                      </h2>
+                      {banner.subtitle && (
+                        <p className={`text-xs md:text-sm mt-2 max-w-md ${banner.imageUrl ? "text-white/80" : "text-muted-foreground"}`}>
+                          {banner.subtitle}
+                        </p>
+                      )}
+                      {banner.buttonText && (
+                        <div className="mt-4 md:mt-6">
+                          <Link
+                             to={(banner.buttonLink as "/learn") || "/learn"}
+                            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
+                          >
+                            {banner.buttonText}
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {/* Dots */}
-                  {banners.length > 1 && (
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-                      {banners.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => { setBannerIndex(idx); if (bannerTimer.current) clearInterval(bannerTimer.current); }}
-                          className={`h-1.5 rounded-full transition-all ${idx === bannerIndex ? "bg-white w-4" : "bg-white/50 w-1.5"}`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="relative overflow-hidden rounded-3xl bg-primary-soft p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
-                  <h2 className="text-xl md:text-3xl font-extrabold text-foreground mt-1">
-                    {displayName}
-                  </h2>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-2 max-w-md">
-                    Learn better with School Academy for {profile?.cls || "your class"}
-                  </p>
-                  <div className="mt-4 md:mt-6">
-                    <Link
-                      to="/learn"
-                      className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
-                    >
-                      Explore Now
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
                   </div>
-                  <Wisby
-                    variant="thumbs"
-                    className="absolute -bottom-3 -right-3 h-28 md:h-44 w-auto"
-                  />
-                </div>
-              )
+                ))}
+                {/* Dots */}
+                {banners.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+                    {banners.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => { setBannerIndex(idx); if (bannerTimer.current) clearInterval(bannerTimer.current); }}
+                        className={`h-1.5 rounded-full transition-all ${idx === bannerIndex ? "bg-white w-4" : "bg-white/50 w-1.5"}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="relative overflow-hidden rounded-3xl bg-[oklch(0.32_0.13_278)] text-white p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
-                <h2 className="text-xl md:text-3xl font-extrabold tracking-tight">
-                  Build. Code. Create.
+              <div className="relative overflow-hidden rounded-3xl bg-primary-soft p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
+                <h2 className="text-xl md:text-3xl font-extrabold text-foreground mt-1">
+                  {displayName}
                 </h2>
-                <p className="text-xs md:text-sm text-white/80 mt-2 max-w-sm">
-                  Start your journey with Wisdawn Coding Bootcamp
+                <p className="text-xs md:text-sm text-muted-foreground mt-2 max-w-md">
+                  Learn better with School Academy for {profile?.cls || "your class"}
                 </p>
-
-                {/* Desktop features list */}
-                <div className="hidden md:flex gap-6 mt-4 text-xs text-white/70">
-                  <span className="flex items-center gap-1.5">
-                    <Code2 className="h-4 w-4 text-primary" /> Learning
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-yellow-400" /> Real World Projects
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Award className="h-4 w-4 text-emerald-400" /> Certification
-                  </span>
-                </div>
-
                 <div className="mt-4 md:mt-6">
                   <Link
                     to="/learn"
-                    className="inline-flex items-center gap-2 rounded-full bg-white text-primary px-5 py-2 text-xs md:text-sm font-semibold transition hover:scale-105"
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
                   >
-                    Continue Learning
+                    Explore Now
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
+                <Wisby
+                  variant="thumbs"
+                  className="absolute -bottom-3 -right-3 h-28 md:h-44 w-auto"
+                />
               </div>
             )}
 
             {/* TRACK SPECIFIC CARDS: SUBJECTS OR COURSES */}
             {tab === "school" ? (
               <>
-                <SectionHeader title="Your Subjects" linkTo="/learn" />
+                <SectionHeader title="Available Subjects" linkTo="/learn" />
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
                   {subjectsLoading ? (
                     <>
@@ -380,7 +347,7 @@ function Home() {
               </>
             ) : (
               <>
-                <SectionHeader title="Your Courses" linkTo="/learn?tab=courses" />
+                <SectionHeader title="Available Courses" linkTo="/learn?tab=courses" />
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
                   {subjectsLoading ? (
                     <>
@@ -401,7 +368,11 @@ function Home() {
             )}
 
             {/* CONTINUE LEARNING */}
-            <SectionHeader title="Continue Learning" />
+            <SectionHeader 
+              title="Continue Learning" 
+              onClickViewAll={lastWatched.length > 3 ? () => setShowAllLastWatched(!showAllLastWatched) : undefined} 
+              viewAllText={showAllLastWatched ? "View Less" : "View All"} 
+            />
             <div className="mt-3 space-y-3">
               {lastWatchedLoading ? (
                 <>
@@ -412,12 +383,18 @@ function Home() {
                 <div className="rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
                   Start watching a chapter to track your progress here.
                 </div>
-              ) : lastWatched.map((entry) => (
+              ) : (showAllLastWatched ? lastWatched : lastWatched.slice(0, 3)).map((entry) => (
                 <Link key={entry.chapterId} to="/chapter/$id" params={{ id: entry.chapterId }} className="block">
                   <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-sm">
-                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold text-lg">
-                      📖
-                    </div>
+                    {entry.videoId ? (
+                      <div className="relative h-12 w-20 shrink-0 rounded-xl overflow-hidden bg-black/5">
+                        <img src={`https://img.youtube.com/vi/${entry.videoId}/mqdefault.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold text-lg">
+                        📖
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{entry.chapterTitle}</p>
                       <p className="truncate text-xs text-muted-foreground">{entry.subjectTitle}</p>
@@ -438,29 +415,7 @@ function Home() {
               ))}
             </div>
 
-            {/* RECOMMENDED FOR YOU (only visible on school layout) */}
-            {tab === "school" && (
-              <>
-                <SectionHeader title="Recommended For You" />
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <RecommendedCard
-                    title="Life Processes in Living Organisms"
-                    sub="Chapter 6 · Biology · Class 10"
-                    progress={15}
-                  />
-                  <RecommendedCard
-                    title="Light – Reflection & Refraction"
-                    sub="Chapter 10 · Physics · Class 10"
-                    progress={0}
-                  />
-                  <RecommendedCard
-                    title="Linear Equations in Two Variables"
-                    sub="Chapter 3 · Mathematics · Class 10"
-                    progress={35}
-                  />
-                </div>
-              </>
-            )}
+
 
             {/* MOBILE ONLY FOOTER XP BANNER */}
             <div className="mt-6 flex md:hidden items-center justify-between rounded-2xl bg-primary-soft p-4">
@@ -696,14 +651,16 @@ function Home() {
   );
 }
 
-function SectionHeader({ title, linkTo }: { title: string; linkTo?: string }) {
+function SectionHeader({ title, linkTo, onClickViewAll, viewAllText = "View All" }: { title: string; linkTo?: string; onClickViewAll?: () => void; viewAllText?: string; }) {
   return (
     <div className="mt-6 flex items-center justify-between">
       <h2 className="text-base font-bold">{title}</h2>
       {linkTo ? (
-        <Link to={linkTo} className="text-xs font-semibold text-primary">View All</Link>
+        <Link to={linkTo} className="text-xs font-semibold text-primary">{viewAllText}</Link>
+      ) : onClickViewAll ? (
+        <button onClick={onClickViewAll} className="text-xs font-semibold text-primary hover:underline cursor-pointer">{viewAllText}</button>
       ) : (
-        <span className="text-xs font-semibold text-primary">View All</span>
+        <span className="text-xs font-semibold text-primary">{viewAllText}</span>
       )}
     </div>
   );
@@ -819,30 +776,7 @@ function CourseCard({
   );
 }
 
-function RecommendedCard({
-  title,
-  sub,
-  progress,
-}: {
-  title: string;
-  sub: string;
-  progress: number;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 flex flex-col justify-between transition hover:shadow-xs">
-      <div>
-        <p className="text-sm font-semibold leading-tight text-foreground line-clamp-2">{title}</p>
-        <p className="text-[11px] text-muted-foreground mt-1">{sub}</p>
-      </div>
-      <div className="mt-4 pt-2 flex items-center gap-2">
-        <div className="h-1 flex-1 rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
-        </div>
-        <span className="text-[9px] font-bold text-primary">{progress}%</span>
-      </div>
-    </div>
-  );
-}
+
 
 function ScheduleRow({
   icon,

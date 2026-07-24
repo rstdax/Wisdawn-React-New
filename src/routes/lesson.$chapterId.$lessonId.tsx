@@ -10,7 +10,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
 import {
   getLesson, getChapter, getLessonNavContext, getResources, getQA, addQA,
-  getDiscussions, addDiscussion, getLessonsByChapter,
+  getDiscussions, addDiscussion, getLessonsByChapter, saveLastWatched, getSubject,
   type Lesson, type Chapter, type Resource, type QAItem,
   type Discussion, type LessonNavContext,
 } from "@/lib/admin";
@@ -79,6 +79,22 @@ function LessonPage() {
     }).finally(() => setLoading(false));
   }, [chapterId, lessonId]);
 
+  useEffect(() => {
+    if (lesson && chapter && user?.uid && chapter.subjectId) {
+      getSubject(chapter.subjectId).then((sub) => {
+        if (sub) {
+          saveLastWatched(user.uid, {
+            chapterId: chapter.id, // Using chapterId for navigation back to chapter or lesson group
+            chapterTitle: lesson.title, // Use lesson title as the specific item title
+            subjectId: sub.id,
+            subjectTitle: sub.title,
+            videoId: lesson.youtubeVideoId,
+          }).catch(console.error);
+        }
+      });
+    }
+  }, [lesson, chapter, user?.uid]);
+
   const videoId = lesson?.youtubeVideoId ?? null;
   const startTime = lesson?.startTimeSeconds ?? 0;
   const lessonTitle = lesson?.title ?? "Loading…";
@@ -109,7 +125,7 @@ function LessonPage() {
   };
 
   const iframeSrc = videoId
-    ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1${startTime ? `&start=${startTime}` : ""}`
+    ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1&iv_load_policy=3${startTime ? `&start=${startTime}` : ""}`
     : null;
 
   return (
@@ -176,10 +192,7 @@ function LessonPage() {
                 </div>
               ) : iframeSrc ? (
                 <>
-                  <button onClick={() => setVideoExpanded(true)}
-                    className="md:hidden absolute top-2 right-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white hover:bg-black/70 transition">
-                    <Maximize2 className="h-4 w-4" />
-                  </button>
+
                   <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden" }}>
                     <iframe key={`${lessonId}-${videoId}`} src={iframeSrc} title={lessonTitle}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
@@ -298,6 +311,13 @@ function LessonPage() {
                         className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:shadow-xs hover:border-primary/30"
                       >
                         <div className="flex items-center gap-3">
+                          {navCtx.nextLesson.youtubeVideoId ? (
+                            <img src={`https://img.youtube.com/vi/${navCtx.nextLesson.youtubeVideoId}/mqdefault.jpg`} alt={navCtx.nextLesson.title} className="h-12 w-16 rounded-md object-cover shrink-0 bg-primary-soft" />
+                          ) : (
+                            <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
+                              {navCtx.nextLesson.durationDisplay ?? "—"}
+                            </div>
+                          )}
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-foreground">{navCtx.nextLesson.title}</p>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -354,9 +374,18 @@ function LessonPage() {
                         {resources.map((r) => {
                           const Icon = typeIcons[r.type] ?? FileText;
                           const isDownloaded = downloadedIds.includes(r.id);
+                          let thumbVid = null;
+                          if (r.type === "video" && r.url) {
+                            const m = r.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+                            thumbVid = m ? m[1] : (r.url.length === 11 ? r.url : null);
+                          }
                           return (
                             <div key={r.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:shadow-xs">
-                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary"><Icon className="h-4 w-4" /></div>
+                              {thumbVid ? (
+                                <img src={`https://img.youtube.com/vi/${thumbVid}/mqdefault.jpg`} alt={r.title} className="h-10 w-14 shrink-0 rounded-md object-cover bg-primary-soft" />
+                              ) : (
+                                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary"><Icon className="h-4 w-4" /></div>
+                              )}
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-semibold">{r.title}</p>
                                 <p className="text-xs text-muted-foreground mt-0.5">{r.type.toUpperCase()} · {r.size ?? "—"}</p>

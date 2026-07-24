@@ -362,7 +362,7 @@ function Learn() {
                 <Skeleton className="h-20 w-full rounded-2xl animate-pulse" />
               </div>
 
-              {/* Your Subjects Section */}
+              {/* Available Subjects Section */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <Skeleton className="h-5 w-32 animate-pulse" />
@@ -527,7 +527,9 @@ function Learn() {
 
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-base font-bold text-foreground">Your Subjects</h2>
+                    <h2 className="text-base font-bold text-foreground">
+                      {track === 'school' ? 'Available Subjects' : 'Available Courses'}
+                    </h2>
                   </div>
                   {filtered.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-center text-muted-foreground">
@@ -576,47 +578,7 @@ function Learn() {
                   )}
                 </div>
 
-                <div>
-                  <h2 className="text-base font-bold text-foreground mb-3">Recommended for You</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredRecommended.length > 0 ? (
-                      filteredRecommended.map((r) => (
-                        <Link
-                          key={r.id}
-                          to="/chapter/$id"
-                          params={{ id: r.id }}
-                          className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition hover:shadow-xs min-h-[120px]"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">
-                                {r.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">{r.sub}</p>
-                            </div>
-                            {r.lessonsCount && (
-                              <span className="bg-primary-soft text-primary text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                                {r.lessonsCount} Lessons
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-                              {r.tag || 'Science'}
-                            </span>
-                            <span className="text-muted-foreground font-bold hover:translate-x-1 transition-transform">
-                              ›
-                            </span>
-                          </div>
-                        </Link>
-                      ))
-                    ) : (
-                      <div className="col-span-full rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-center text-muted-foreground">
-                        No recommendations match that search yet.
-                      </div>
-                    )}
-                  </div>
-                </div>
+
 
                 <div className="hidden md:block">
                   <h2 className="text-base font-bold text-foreground mb-3">Browse by Topics</h2>
@@ -666,7 +628,7 @@ function Learn() {
             ) : (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h2 className="text-base font-bold text-foreground mb-3">My Enrolled Courses</h2>
+                  <h2 className="text-base font-bold text-foreground mb-3">Available Courses</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filtered.length === 0 ? (
                       <div className="col-span-1 md:col-span-2 rounded-2xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">

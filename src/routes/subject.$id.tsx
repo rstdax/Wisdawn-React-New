@@ -177,10 +177,14 @@ function SubjectPage() {
                           params={{ id: chapter.id }}
                           className="flex items-center gap-4 px-4 py-3.5 hover:bg-primary-soft/40 transition border-b border-border/30 last:border-b-0"
                         >
-                          {/* Video number within chapter */}
-                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold text-sm">
-                            {chapter.videoOrder ?? idx + 1}
-                          </div>
+                          {/* Video thumbnail or number within chapter */}
+                          {chapter.videoId ? (
+                            <img src={`https://img.youtube.com/vi/${chapter.videoId}/mqdefault.jpg`} alt={chapter.title} className="h-10 w-14 rounded-md object-cover shrink-0 bg-primary-soft" />
+                          ) : (
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary-soft text-primary font-bold text-sm">
+                              {chapter.videoOrder ?? idx + 1}
+                            </div>
+                          )}
 
                           {/* Info */}
                           <div className="min-w-0 flex-1">

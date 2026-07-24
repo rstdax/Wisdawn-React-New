@@ -104,6 +104,7 @@ export type LastWatchedEntry = {
   subjectId: string;
   subjectTitle: string;
   watchedAt: number;
+  videoId?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -114,14 +115,41 @@ function stripUndefined<T extends object>(obj: T): Partial<T> {
   ) as Partial<T>;
 }
 
+const cache = new Map<string, { data: any; timestamp: number }>();
+
+async function withCache<T>(key: string, fetcher: () => Promise<T>, ttlMs = 5 * 60 * 1000): Promise<T> {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < ttlMs) {
+    return cached.data as T;
+  }
+  const data = await fetcher();
+  cache.set(key, { data, timestamp: Date.now() });
+  return data;
+}
+
+export function clearCache() {
+  cache.clear();
+}
+
 // ─── Subjects ─────────────────────────────────────────────────────────────────
 
 export async function getSubjects(): Promise<Subject[]> {
-  const snap = await getDocs(query(collection(db, "subjects"), orderBy("order", "asc")));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Subject));
+  return withCache("subjects", async () => {
+    const snap = await getDocs(query(collection(db, "subjects"), orderBy("order", "asc")));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Subject));
+  });
+}
+
+export async function getSubject(id: string): Promise<Subject | null> {
+  return withCache(`subject_${id}`, async () => {
+    const snap = await getDoc(doc(db, "subjects", id));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() } as Subject;
+  });
 }
 
 export async function saveSubject(subject: Omit<Subject, "id"> & { id?: string }): Promise<string> {
+  clearCache();
   const data = stripUndefined(subject);
   if (subject.id) {
     await setDoc(doc(db, "subjects", subject.id), data, { merge: true });
@@ -133,32 +161,40 @@ export async function saveSubject(subject: Omit<Subject, "id"> & { id?: string }
 }
 
 export async function deleteSubject(id: string): Promise<void> {
+  clearCache();
   await deleteDoc(doc(db, "subjects", id));
 }
 
 // ─── Chapters ─────────────────────────────────────────────────────────────────
 
 export async function getChaptersBySubject(subjectId: string): Promise<Chapter[]> {
-  const snap = await getDocs(
-    query(collection(db, "chapters"), where("subjectId", "==", subjectId), orderBy("order", "asc"))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Chapter));
+  return withCache(`chapters_subj_${subjectId}`, async () => {
+    const snap = await getDocs(
+      query(collection(db, "chapters"), where("subjectId", "==", subjectId), orderBy("order", "asc"))
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Chapter));
+  });
 }
 
 export async function getChapter(chapterId: string): Promise<Chapter | null> {
-  const snap = await getDoc(doc(db, "chapters", chapterId));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as Chapter;
+  return withCache(`chapter_${chapterId}`, async () => {
+    const snap = await getDoc(doc(db, "chapters", chapterId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() } as Chapter;
+  });
 }
 
 export async function getChaptersByGroupId(subjectId: string, chapterGroupId: number): Promise<Chapter[]> {
-  const all = await getChaptersBySubject(subjectId);
-  return all
-    .filter((c) => c.chapterId === chapterGroupId)
-    .sort((a, b) => (a.videoOrder ?? a.order ?? 0) - (b.videoOrder ?? b.order ?? 0));
+  return withCache(`chapters_grp_${subjectId}_${chapterGroupId}`, async () => {
+    const all = await getChaptersBySubject(subjectId);
+    return all
+      .filter((c) => c.chapterId === chapterGroupId)
+      .sort((a, b) => (a.videoOrder ?? a.order ?? 0) - (b.videoOrder ?? b.order ?? 0));
+  });
 }
 
 export async function saveChapter(chapter: Omit<Chapter, "id"> & { id?: string }): Promise<string> {
+  clearCache();
   const data = stripUndefined(chapter);
   if (chapter.id) {
     await setDoc(doc(db, "chapters", chapter.id), data, { merge: true });
@@ -170,25 +206,31 @@ export async function saveChapter(chapter: Omit<Chapter, "id"> & { id?: string }
 }
 
 export async function deleteChapter(id: string): Promise<void> {
+  clearCache();
   await deleteDoc(doc(db, "chapters", id));
 }
 
 // ─── Lessons ──────────────────────────────────────────────────────────────────
 
 export async function getLessonsByChapter(chapterId: string): Promise<Lesson[]> {
-  const snap = await getDocs(
-    query(collection(db, "lessons"), where("chapterId", "==", chapterId), orderBy("order", "asc"))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Lesson));
+  return withCache(`lessons_chap_${chapterId}`, async () => {
+    const snap = await getDocs(
+      query(collection(db, "lessons"), where("chapterId", "==", chapterId), orderBy("order", "asc"))
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Lesson));
+  });
 }
 
 export async function getLesson(chapterId: string, lessonId: string): Promise<Lesson | null> {
-  const snap = await getDoc(doc(db, "lessons", lessonId));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as Lesson;
+  return withCache(`lesson_${lessonId}`, async () => {
+    const snap = await getDoc(doc(db, "lessons", lessonId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() } as Lesson;
+  });
 }
 
 export async function saveLesson(lesson: Omit<Lesson, "id"> & { id?: string }): Promise<string> {
+  clearCache();
   const now = Date.now();
   const data = stripUndefined({ ...lesson, updatedAt: now });
   if (lesson.id) {
@@ -201,10 +243,12 @@ export async function saveLesson(lesson: Omit<Lesson, "id"> & { id?: string }): 
 }
 
 export async function deleteLesson(chapterId: string, lessonId: string): Promise<void> {
+  clearCache();
   await deleteDoc(doc(db, "lessons", lessonId));
 }
 
 export async function reorderLessons(chapterId: string, orderedIds: string[]): Promise<void> {
+  clearCache();
   await Promise.all(
     orderedIds.map((id, idx) => updateDoc(doc(db, "lessons", id), { order: idx }))
   );
@@ -311,13 +355,16 @@ export async function migrateLegacyChapterToLesson(chapterId: string): Promise<b
 // ─── Resources ────────────────────────────────────────────────────────────────
 
 export async function getResources(chapterId: string): Promise<Resource[]> {
-  const snap = await getDocs(
-    query(collection(db, "resources"), where("chapterId", "==", chapterId), orderBy("order", "asc"))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Resource));
+  return withCache(`resources_${chapterId}`, async () => {
+    const snap = await getDocs(
+      query(collection(db, "resources"), where("chapterId", "==", chapterId), orderBy("order", "asc"))
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Resource));
+  });
 }
 
 export async function saveResource(resource: Omit<Resource, "id"> & { id?: string }): Promise<string> {
+  clearCache();
   const data = stripUndefined(resource);
   if (resource.id) {
     await setDoc(doc(db, "resources", resource.id), data, { merge: true });
@@ -329,6 +376,7 @@ export async function saveResource(resource: Omit<Resource, "id"> & { id?: strin
 }
 
 export async function deleteResource(chapterId: string, resourceId: string): Promise<void> {
+  clearCache();
   await deleteDoc(doc(db, "resources", resourceId));
 }
 
