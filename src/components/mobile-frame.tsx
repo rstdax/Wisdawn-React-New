@@ -14,7 +14,6 @@ import {
   Award,
   MessageSquare,
   HelpCircle,
-  Settings,
   LogOut,
   ChevronDown,
   ChevronRight,
@@ -78,11 +77,8 @@ export function MobileFrame({ children }: { children: ReactNode }) {
       icon: User,
       subItems: [
         { to: "/profile", label: "View Profile" },
-        { to: "/profile?tab=Downloads", label: "Downloads" },
-        { to: "/profile?tab=Achievements", label: "Achievements" },
         { to: "/profile?tab=messages", label: "Messages", badge: 3 },
         { to: "/profile?tab=help", label: "Help & Support" },
-        { to: "/profile?tab=Settings", label: "Settings" },
       ],
     },
   ];
@@ -367,7 +363,7 @@ export function MobileFrame({ children }: { children: ReactNode }) {
 
       {/* MOBILE LAYOUT (less than md) */}
       <div className="md:hidden mx-auto flex min-h-screen w-full max-w-110 flex-col border-x border-border/70 bg-background shadow-[0_25px_80px_-32px_rgba(15,23,42,0.35)]">
-        <div className="flex min-h-screen flex-1 flex-col">{isMobile && children}</div>
+        <div className="flex min-h-screen flex-1 flex-col pb-24">{isMobile && children}</div>
       </div>
     </div>
   );

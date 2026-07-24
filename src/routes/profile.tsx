@@ -1,9 +1,6 @@
 import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode, useEffect } from "react";
 import {
-  Download,
-  Award,
-  Settings,
   ChevronRight,
   User as UserIcon,
   HelpCircle,
@@ -40,7 +37,7 @@ function Profile() {
   const [name, setName] = useState("");
   const [editForm, setEditForm] = useState({ name: "", guardian: "", cls: "", dob: "", district: "", state: "", track: "" });
   const [saving, setSaving] = useState(false);
-  const [selectedItem, setSelectedItem] = useState("Downloads");
+  const [selectedItem, setSelectedItem] = useState("Help & Support");
 
   // Help & Support Form State
   const [ticketSubject, setTicketSubject] = useState("");
@@ -70,10 +67,7 @@ function Profile() {
     if (search?.tab) {
       const tabName = search.tab.toString();
       const matched = [
-        "Downloads",
-        "Achievements",
         "Help & Support",
-        "Settings",
       ].find((t) => {
         if (t === "Help & Support" && tabName.toLowerCase() === "help") return true;
         return t.toLowerCase() === tabName.toLowerCase();
@@ -92,7 +86,7 @@ function Profile() {
       {/* MOBILE-ONLY HEADER */}
       <div className="px-5 pt-3 md:hidden">
         <h1 className="text-2xl font-extrabold">Profile</h1>
-        <p className="text-xs text-muted-foreground">Manage your settings and achievements</p>
+        <p className="text-xs text-muted-foreground">Manage your profile and support</p>
       </div>
 
       {/* RESPONSIVE LAYOUT BODY */}
@@ -100,10 +94,10 @@ function Profile() {
         {/* DESKTOP HEADER */}
         <div className="hidden md:block mb-6">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            <UserIcon className="h-6 w-6 text-primary" /> Profile &amp; Settings
+            <UserIcon className="h-6 w-6 text-primary" /> Profile
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage your settings, badges, and learning reports
+            Manage your profile, learning stats, and support
           </p>
         </div>
 
@@ -151,28 +145,10 @@ function Profile() {
             {/* SELECTION ITEMS LIST */}
             <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
               <Item
-                icon={<Download className="h-4 w-4" />}
-                label="Downloads"
-                active={selectedItem === "Downloads"}
-                onClick={() => setSelectedItem("Downloads")}
-              />
-              <Item
-                icon={<Award className="h-4 w-4" />}
-                label="Achievements"
-                active={selectedItem === "Achievements"}
-                onClick={() => setSelectedItem("Achievements")}
-              />
-              <Item
                 icon={<HelpCircle className="h-4 w-4" />}
                 label="Help & Support"
                 active={selectedItem === "Help & Support"}
                 onClick={() => setSelectedItem("Help & Support")}
-              />
-              <Item
-                icon={<Settings className="h-4 w-4" />}
-                label="Settings"
-                active={selectedItem === "Settings"}
-                onClick={() => setSelectedItem("Settings")}
               />
             </ul>
 
@@ -191,54 +167,7 @@ function Profile() {
                 {selectedItem}
               </h2>
 
-              {selectedItem === "Downloads" && (
-                <div className="space-y-4">
-                  <p className="text-sm font-semibold text-foreground">Offline Saved Materials</p>
 
-                  <div className="space-y-3">
-                    <DownloadRow
-                      title="1. Introduction to Chemical Reactions"
-                      type="PDF"
-                      size="1.2 MB"
-                    />
-                    <DownloadRow title="2. Types of Chemical Reactions" type="Video" size="16:25" />
-                    <DownloadRow title="3. HTML Basics Lesson 1" type="PDF" size="842 KB" />
-                    <DownloadRow title="4. Web Dev Python Intro" type="Video" size="14:10" />
-                  </div>
-
-                  <p className="text-xs text-muted-foreground pt-2">
-                    Total offline cache storage used: <strong>48 MB</strong>. You can clear the
-                    cache in Settings.
-                  </p>
-                </div>
-              )}
-
-              {selectedItem === "Achievements" && (
-                <div className="space-y-4">
-                  <p className="text-sm font-semibold text-foreground">Your Achievements Badges</p>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <BadgeCard
-                      title="5-Day Streak"
-                      desc="Active study streak unlocked"
-                      points="+50 XP"
-                      icon="🔥"
-                    />
-                    <BadgeCard
-                      title="Quiz Master"
-                      desc="Score 90% in MCQs quiz"
-                      points="+100 XP"
-                      icon="🏆"
-                    />
-                    <BadgeCard
-                      title="Perfect Science"
-                      desc="Completed Physics Class 10"
-                      points="+150 XP"
-                      icon="🔬"
-                    />
-                  </div>
-                </div>
-              )}
 
               {selectedItem === "Help & Support" && (
                 <div className="space-y-6 text-xs text-muted-foreground">
@@ -248,16 +177,12 @@ function Profile() {
                       <h3 className="text-sm font-bold text-foreground mb-3 font-semibold">Frequently Asked Questions</h3>
                       <div className="space-y-3">
                         <FAQItem
-                          question="How do I study offline?"
-                          answer="Go to the Profile tab, select Downloads, and you will see your saved offline materials. You can download lessons by clicking the download icon next to any chapter."
-                        />
-                        <FAQItem
                           question="How is my Rank calculated?"
                           answer="Your rank is updated daily based on the total XP points you earn from completing quizzes, viewing lessons, and maintaining your daily study streak."
                         />
                         <FAQItem
                           question="Can I reset my progress?"
-                          answer="Yes, you can reset your progress for specific subjects or your entire account in the Settings tab, under the Privacy options."
+                          answer="You can request progress updates or account resets by contacting our support team below."
                         />
                       </div>
                     </div>
@@ -410,7 +335,7 @@ function Profile() {
                           state: editForm.state,
                         });
                         setName(editForm.name);
-                        setSelectedItem("Downloads");
+                        setSelectedItem("Help & Support");
                         setIsEditing(false);
                       } finally {
                         setSaving(false);
@@ -423,41 +348,12 @@ function Profile() {
                 </div>
               )}
 
-              {selectedItem === "Settings" && (
-                <div className="space-y-4 text-xs font-semibold text-muted-foreground">
-                  <p className="text-sm font-bold text-foreground mb-1">
-                    Account &amp; Language Settings
-                  </p>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border border-border/40">
-                      <span>Interface Language</span>
-                      <select className="bg-card border border-border rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary text-foreground font-bold">
-                        <option>English</option>
-                        <option>Assamese (অসমীয়া)</option>
-                        <option>Hindi (हिंदी)</option>
-                      </select>
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border border-border/40">
-                      <span>Dark Theme</span>
-                      <button className="rounded-full bg-muted border border-border px-3.5 py-1.5 font-bold text-muted-foreground hover:bg-muted/80">
-                        System Default
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border border-border/40">
-                      <span>Privacy Settings</span>
-                      <button className="text-primary hover:underline">Manage Privacy</button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
-      <BottomNav />
+      
 
       {/* EDIT PROFILE MODAL */}
       {isEditing && (
@@ -604,42 +500,7 @@ function Item({
   );
 }
 
-function DownloadRow({ title, type, size }: { title: string; type: string; size: string }) {
-  return (
-    <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border border-border/40 text-xs">
-      <div className="flex items-center gap-3">
-        <span className="bg-primary-soft text-primary font-bold px-2 py-0.5 rounded text-[10px]">
-          {type}
-        </span>
-        <span className="font-semibold text-foreground truncate">{title}</span>
-      </div>
-      <span className="text-muted-foreground font-bold">{size}</span>
-    </div>
-  );
-}
 
-function BadgeCard({
-  title,
-  desc,
-  points,
-  icon,
-}: {
-  title: string;
-  desc: string;
-  points: string;
-  icon: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 text-center flex flex-col items-center shadow-xs">
-      <span className="text-2xl mb-1">{icon}</span>
-      <p className="text-xs font-bold text-foreground leading-tight">{title}</p>
-      <p className="text-[9px] text-muted-foreground mt-1 leading-snug">{desc}</p>
-      <span className="text-[9px] font-extrabold text-primary bg-primary-soft px-2 py-0.5 rounded-md mt-3 block">
-        {points}
-      </span>
-    </div>
-  );
-}
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);

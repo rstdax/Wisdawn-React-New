@@ -470,7 +470,7 @@ function Chapter() {
           </div>
         </div>
       </div>
-      <BottomNav />
+      
 
       {/* ── MOBILE FULLSCREEN VIDEO OVERLAY ── */}
       {videoExpanded && videoId && (

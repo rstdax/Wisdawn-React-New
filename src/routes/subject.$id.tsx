@@ -211,7 +211,7 @@ function SubjectPage() {
           </div>
         )}
       </div>
-      <BottomNav />
+      
     </MobileFrame>
   );
 }

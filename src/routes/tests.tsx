@@ -49,7 +49,7 @@ function Tests() {
       {/* MOBILE HEADER */}
       <div className="px-5 pt-3 md:hidden">
         <h1 className="text-2xl font-extrabold">Tests</h1>
-        <p className="text-xs text-muted-foreground">Practice and track your progress</p>
+        <p className="mt-1 mb-2 text-xs text-muted-foreground">Practice and track your progress</p>
       </div>
 
       {/* RESPONSIVE LAYOUT BODY */}
@@ -70,11 +70,10 @@ function Tests() {
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`rounded-full px-4 py-2 text-xs font-bold transition border ${
-                  activeFilter === filter
-                    ? "bg-primary text-white border-primary"
-                    : "bg-card text-muted-foreground border-border hover:bg-muted"
-                }`}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition border ${activeFilter === filter
+                  ? "bg-primary text-white border-primary"
+                  : "bg-card text-muted-foreground border-border hover:bg-muted"
+                  }`}
               >
                 {filter}
               </button>
@@ -100,11 +99,10 @@ function Tests() {
                 <button
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                    activeFilter === filter
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${activeFilter === filter
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                    }`}
                 >
                   {filter}
                 </button>
@@ -216,7 +214,7 @@ function Tests() {
           </div>
         </div>
       </div>
-      <BottomNav />
+      
     </MobileFrame>
   );
 }

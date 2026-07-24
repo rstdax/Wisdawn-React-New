@@ -514,7 +514,7 @@ function LessonPage() {
           </div>
         </div>
       </div>
-      <BottomNav />
+      
 
       {/* MOBILE FULLSCREEN VIDEO */}
       {videoExpanded && iframeSrc && (

@@ -10,6 +10,8 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { onAuthStateChanged } from "firebase/auth";
+import { LayoutGroup } from "framer-motion";
+import { BottomNav } from "../components/bottom-nav";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -154,11 +156,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div id="main-content" className="min-h-screen">
-        <AuthGuard>
-          <Outlet />
-        </AuthGuard>
-      </div>
+      <LayoutGroup>
+        <div id="main-content" className="min-h-screen">
+          <AuthGuard>
+            <Outlet />
+            <BottomNav />
+          </AuthGuard>
+        </div>
+      </LayoutGroup>
     </QueryClientProvider>
   );
 }

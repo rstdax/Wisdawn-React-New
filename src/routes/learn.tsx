@@ -434,7 +434,7 @@ function Learn() {
           <div className="lg:col-span-2 space-y-6">
             {true ? (
               <>
-                <div className="rounded-2xl border border-border bg-primary-soft p-3 text-sm md:hidden">
+                <div className="mt-4 rounded-2xl border border-border bg-primary-soft p-3 text-sm md:hidden">
                   <div className="flex items-center gap-2 font-semibold text-primary">
                     <Lightbulb className="h-4 w-4" /> Today’s focus
                   </div>
@@ -834,7 +834,7 @@ function Learn() {
           </div>
         </div>
       </div>
-      <BottomNav />
+      
     </MobileFrame>
   );
 }

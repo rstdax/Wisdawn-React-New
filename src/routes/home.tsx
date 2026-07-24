@@ -196,9 +196,6 @@ function Home() {
                       ) : null}
                       <div className={`absolute inset-0 ${banner.imageUrl ? "bg-black/40" : "bg-primary-soft"}`} />
                       <div className="relative z-10 p-6 md:p-8 flex flex-col justify-center h-full">
-                        <p className={`text-xs md:text-sm font-bold tracking-wider uppercase ${banner.imageUrl ? "text-white/80" : "text-primary"}`}>
-                          {greeting},
-                        </p>
                         <h2 className={`text-xl md:text-3xl font-extrabold mt-1 ${banner.imageUrl ? "text-white" : "text-foreground"}`}>
                           {banner.title}
                         </h2>
@@ -236,9 +233,6 @@ function Home() {
                 </div>
               ) : (
                 <div className="relative overflow-hidden rounded-3xl bg-primary-soft p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
-                  <p className="text-xs md:text-sm text-primary font-bold tracking-wider uppercase">
-                    {greeting},
-                  </p>
                   <h2 className="text-xl md:text-3xl font-extrabold text-foreground mt-1">
                     {loading ? "…" : displayName}
                   </h2>
@@ -609,7 +603,7 @@ function Home() {
           </div>
         </div>
       </div>
-      <BottomNav />
+      
     </MobileFrame>
   );
 }
