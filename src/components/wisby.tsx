@@ -1,6 +1,6 @@
 import cheerAsset from "@/assets/wisby-cheer.jpeg";
-import thumbsAsset from "@/assets/wisby-thumbs.jpeg";
-import logoAsset from "@/assets/wisdawn-logo.jpeg";
+import thumbsAsset from "@/assets/wisby-thumbs.png";
+import logoAsset from "@/assets/logo.jpeg";
 
 type Variant = "cheer" | "thumbs" | "logo";
 
