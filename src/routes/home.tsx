@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Bell,
   Code2,
@@ -22,6 +23,7 @@ import { getSubjects, getLastWatched, type LastWatchedEntry, type Subject } from
 import { SubjectIcon } from "@/components/SubjectIcon";
 import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Banner = {
   id: string;
@@ -73,16 +75,15 @@ function Home() {
   };
 
   const [showAlerts, setShowAlerts] = useState(false);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [lastWatched, setLastWatched] = useState<LastWatchedEntry[]>([]);
-  const [banners, setBanners] = useState<Banner[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
   const bannerTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Auto-slide banners every 4 seconds
-  useEffect(() => {
-    getActiveBanners().then(setBanners);
-  }, []);
+  // Auto-slide banners every 4 seconds using React Query with a 5-minute cache
+  const { data: banners = [], isLoading: bannersLoading } = useQuery({
+    queryKey: ["banners"],
+    queryFn: getActiveBanners,
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -92,26 +93,94 @@ function Home() {
     return () => { if (bannerTimer.current) clearInterval(bannerTimer.current); };
   }, [banners.length]);
 
-  useEffect(() => {
-    // Wait for profile to load before fetching subjects
-    if (loading) return;
-    getSubjects().then((all) =>
-      setSubjects(all.filter((s) => {
+  const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
+    queryKey: ["homeSubjects", tab, profile?.cls],
+    queryFn: async () => {
+      const all = await getSubjects();
+      return all.filter((s) => {
         if (s.track !== tab) return false;
         // Filter by user class for school track
         if (tab === "school" && profile?.cls && s.class && s.class !== profile.cls) return false;
         return true;
-      }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4))
-    );
-  }, [tab, profile, loading]);
+      }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4);
+    },
+    enabled: !loading,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (user) {
-      getLastWatched(user.uid, 3).then(setLastWatched);
-    } else {
-      setLastWatched([]);
-    }
-  }, [user]);
+  const { data: lastWatched = [], isLoading: lastWatchedLoading } = useQuery({
+    queryKey: ["lastWatched", user?.uid],
+    queryFn: () => user ? getLastWatched(user.uid, 3) : Promise.resolve([]),
+    enabled: !!user,
+    staleTime: 30 * 1000,
+  });
+
+  if (loading) {
+    return (
+      <MobileFrame>
+        {/* MOBILE-ONLY HEADER */}
+        <header className="flex md:hidden items-center justify-between gap-3 px-5 pt-2">
+          <div className="relative flex-1 rounded-full bg-muted p-1">
+            <div className="relative grid grid-cols-2">
+              <div className="h-8 rounded-full bg-muted-foreground/10 animate-pulse" />
+              <div className="h-8 rounded-full bg-muted-foreground/10 animate-pulse ml-2" />
+            </div>
+          </div>
+          <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-6 pt-4 space-y-6">
+          {/* Desktop Title Skeleton */}
+          <div className="hidden md:block">
+            <Skeleton className="h-8 w-48 rounded-lg" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left & Center Column */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Greeting & Name Skeleton */}
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24 animate-pulse" />
+                <Skeleton className="h-6 w-40 animate-pulse" />
+              </div>
+
+              {/* Hero Banner Skeleton */}
+              <Skeleton className="h-[180px] md:h-[220px] w-full rounded-3xl animate-pulse" />
+
+              {/* Subjects Section Skeleton */}
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <Skeleton className="h-5 w-32 animate-pulse" />
+                  <Skeleton className="h-4 w-12 animate-pulse" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                  <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                  <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                  <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                </div>
+              </div>
+
+              {/* Continue Learning Skeleton */}
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-40 animate-pulse" />
+                <div className="space-y-3">
+                  <Skeleton className="h-20 w-full rounded-2xl animate-pulse" />
+                  <Skeleton className="h-20 w-full rounded-2xl animate-pulse" />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column (Desktop-Only Sidebar) */}
+            <div className="hidden lg:block lg:col-span-1 space-y-6">
+              <Skeleton className="h-[250px] w-full rounded-3xl animate-pulse" />
+              <Skeleton className="h-[180px] w-full rounded-3xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </MobileFrame>
+    );
+  }
 
   return (
     <MobileFrame>
@@ -180,11 +249,11 @@ function Home() {
                 <p className="text-xs text-muted-foreground">{greeting}</p>
                 <p className="text-base font-bold">{loading ? "Loading…" : displayName}</p>
               </div>
-            </div>
-
-            {/* HERO BANNER CAROUSEL */}
+            </div>            {/* HERO BANNER CAROUSEL */}
             {tab === "school" ? (
-              banners.length > 0 ? (
+              bannersLoading ? (
+                <Skeleton className="h-[180px] md:h-[220px] w-full rounded-3xl animate-pulse" />
+              ) : banners.length > 0 ? (
                 <div className="relative overflow-hidden rounded-3xl min-h-[180px] md:min-h-[220px]">
                   {banners.map((banner, idx) => (
                     <div
@@ -207,7 +276,7 @@ function Home() {
                         {banner.buttonText && (
                           <div className="mt-4 md:mt-6">
                             <Link
-                              to={(banner.buttonLink as "/learn") || "/learn"}
+                               to={(banner.buttonLink as "/learn") || "/learn"}
                               className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
                             >
                               {banner.buttonText}
@@ -234,10 +303,10 @@ function Home() {
               ) : (
                 <div className="relative overflow-hidden rounded-3xl bg-primary-soft p-6 md:p-8 flex flex-col justify-center min-h-[180px] md:min-h-[220px]">
                   <h2 className="text-xl md:text-3xl font-extrabold text-foreground mt-1">
-                    {loading ? "…" : displayName}
+                    {displayName}
                   </h2>
                   <p className="text-xs md:text-sm text-muted-foreground mt-2 max-w-md">
-                    Learn better with School Academy for {loading ? "…" : (profile?.cls || "your class")}
+                    Learn better with School Academy for {profile?.cls || "your class"}
                   </p>
                   <div className="mt-4 md:mt-6">
                     <Link
@@ -293,7 +362,14 @@ function Home() {
               <>
                 <SectionHeader title="Your Subjects" linkTo="/learn" />
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {subjects.length === 0 ? (
+                  {subjectsLoading ? (
+                    <>
+                      <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                      <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                      <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                      <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                    </>
+                  ) : subjects.length === 0 ? (
                     <div className="col-span-2 md:col-span-4 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
                       No subjects yet. Admin can add subjects from the dashboard.
                     </div>
@@ -306,7 +382,14 @@ function Home() {
               <>
                 <SectionHeader title="Your Courses" linkTo="/learn?tab=courses" />
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {subjects.length === 0 ? (
+                  {subjectsLoading ? (
+                    <>
+                      <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                      <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                      <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                      <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                    </>
+                  ) : subjects.length === 0 ? (
                     <div className="col-span-2 md:col-span-4 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
                       No coding courses yet. Admin can add them from the dashboard.
                     </div>
@@ -320,7 +403,12 @@ function Home() {
             {/* CONTINUE LEARNING */}
             <SectionHeader title="Continue Learning" />
             <div className="mt-3 space-y-3">
-              {lastWatched.length === 0 ? (
+              {lastWatchedLoading ? (
+                <>
+                  <Skeleton className="h-20 w-full rounded-2xl animate-pulse" />
+                  <Skeleton className="h-20 w-full rounded-2xl animate-pulse" />
+                </>
+              ) : lastWatched.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
                   Start watching a chapter to track your progress here.
                 </div>

@@ -195,21 +195,15 @@ function AuthGuard({ children }: { children: ReactNode }) {
     }
   }, [authChecked, isLoggedIn, isPublic, location.pathname]);
 
-  // Show loading spinner while auth state is being determined
+  // Show children while auth state is being determined. 
+  // Pages like /home and /learn have their own skeleton loaders based on useAuth loading state.
   if (!authChecked) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-3 text-sm font-medium text-muted-foreground shadow-sm">
-          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
-          Loading…
-        </div>
-      </div>
-    );
+    return <>{children}</>;
   }
 
   // Block protected page render until redirect happens
   if (!isLoggedIn && !isPublic) {
-    return null;
+    return <PendingComponent />;
   }
 
   return <>{children}</>;

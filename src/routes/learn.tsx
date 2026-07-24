@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Search, Leaf, Lightbulb, Code2, Globe, Filter, ChevronRight,
   Sparkles, CheckSquare, Plus, ArrowRight, Play, BookOpen, Loader2
@@ -10,6 +11,7 @@ import { Wisby } from "@/components/wisby";
 import { getSubjects, getSubjectProgress, type Subject } from "@/lib/admin";
 import { SubjectIcon } from "@/components/SubjectIcon";
 import { useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/learn")({
   head: () => ({ meta: [{ title: "Learn — WisDawn" }] }),
@@ -269,41 +271,35 @@ function Learn() {
   const [active, setActive] = useState("All");
   const [query, setQuery] = useState("");
 
-  // Backend state
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
-
   const { user, profile, loading: authLoading } = useAuth();
 
-  useEffect(() => {
-    setLoading(true);
-    // Wait for auth/profile to load first
-    if (authLoading) return;
-    getSubjects()
-      .then((all) => {
-        const trackFiltered = all.filter((s) => {
-          if (s.track !== track) return false;
-          // For school track, filter by user's class
-          if (track === "school" && profile?.cls && s.class && s.class !== profile.cls) return false;
-          return true;
-        }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-        setSubjects(trackFiltered);
-        // Fetch real progress for each subject if user is logged in
-        if (user) {
-          Promise.all(
-            trackFiltered.map((s) =>
-              getSubjectProgress(user.uid, s.id).then((p) => ({ id: s.id, percent: p.percent }))
-            )
-          ).then((results) => {
-            const map: Record<string, number> = {};
-            results.forEach((r) => { map[r.id] = r.percent; });
-            setProgressMap(map);
-          });
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [track, user, profile, authLoading]);
+  const { data: { subjects = [], progressMap = {} } = {}, isLoading: dataLoading } = useQuery({
+    queryKey: ["learnData", track, user?.uid, profile?.cls],
+    queryFn: async () => {
+      const all = await getSubjects();
+      const trackFiltered = all.filter((s) => {
+        if (s.track !== track) return false;
+        if (track === "school" && profile?.cls && s.class && s.class !== profile.cls) return false;
+        return true;
+      }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+      const map: Record<string, number> = {};
+      if (user) {
+        const results = await Promise.all(
+          trackFiltered.map((s) =>
+            getSubjectProgress(user.uid, s.id).then((p) => ({ id: s.id, percent: p.percent }))
+          )
+        );
+        results.forEach((r) => { map[r.id] = r.percent; });
+      }
+
+      return { subjects: trackFiltered, progressMap: map };
+    },
+    enabled: !authLoading,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const loading = authLoading || dataLoading;
 
   const filtered = subjects.filter((s) =>
     !query.trim() || s.title.toLowerCase().includes(query.trim().toLowerCase())
@@ -326,6 +322,90 @@ function Learn() {
       `${item.title} ${item.sub}`.toLowerCase().includes(term),
     );
   }, [query, section]);
+
+  if (loading) {
+    return (
+      <MobileFrame>
+        {/* MOBILE HEADER SKELETON */}
+        <div className="px-5 pt-3 md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-20 animate-pulse" />
+              <Skeleton className="h-4 w-36 animate-pulse" />
+            </div>
+            <Skeleton className="h-9 w-24 rounded-full animate-pulse" />
+          </div>
+          <div className="mt-4 relative rounded-full bg-muted p-1">
+            <div className="h-8 rounded-full bg-muted-foreground/10 animate-pulse" />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5 pt-4 space-y-6">
+          {/* DESKTOP HEADER SKELETON */}
+          <div className="hidden md:flex justify-between items-center mb-6">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-20 animate-pulse" />
+              <Skeleton className="h-4 w-36 animate-pulse" />
+            </div>
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-9 w-64 rounded-full animate-pulse" />
+              <Skeleton className="h-9 w-48 rounded-full animate-pulse" />
+              <Skeleton className="h-9 w-24 rounded-full animate-pulse" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left & Center Column */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Focus Banner Skeleton */}
+              <div className="mt-4 md:hidden">
+                <Skeleton className="h-20 w-full rounded-2xl animate-pulse" />
+              </div>
+
+              {/* Your Subjects Section */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-5 w-32 animate-pulse" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                  <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                  <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                  <Skeleton className="h-[140px] rounded-2xl animate-pulse" />
+                </div>
+              </div>
+
+              {/* Recommended Section */}
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-40 animate-pulse" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Skeleton className="h-32 rounded-2xl animate-pulse" />
+                  <Skeleton className="h-32 rounded-2xl animate-pulse" />
+                </div>
+              </div>
+
+              {/* Browse by Topics Section */}
+              <div className="hidden md:block space-y-3">
+                <Skeleton className="h-5 w-36 animate-pulse" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Skeleton className="h-16 rounded-2xl animate-pulse" />
+                  <Skeleton className="h-16 rounded-2xl animate-pulse" />
+                  <Skeleton className="h-16 rounded-2xl animate-pulse" />
+                  <Skeleton className="h-16 rounded-2xl animate-pulse" />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column (Sidebar) */}
+            <div className="hidden lg:block lg:col-span-1 space-y-6">
+              <Skeleton className="h-[300px] w-full rounded-3xl animate-pulse" />
+              <Skeleton className="h-[250px] w-full rounded-3xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </MobileFrame>
+    );
+  }
 
   return (
     <MobileFrame>
@@ -449,11 +529,7 @@ function Learn() {
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-base font-bold text-foreground">Your Subjects</h2>
                   </div>
-                  {loading ? (
-                    <div className="flex items-center justify-center py-10">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : filtered.length === 0 ? (
+                  {filtered.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-center text-muted-foreground">
                       No subjects found.
                     </div>
@@ -592,11 +668,7 @@ function Learn() {
                 <div>
                   <h2 className="text-base font-bold text-foreground mb-3">My Enrolled Courses</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {loading ? (
-                      <div className="col-span-1 md:col-span-2 flex items-center justify-center py-10">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    ) : filtered.length === 0 ? (
+                    {filtered.length === 0 ? (
                       <div className="col-span-1 md:col-span-2 rounded-2xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
                         No {track} courses found.
                       </div>
