@@ -14,11 +14,11 @@ const items = [
 export function BottomNav() {
   const { pathname } = useLocation();
   
-  if (pathname === "/" || pathname === "/onboarding") return null;
+  if (pathname === "/" || pathname === "/onboarding" || pathname.startsWith("/chapter/")) return null;
 
   return (
-    <div className="md:hidden fixed bottom-4 left-0 right-0 z-[100] px-4 pointer-events-none pb-1">
-      <nav className="pointer-events-auto rounded-[2rem] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-slate-900/5 p-1">
+    <div className="md:hidden fixed bottom-4 left-0 right-0 z-[100] px-3 pointer-events-none">
+      <nav className="pointer-events-auto rounded-[1.75rem] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] ring-1 ring-slate-900/5 p-1">
         <ul className="flex items-center justify-between relative">
           {items.map(({ to, label, icon: Icon }, index) => {
             const active = pathname === to || pathname.startsWith(to + "/");
@@ -28,32 +28,36 @@ export function BottomNav() {
                   <Link
                     to={to}
                     aria-current={active ? "page" : undefined}
-                    className={`relative flex w-full flex-col items-center justify-center gap-1 rounded-[1.5rem] py-2.5 text-[10px] font-semibold transition-colors duration-300 z-10 ${
+                    className={`relative flex w-full h-[60px] flex-col items-center justify-center gap-0.5 rounded-[1rem] transition-colors duration-300 z-10 ${
                       active
-                        ? "text-blue-600"
+                        ? "text-primary"
                         : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
                     {active && (
                       <motion.div
                         layoutId="nav-bg"
-                        className="absolute inset-0 rounded-[1.5rem] bg-blue-50/80 -z-10"
+                        className="absolute inset-0 rounded-[1.25rem] bg-primary-soft -z-10"
                         transition={{ type: "spring", stiffness: 400, damping: 35 }}
                       />
                     )}
                     {active && (
                       <motion.div
                         layoutId="nav-pill"
-                        className="absolute top-1.5 h-1 w-3 rounded-full bg-blue-600"
+                        className="absolute top-2 h-[3px] w-4 rounded-full bg-primary"
                         transition={{ type: "spring", stiffness: 400, damping: 35 }}
                       />
                     )}
-                    <Icon className={`mt-2 h-5 w-5 transition-all ${active ? "stroke-[2.5]" : "stroke-2"}`} />
-                    <span>{label}</span>
+                    <Icon 
+                      className={`h-[20px] w-[20px] transition-all ${
+                        active ? "fill-primary text-primary mt-0.5" : "stroke-2 mb-0"
+                      }`} 
+                    />
+                    <span className="text-[10px] font-medium">{label}</span>
                   </Link>
                 </li>
                 {index < items.length - 1 && (
-                  <div className="h-6 w-[1px] bg-slate-200 z-0" />
+                  <div className="h-8 w-[1px] bg-slate-200/80 shrink-0 z-0" />
                 )}
               </Fragment>
             );

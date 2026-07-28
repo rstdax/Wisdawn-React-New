@@ -14,6 +14,8 @@ export type Subject = {
   icon?: string;
   coverImage?: string;
   color?: string;
+  description?: string;
+  price?: number;
   order?: number;
 };
 

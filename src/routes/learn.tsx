@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
-import { useMemo, useState, useEffect, type ReactNode } from "react";
+import { useMemo, useState, useEffect, type MouseEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Search, Leaf, Lightbulb, Code2, Globe, Filter, ChevronRight,
@@ -9,6 +9,7 @@ import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
 import { getSubjects, getSubjectProgress, type Subject } from "@/lib/admin";
+import { getCourseIntroChapterId } from "@/lib/course-navigation";
 import { SubjectIcon } from "@/components/SubjectIcon";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -271,6 +272,18 @@ function Learn() {
   const [active, setActive] = useState("All");
   const [query, setQuery] = useState("");
 
+  const openCourseIntro = async (event: MouseEvent<HTMLAnchorElement>, subjectId: string) => {
+    event.preventDefault();
+    const introChapterId = await getCourseIntroChapterId(subjectId);
+
+    if (!introChapterId) {
+      navigate({ to: "/subject/$id", params: { id: subjectId } });
+      return;
+    }
+
+    navigate({ to: "/chapter/$id", params: { id: introChapterId } });
+  };
+
   const { user, profile, loading: authLoading } = useAuth();
 
   const { data: { subjects = [], progressMap = {} } = {}, isLoading: dataLoading } = useQuery({
@@ -428,10 +441,7 @@ function Learn() {
 
         <div className="mt-4 relative rounded-full bg-muted p-1">
           <div
-            className={`absolute inset-1 w-1/2 rounded-full shadow-lg transform transition-all duration-300 ${track === 'coding'
-              ? 'bg-linear-to-r from-violet-700 to-violet-500 translate-x-full'
-              : 'bg-primary translate-x-0'
-              }`}
+            className={`absolute inset-1 w-1/2 rounded-full shadow-lg transform transition-all duration-300 bg-primary ${track === 'coding' ? 'translate-x-full' : 'translate-x-0'}`}
             aria-hidden
           />
           <div className="relative grid grid-cols-2">
@@ -512,7 +522,7 @@ function Learn() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-5 md:px-0">
           <div className="lg:col-span-2 space-y-6">
-            {true ? (
+            {track === 'school' ? (
               <>
                 <div className="mt-4 rounded-2xl border border-border bg-primary-soft p-3 text-sm md:hidden">
                   <div className="flex items-center gap-2 font-semibold text-primary">
@@ -628,13 +638,13 @@ function Learn() {
             ) : (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h2 className="text-base font-bold text-foreground mb-3">Available Courses</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h2 className="text-base font-bold text-foreground mt-5 mb-3">Available Courses</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                     {filtered.length === 0 ? (
                       <div className="col-span-1 md:col-span-2 rounded-2xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
                         No {track} courses found.
                       </div>
-                    ) : filtered.map((subject, index) => {
+                    ) : [...filtered, ...filtered, ...filtered].map((subject, index) => {
                       const colors = [
                         "from-blue-500 to-indigo-600",
                         "from-violet-500 to-fuchsia-600",
@@ -646,80 +656,48 @@ function Learn() {
                       const color = colors[index % colors.length];
                       const progressNum = progressMap[subject.id] ?? 0;
                       return (
-                        <div
-                          key={subject.id}
-                          className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 transition hover:shadow-xs"
+                        <Link
+                          key={`${subject.id}-${index}`}
+                          to="/subject/$id"
+                          params={{ id: subject.id }}
+                          onClick={(event) => openCourseIntro(event, subject.id)}
+                          className="flex flex-col gap-2 group transition hover:opacity-95"
                         >
-                          <div>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${color} text-white text-xl shadow-xs`}>
-                                  <SubjectIcon icon={subject.icon} className="h-full w-full !rounded-none !bg-transparent text-white flex items-center justify-center" />
-                                </div>
-                                <div>
-                                  <span className="bg-primary-soft text-primary text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                    {subject.class || track}
-                                  </span>
-                                  <h3 className="text-xs font-bold text-foreground mt-1 leading-tight">{subject.title}</h3>
-                                </div>
+                          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-md border border-border/40">
+                            {subject.coverImage ? (
+                              <img
+                                src={subject.coverImage}
+                                alt={subject.title}
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className={`h-full w-full bg-gradient-to-br ${color} flex items-center justify-center transition-transform duration-300 group-hover:scale-105`}>
+                                <SubjectIcon icon={subject.icon} className="h-12 w-12 text-white" />
                               </div>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
-                              Learn {subject.title} with comprehensive lessons and interactive concepts.
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <h3 className="text-sm font-bold text-foreground leading-tight line-clamp-2">
+                              {subject.title}
+                            </h3>
+                            <p className="text-[11px] text-muted-foreground mt-1 truncate">
+                              Dr. Angela Yu, Developer and Lead Instr...
                             </p>
-                          </div>
-
-                          <div className="mt-5 pt-3 border-t border-border/50 flex items-center justify-between">
-                            <div className="flex-1 max-w-[60%]">
-                              <div className="flex justify-between text-[10px] font-bold text-muted-foreground mb-1">
-                                <span>Progress</span>
-                                <span>{progressNum}%</span>
+                            <div className="flex items-center gap-1 mt-1 text-[11px] font-bold">
+                              <span className="text-amber-600">4.7</span>
+                              <div className="flex items-center text-amber-500">
+                                {[...Array(4)].map((_, i) => (
+                                  <svg key={i} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" /></svg>
+                                ))}
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" clipPath="url(#half)"/></svg>
                               </div>
-                              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-primary"
-                                  style={{ width: `${progressNum}%` }}
-                                />
-                              </div>
+                              <span className="text-muted-foreground font-normal ml-0.5">(472,738)</span>
                             </div>
-
-                            <Link
-                              to="/subject/$id"
-                              params={{ id: subject.id }}
-                              className="bg-primary hover:bg-primary/95 text-primary-foreground text-[11px] font-bold px-4 py-2 rounded-xl transition shadow-xs hover:scale-105 active:scale-95 cursor-pointer"
-                            >
-                              {progressNum > 0 ? "Continue" : "Start"}
-                            </Link>
+                            <p className="text-[13px] font-extrabold text-foreground mt-1">₹3,199.00</p>
                           </div>
-                        </div>
+                        </Link>
                       );
                     })}
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className="text-base font-bold text-foreground mb-3">Popular Courses</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border border-border bg-card rounded-2xl p-4 flex flex-col justify-between hover:shadow-xs transition duration-200">
-                      <div>
-                        <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Featured</span>
-                        <h4 className="text-xs font-bold text-foreground mt-1.5">{track === 'school' ? 'Advanced Physics Sandbox' : 'Advanced JavaScript Algorithms'}</h4>
-                        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{track === 'school' ? 'Simulate physical phenomena and perform virtual laboratory experiments.' : 'Deep dive into execution context, closures, prototypes, and asynchronous execution patterns.'}</p>
-                      </div>
-                      <button className="bg-primary-soft text-primary hover:bg-primary hover:text-white rounded-xl py-2 mt-4 text-[11px] font-bold transition shadow-xs cursor-pointer">
-                        Explore
-                      </button>
-                    </div>
-                    <div className="border border-border bg-card rounded-2xl p-4 flex flex-col justify-between hover:shadow-xs transition duration-200">
-                      <div>
-                        <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">New</span>
-                        <h4 className="text-xs font-bold text-foreground mt-1.5">{track === 'school' ? 'Organic Chemistry Secrets' : 'AI Prompt Engineering for Coders'}</h4>
-                        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{track === 'school' ? 'Learn naming conventions, reaction mechanisms, and carbon structure properties.' : 'Learn how to use AI coding agents and prompts to accelerate software engineering.'}</p>
-                      </div>
-                      <button className="bg-primary-soft text-primary hover:bg-primary hover:text-white rounded-xl py-2 mt-4 text-[11px] font-bold transition shadow-xs cursor-pointer">
-                        Explore
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>

@@ -51,6 +51,7 @@ async function saveUserToDatabase(user: User): Promise<void> {
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
       onboardingCompleted: false,
+      purchasedCourseIds: [],
       stats: {
         courses: 0,
         badges: 0,

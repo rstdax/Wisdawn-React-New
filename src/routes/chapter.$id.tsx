@@ -13,6 +13,7 @@ import {
   BookOpen,
   Check,
   Link as LinkIcon,
+  LockKeyhole,
   Maximize2,
   X, 
 } from "lucide-react";
@@ -30,6 +31,7 @@ import {
   type QAItem,
   type Discussion,
   type Chapter,
+  type Subject,
 } from "@/lib/admin";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -51,7 +53,7 @@ const typeIcons: Record<Resource["type"], React.ElementType> = {
 function Chapter() {
   const { id } = useParams({ from: "/chapter/$id" });
   const router = useRouter();
-  const { user, displayName } = useAuth();
+  const { user, profile, displayName, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<Tab>("Overview");
   const [bookmarked, setBookmarked] = useState(false);
   const [markedComplete, setMarkedComplete] = useState(false);
@@ -60,6 +62,7 @@ function Chapter() {
 
   // Firebase-driven state
   const [chapterData, setChapterData] = useState<Chapter | null>(null);
+  const [subjectData, setSubjectData] = useState<Subject | null>(null);
   const [subjectChapters, setSubjectChapters] = useState<Chapter[]>([]);
   const [chapterGroupVideos, setChapterGroupVideos] = useState<Chapter[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
@@ -92,10 +95,13 @@ function Chapter() {
       // Fetch all chapters from same subject for next/prev
       if (ch?.subjectId) {
         getChaptersBySubject(ch.subjectId).then(setSubjectChapters);
+        getSubject(ch.subjectId).then(setSubjectData);
         // Fetch all videos in same chapter group
         if (ch.chapterId !== undefined) {
           getChaptersByGroupId(ch.subjectId, ch.chapterId).then(setChapterGroupVideos);
         }
+      } else {
+        setSubjectData(null);
       }
     }).finally(() => {
       setVideoLoading(false);
@@ -133,6 +139,19 @@ function Chapter() {
   const prevChapter = currentIdx > 0
     ? publishedSiblings[currentIdx - 1]
     : null;
+  const isCodingCourse = subjectData?.track === "coding";
+  const hasCourseAccess = !isCodingCourse || Boolean(
+    chapterData?.subjectId && profile?.purchasedCourseIds?.includes(chapterData.subjectId)
+  );
+  const isLockedCourse = !authLoading && isCodingCourse && !hasCourseAccess;
+  const isIntroChapter = publishedSiblings[0]?.id === id;
+  const showPurchaseBar = isLockedCourse && isIntroChapter;
+  const displayedResources = isCodingCourse ? publishedSiblings : chapterGroupVideos;
+  const coursePrice = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(subjectData?.price ?? 3199);
 
   const addNote = () => {
     if (!noteDraft.trim()) return;
@@ -188,7 +207,7 @@ function Chapter() {
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto md:overflow-visible pb-6">
+      <div className={`flex-1 overflow-y-auto md:overflow-visible ${showPurchaseBar ? "pb-24" : "pb-6"}`}>
         {/* DESKTOP HEADING */}
         <div className="hidden md:block mb-5 px-5 md:px-0">
           <div className="flex justify-between items-start mt-3">
@@ -284,7 +303,7 @@ function Chapter() {
                         className={`text-sm leading-relaxed text-muted-foreground whitespace-pre-line break-words ${descExpanded ? "" : "line-clamp-4"}`}
                         style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
                       >
-                        {chapterData?.description ?? "In this lesson, we will explore the key concepts and build a solid understanding through examples and practice."}
+                        {chapterData?.description ?? `In this lesson, you will learn ${chapterTitle} through clear explanations, practical examples, and guided practice.`}
                       </p>
                       {(chapterData?.description ?? "").length > 180 && (
                         <button
@@ -297,21 +316,27 @@ function Chapter() {
                     </div>
                   </div>
 
-                  <div className="hidden md:flex gap-4 flex-wrap">
-                    {chapterData?.duration && (
-                      <div className="flex items-center gap-2 bg-muted/40 px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground">
-                        <Clock className="h-4 w-4 text-primary" /> Duration: {chapterData.duration}
-                      </div>
-                    )}
-                    {chapterData?.difficulty && (
-                      <div className="flex items-center gap-2 bg-muted/40 px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground">
-                        <BookOpen className="h-4 w-4 text-primary" /> Difficulty: {chapterData.difficulty}
-                      </div>
-                    )}
+                  <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground">
+                    <div className="rounded-xl bg-muted/40 p-3">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Duration</p>
+                      <p className="mt-1 flex items-center gap-1.5 text-foreground"><Clock className="h-3.5 w-3.5 text-primary" /> {chapterData?.duration ?? "Self-paced"}</p>
+                    </div>
+                    <div className="rounded-xl bg-muted/40 p-3">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Level</p>
+                      <p className="mt-1 flex items-center gap-1.5 text-foreground"><BookOpen className="h-3.5 w-3.5 text-primary" /> {chapterData?.difficulty ?? "All levels"}</p>
+                    </div>
+                    <div className="rounded-xl bg-muted/40 p-3">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Course</p>
+                      <p className="mt-1 truncate text-foreground">{subjectData?.title ?? "Learning module"}</p>
+                    </div>
+                    <div className="rounded-xl bg-muted/40 p-3">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Lesson</p>
+                      <p className="mt-1 text-foreground">{currentIdx >= 0 ? `${currentIdx + 1} of ${publishedSiblings.length}` : "Intro lesson"}</p>
+                    </div>
                   </div>
 
                   {(chapterData?.whatYouLearn ?? []).length > 0 && (
-                    <div className="hidden md:block">
+                    <div>
                       <h3 className="text-sm font-bold text-foreground mb-3">What You'll Learn</h3>
                       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground font-semibold">
                         {chapterData!.whatYouLearn!.map((item, i) => (
@@ -386,11 +411,11 @@ function Chapter() {
               {tab === "Resources" && (
                 <div className="space-y-3">
                   <p className="text-sm font-bold text-foreground">
-                    {chapterData?.chapterId
+                    {isCodingCourse ? "Course Chapters" : chapterData?.chapterId
                       ? `Chapter ${chapterData.chapterId} — All Videos`
                       : "Chapter Videos"}
                   </p>
-                  {chapterGroupVideos.length === 0 ? (
+                  {displayedResources.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center">
                       <Play className="h-8 w-8 mx-auto text-muted-foreground opacity-40 mb-3" />
                       <p className="text-sm font-semibold text-muted-foreground">No other videos in this chapter group.</p>
@@ -399,14 +424,18 @@ function Chapter() {
                       </p>
                     </div>
                   ) : (
-                    chapterGroupVideos.map((v, idx) => {
+                    displayedResources.map((v, idx) => {
                       const isCurrent = v.id === id;
                       return (
                         <Link
                           key={v.id}
                           to="/chapter/$id"
                           params={{ id: v.id }}
-                          className={`flex items-center gap-3 rounded-2xl border p-3.5 transition hover:shadow-xs ${isCurrent ? "border-primary bg-primary-soft/50" : "border-border bg-card"}`}
+                          onClick={(event) => {
+                            if (isLockedCourse) event.preventDefault();
+                          }}
+                          aria-disabled={isLockedCourse}
+                          className={`flex items-center gap-3 rounded-2xl border p-3.5 transition hover:shadow-xs ${isCurrent ? "border-primary bg-primary-soft/50" : "border-border bg-card"} ${isLockedCourse ? "cursor-not-allowed opacity-70" : ""}`}
                         >
                           {v.videoId ? (
                             <img src={`https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg`} alt={v.title} className="h-10 w-14 rounded-md object-cover shrink-0 bg-primary-soft" />
@@ -419,7 +448,9 @@ function Chapter() {
                             <p className="truncate text-sm font-semibold text-foreground">{v.title}</p>
                             <p className="text-[11px] text-muted-foreground mt-0.5">{v.duration ?? "—"}</p>
                           </div>
-                          {isCurrent ? (
+                          {isLockedCourse ? (
+                            <LockKeyhole className="h-4 w-4 text-muted-foreground shrink-0" />
+                          ) : isCurrent ? (
                             <span className="text-[10px] font-bold text-primary bg-primary-soft px-2 py-1 rounded-full shrink-0">▶ Playing</span>
                           ) : (
                             <Play className="h-4 w-4 text-primary shrink-0" />
@@ -434,6 +465,14 @@ function Chapter() {
               {/* ── NOTES ── */}
               {tab === "Notes" && (
                 <div className="space-y-4">
+                  {isLockedCourse ? (
+                    <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-8 text-center">
+                      <LockKeyhole className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-sm font-bold text-foreground">Course notes are locked</p>
+                      <p className="text-xs text-muted-foreground mt-1">Buy this course to open and download all notes.</p>
+                    </div>
+                  ) : (
+                    <>
                   {/* Admin PDF / Notes — shown at top if exists */}
                   {chapterData?.resourcesNote && (
                     <div className="rounded-2xl border border-primary/20 bg-primary-soft/40 p-4">
@@ -479,6 +518,8 @@ function Chapter() {
                   {/* Student personal notes */}
                   <div>
                   </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -490,6 +531,18 @@ function Chapter() {
       
 
       {/* ── MOBILE FULLSCREEN VIDEO OVERLAY ── */}
+      {showPurchaseBar && (
+        <div className="md:hidden fixed bottom-4 left-0 right-0 z-[100] px-3">
+          <Link
+            to="/support"
+            className="flex items-center justify-between rounded-[1.75rem] bg-primary px-5 py-4 text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.18)]"
+          >
+            <span className="text-sm font-extrabold">Buy Now</span>
+            <span className="text-sm font-extrabold">{coursePrice}</span>
+          </Link>
+        </div>
+      )}
+
       {videoExpanded && videoId && (
         <div
           className="md:hidden fixed inset-0 z-50 bg-black flex flex-col"

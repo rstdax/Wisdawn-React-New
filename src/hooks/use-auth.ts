@@ -14,6 +14,7 @@ export type UserProfile = {
   district: string;
   state: string;
   onboardingCompleted: boolean;
+  purchasedCourseIds?: string[];
   stats?: {
     courses: number;
     badges: number;
@@ -34,6 +35,12 @@ function updateCache(user: User | null, profile: UserProfile | null, loading: bo
   cachedProfile = profile;
   cachedLoading = loading;
   listeners.forEach((l) => l());
+}
+
+export async function refreshUserProfile(): Promise<void> {
+  if (!cachedUser) return;
+  const profile = await getUserProfile(cachedUser.uid);
+  updateCache(cachedUser, profile as UserProfile | null, false);
 }
 
 // Start listener once globally in browser environments

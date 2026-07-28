@@ -5,7 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Atom,
-  Calendar,
+  Calendar as CalendarIcon,
   Code2,
   MapPin,
   User as UserIcon,
@@ -17,8 +17,14 @@ import {
   Lightbulb,
   CheckCircle,
 } from "lucide-react";
+import { format } from "date-fns";
 import { MobileFrame } from "@/components/mobile-frame";
 import { Wisby } from "@/components/wisby";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Get started — WisDawn" }] }),
@@ -500,17 +506,29 @@ function Onboarding() {
                     <label className="text-[10px] font-bold text-muted-foreground uppercase">
                       Date of Birth
                     </label>
-                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="date"
-                        value={d.dob}
-                        onChange={(e) => {
-                          setD({ ...d, dob: e.target.value });
-                          if (error) setError("");
-                        }}
-                        className="flex-1 bg-transparent focus:outline-none text-foreground font-semibold"
-                      />
+                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"ghost"}
+                            className={cn(
+                              "w-full justify-start text-left font-semibold h-11 px-4 hover:bg-transparent rounded-2xl",
+                              !d.dob && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-3 h-4 w-4" />
+                            {d.dob ? format(new Date(d.dob), "PPP") : <span>Select date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={d.dob ? new Date(d.dob) : undefined}
+                            onSelect={(date) => { setD({ ...d, dob: date ? format(date, "yyyy-MM-dd") : "" }); if (error) setError(""); }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </div>
@@ -530,16 +548,18 @@ function Onboarding() {
                       <label className="text-[10px] font-bold text-muted-foreground uppercase">
                         District
                       </label>
-                      <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <select
-                          value={d.district}
-                          onChange={(e) => { setD({ ...d, district: e.target.value }); if (error) setError(""); }}
-                          className="flex-1 bg-transparent focus:outline-none text-sm"
-                        >
-                          <option value="">Select District</option>
-                          {ASSAM_DISTRICTS.map((dist) => <option key={dist} value={dist}>{dist}</option>)}
-                        </select>
+                      <div className="rounded-2xl border border-border bg-muted/20 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
+                        <Select value={d.district || undefined} onValueChange={(val) => { setD({ ...d, district: val }); if (error) setError(""); }}>
+                          <SelectTrigger className="w-full h-11 px-4 bg-transparent border-0 focus:ring-0 focus:ring-offset-0">
+                            <div className="flex items-center gap-3">
+                              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <SelectValue placeholder="Select District" />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ASSAM_DISTRICTS.map((dist) => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -547,16 +567,18 @@ function Onboarding() {
                       <label className="text-[10px] font-bold text-muted-foreground uppercase">
                         State
                       </label>
-                      <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <select
-                          value={d.state}
-                          onChange={(e) => { setD({ ...d, state: e.target.value }); if (error) setError(""); }}
-                          className="flex-1 bg-transparent focus:outline-none text-sm"
-                        >
-                          <option value="">Select State</option>
-                          <option value="Assam">Assam</option>
-                        </select>
+                      <div className="rounded-2xl border border-border bg-muted/20 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
+                        <Select value={d.state || undefined} onValueChange={(val) => { setD({ ...d, state: val }); if (error) setError(""); }}>
+                          <SelectTrigger className="w-full h-11 px-4 bg-transparent border-0 focus:ring-0 focus:ring-offset-0">
+                            <div className="flex items-center gap-3">
+                              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <SelectValue placeholder="Select State" />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Assam">Assam</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
@@ -758,16 +780,30 @@ function Onboarding() {
               <p className="mt-2 text-sm text-muted-foreground">
                 This helps us personalize your experience.
               </p>
-              <Field
-                icon={<Calendar className="h-4 w-4" />}
-                placeholder="Select your date of birth"
-                type="date"
-                value={d.dob}
-                onChange={(v) => {
-                  setD({ ...d, dob: v });
-                  if (error) setError("");
-                }}
-              />
+              <div className="mt-5 rounded-2xl border border-border bg-card">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"ghost"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal h-[52px] px-4 hover:bg-transparent rounded-2xl",
+                        !d.dob && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-3 h-4 w-4 text-muted-foreground" />
+                      {d.dob ? format(new Date(d.dob), "PPP") : <span>Select your date of birth</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={d.dob ? new Date(d.dob) : undefined}
+                      onSelect={(date) => { setD({ ...d, dob: date ? format(date, "yyyy-MM-dd") : "" }); if (error) setError(""); }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
               <MascotArea bubble={"Happy early birthday! 🎂"} />
             </StepWrap>
           )}
@@ -775,27 +811,31 @@ function Onboarding() {
             <StepWrap>
               <Title bold="live?">Where do you</Title>
               <p className="mt-2 text-sm text-muted-foreground">Tell us your location.</p>
-              <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                <select
-                  value={d.district}
-                  onChange={(e) => { setD({ ...d, district: e.target.value }); if (error) setError(""); }}
-                  className="flex-1 bg-transparent focus:outline-none text-sm"
-                >
-                  <option value="">Select District</option>
-                  {ASSAM_DISTRICTS.map((dist) => <option key={dist} value={dist}>{dist}</option>)}
-                </select>
+              <div className="mt-5 rounded-2xl border border-border bg-muted/20">
+                <Select value={d.district || undefined} onValueChange={(val) => { setD({ ...d, district: val }); if (error) setError(""); }}>
+                  <SelectTrigger className="w-full h-[52px] px-4 bg-transparent border-0 focus:ring-0 focus:ring-offset-0">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <SelectValue placeholder="Select District" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASSAM_DISTRICTS.map((dist) => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                <select
-                  value={d.state}
-                  onChange={(e) => { setD({ ...d, state: e.target.value }); if (error) setError(""); }}
-                  className="flex-1 bg-transparent focus:outline-none text-sm"
-                >
-                  <option value="">Select State</option>
-                  <option value="Assam">Assam</option>
-                </select>
+              <div className="mt-3 rounded-2xl border border-border bg-muted/20">
+                <Select value={d.state || undefined} onValueChange={(val) => { setD({ ...d, state: val }); if (error) setError(""); }}>
+                  <SelectTrigger className="w-full h-[52px] px-4 bg-transparent border-0 focus:ring-0 focus:ring-offset-0">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <SelectValue placeholder="Select State" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Assam">Assam</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <MascotArea bubble={"So we can show you the best content near you."} />
             </StepWrap>

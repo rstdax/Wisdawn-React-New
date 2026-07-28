@@ -151,6 +151,22 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function ThemeManager() {
+  const location = useLocation();
+  const search = location.search as Record<string, string | undefined>;
+  
+  useEffect(() => {
+    const track = search?.track || (typeof window !== "undefined" ? localStorage.getItem("wisdawn_track") : null) || "school";
+    if (track === "coding") {
+      document.documentElement.setAttribute("data-theme", "bootcamp");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, [search?.track]);
+
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -159,6 +175,7 @@ function RootComponent() {
       <LayoutGroup>
         <div id="main-content" className="min-h-screen">
           <AuthGuard>
+            <ThemeManager />
             <Outlet />
             <BottomNav />
           </AuthGuard>

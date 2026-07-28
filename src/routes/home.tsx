@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, type MouseEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Bell,
@@ -20,6 +20,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
 import { useAuth } from "@/hooks/use-auth";
 import { getSubjects, getLastWatched, type LastWatchedEntry, type Subject } from "@/lib/admin";
+import { getCourseIntroChapterId } from "@/lib/course-navigation";
 import { SubjectIcon } from "@/components/SubjectIcon";
 import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -189,10 +190,7 @@ function Home() {
       <header className="flex md:hidden items-center justify-between gap-3 px-5 pt-2">
         <div className="relative flex-1 rounded-full bg-muted p-1">
           <div
-            className={`absolute inset-1 w-1/2 rounded-full shadow-lg transition-all duration-300 ${tab === "coding"
-                ? "bg-linear-to-r from-violet-700 to-violet-500 translate-x-full"
-                : "bg-primary translate-x-0"
-              }`}
+            className={`absolute inset-1 w-1/2 rounded-full shadow-lg transition-all duration-300 bg-primary ${tab === "coding" ? "translate-x-full" : "translate-x-0"}`}
             aria-hidden
           />
           <div className="relative grid grid-cols-2">
@@ -360,8 +358,8 @@ function Home() {
                     <div className="col-span-2 md:col-span-4 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
                       No coding courses yet. Admin can add them from the dashboard.
                     </div>
-                  ) : subjects.map((s) => (
-                    <FirebaseSubjectCard key={s.id} subject={s} type="coding" />
+                  ) : [...subjects, ...subjects, ...subjects].map((s, index) => (
+                    <FirebaseSubjectCard key={`${s.id}-${index}`} subject={s} type="coding" />
                   ))}
                 </div>
               </>
@@ -695,6 +693,64 @@ function QuickActionCard({
 }
 
 function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; type?: "school" | "coding" }) {
+  const navigate = useNavigate();
+
+  if (type === "coding") {
+    const openCourseIntro = async (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      const introChapterId = await getCourseIntroChapterId(subject.id);
+
+      if (!introChapterId) {
+        navigate({ to: "/subject/$id", params: { id: subject.id } });
+        return;
+      }
+
+      navigate({ to: "/chapter/$id", params: { id: introChapterId } });
+    };
+
+    return (
+      <Link
+        to="/subject/$id"
+        params={{ id: subject.id }}
+        onClick={openCourseIntro}
+        className="flex flex-col gap-2 group transition hover:opacity-95"
+      >
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-md border border-border/40">
+          {subject.coverImage ? (
+            <img
+              src={subject.coverImage}
+              alt={subject.title}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className={`h-full w-full bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center transition-transform duration-300 group-hover:scale-105`}>
+              <SubjectIcon icon={subject.icon} className="h-12 w-12 text-white" />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col">
+          <h3 className="text-sm font-bold text-foreground leading-tight line-clamp-2">
+            {subject.title}
+          </h3>
+          <p className="text-[11px] text-muted-foreground mt-1 truncate">
+            Dr. Angela Yu, Developer and Lead Instr...
+          </p>
+          <div className="flex items-center gap-1 mt-1 text-[11px] font-bold">
+            <span className="text-amber-600">4.7</span>
+            <div className="flex items-center text-amber-500">
+              {[...Array(4)].map((_, i) => (
+                <svg key={i} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" /></svg>
+              ))}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" clipPath="url(#half)"/></svg>
+            </div>
+            <span className="text-muted-foreground font-normal ml-0.5">(472,738)</span>
+          </div>
+          <p className="text-[13px] font-extrabold text-foreground mt-1">₹3,199.00</p>
+        </div>
+      </Link>
+    );
+  }
+
   return (
     <SubjectCard
       icon={<SubjectIcon icon={subject.icon} className="h-10 w-10 rounded-xl" />}

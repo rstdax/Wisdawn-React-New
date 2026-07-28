@@ -20,6 +20,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SubjectIdRouteImport } from './routes/subject.$id'
+import { Route as ProfileEditRouteImport } from './routes/profile_.edit'
 import { Route as PracticeIdRouteImport } from './routes/practice.$id'
 import { Route as ChapterIdRouteImport } from './routes/chapter.$id'
 import { Route as LessonChapterIdLessonIdRouteImport } from './routes/lesson.$chapterId.$lessonId'
@@ -79,6 +80,11 @@ const SubjectIdRoute = SubjectIdRouteImport.update({
   path: '/subject/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileEditRoute = ProfileEditRouteImport.update({
+  id: '/profile_/edit',
+  path: '/profile/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeIdRoute = PracticeIdRouteImport.update({
   id: '/practice/$id',
   path: '/practice/$id',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/tests': typeof TestsRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
+  '/profile/edit': typeof ProfileEditRoute
   '/subject/$id': typeof SubjectIdRoute
   '/lesson/$chapterId/$lessonId': typeof LessonChapterIdLessonIdRoute
 }
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/tests': typeof TestsRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
+  '/profile/edit': typeof ProfileEditRoute
   '/subject/$id': typeof SubjectIdRoute
   '/lesson/$chapterId/$lessonId': typeof LessonChapterIdLessonIdRoute
 }
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/tests': typeof TestsRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
+  '/profile_/edit': typeof ProfileEditRoute
   '/subject/$id': typeof SubjectIdRoute
   '/lesson/$chapterId/$lessonId': typeof LessonChapterIdLessonIdRoute
 }
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/tests'
     | '/chapter/$id'
     | '/practice/$id'
+    | '/profile/edit'
     | '/subject/$id'
     | '/lesson/$chapterId/$lessonId'
   fileRoutesByTo: FileRoutesByTo
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/tests'
     | '/chapter/$id'
     | '/practice/$id'
+    | '/profile/edit'
     | '/subject/$id'
     | '/lesson/$chapterId/$lessonId'
   id:
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/tests'
     | '/chapter/$id'
     | '/practice/$id'
+    | '/profile_/edit'
     | '/subject/$id'
     | '/lesson/$chapterId/$lessonId'
   fileRoutesById: FileRoutesById
@@ -208,6 +220,7 @@ export interface RootRouteChildren {
   TestsRoute: typeof TestsRoute
   ChapterIdRoute: typeof ChapterIdRoute
   PracticeIdRoute: typeof PracticeIdRoute
+  ProfileEditRoute: typeof ProfileEditRoute
   SubjectIdRoute: typeof SubjectIdRoute
   LessonChapterIdLessonIdRoute: typeof LessonChapterIdLessonIdRoute
 }
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SubjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile_/edit': {
+      id: '/profile_/edit'
+      path: '/profile/edit'
+      fullPath: '/profile/edit'
+      preLoaderRoute: typeof ProfileEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice/$id': {
       id: '/practice/$id'
       path: '/practice/$id'
@@ -328,6 +348,7 @@ const rootRouteChildren: RootRouteChildren = {
   TestsRoute: TestsRoute,
   ChapterIdRoute: ChapterIdRoute,
   PracticeIdRoute: PracticeIdRoute,
+  ProfileEditRoute: ProfileEditRoute,
   SubjectIdRoute: SubjectIdRoute,
   LessonChapterIdLessonIdRoute: LessonChapterIdLessonIdRoute,
 }
