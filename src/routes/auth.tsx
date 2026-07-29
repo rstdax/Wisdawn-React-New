@@ -1,9 +1,11 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { signInWithGoogle, getUserProfile } from "@/lib/auth";
-import { ArrowLeft, GraduationCap, Leaf, Laptop, Star, ShieldCheck } from "lucide-react";
+import { GraduationCap, Leaf, Laptop, Star, ShieldCheck } from "lucide-react";
 import signPageBg from "@/assets/sign-page-bg.jpeg";
 import wisbyLaptop from "@/assets/wisby-laptop.png";
+import logo from "@/assets/logo.jpeg";
+import rstLogo from "@/assets/rst-logo.jpeg";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -46,24 +48,17 @@ function AuthPage() {
       />
 
       {/* Top Header with Logos */}
-      <header className="relative z-10 w-full max-w-4xl pt-2 pb-2 flex items-center justify-between px-2">
-        <Link 
-          to="/" 
-          className="flex items-center gap-1.5 text-slate-500 hover:text-blue-600 transition-colors font-medium text-xs md:text-sm bg-white/70 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/80 shadow-sm"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Back to Home</span>
-        </Link>
-
+      <header className="relative z-10 w-full max-w-4xl pt-2 pb-2 flex items-center justify-center px-2">
         {/* Brand Header */}
         <div className="flex items-center gap-3 sm:gap-6">
           {/* Wisdawn Brand */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            <div className="relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-md shadow-blue-500/20 text-white font-black text-lg sm:text-xl">
-              <span className="relative z-10">W</span>
-              <svg className="absolute -top-1 -right-1 w-3.5 h-3.5 text-amber-400 fill-amber-400" viewBox="0 0 24 24">
-                <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
-              </svg>
+            <div className="relative flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden shadow-md shadow-blue-500/20 bg-white flex items-center justify-start">
+              <img 
+                src={logo} 
+                alt="Wisdawn Logo" 
+                className="ml-1.5 w-9 h-9 object-contain"
+              />
             </div>
             <div className="flex flex-col">
               <span className="text-sm sm:text-lg font-black tracking-wider text-[#0f172a] leading-none uppercase">
@@ -80,10 +75,12 @@ function AuthPage() {
 
           {/* RST Brand */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center">
-              <span className="text-lg sm:text-2xl font-black italic tracking-tighter text-blue-600">R</span>
-              <span className="text-lg sm:text-2xl font-black italic tracking-tighter text-amber-500">S</span>
-              <span className="text-lg sm:text-2xl font-black italic tracking-tighter text-blue-600">T</span>
+            <div className="relative flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-white shadow-sm flex items-center justify-center p-0.5">
+              <img 
+                src={rstLogo} 
+                alt="RST Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div className="flex flex-col">
               <span className="text-[11px] sm:text-sm font-black tracking-wider text-[#0f172a] leading-none uppercase">
@@ -95,8 +92,6 @@ function AuthPage() {
             </div>
           </div>
         </div>
-
-        <div className="w-8 sm:w-20" /> {/* Spacer for centering top header */}
       </header>
 
       {/* Main Content Area */}
@@ -231,7 +226,7 @@ function AuthPage() {
           <ShieldCheck className="w-4 h-4 text-blue-600" />
           <span>Safe. Secure. Made for learners.</span>
         </div>
-        <p className="text-slate-400 text-[10px] sm:text-xs font-medium">
+        <p className="text-white text-[10px] sm:text-xs font-medium">
           Powered by <span className="font-bold text-slate-600">Royal Synergy Technology</span>
         </p>
       </footer>
