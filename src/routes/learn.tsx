@@ -644,7 +644,7 @@ function Learn() {
                       <div className="col-span-1 md:col-span-2 rounded-2xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
                         No {track} courses found.
                       </div>
-                    ) : [...filtered, ...filtered, ...filtered].map((subject, index) => {
+                    ) : filtered.map((subject, index) => {
                       const colors = [
                         "from-blue-500 to-indigo-600",
                         "from-violet-500 to-fuchsia-600",
@@ -657,13 +657,13 @@ function Learn() {
                       const progressNum = progressMap[subject.id] ?? 0;
                       return (
                         <Link
-                          key={`${subject.id}-${index}`}
+                          key={subject.id}
                           to="/subject/$id"
                           params={{ id: subject.id }}
                           onClick={(event) => openCourseIntro(event, subject.id)}
                           className="flex flex-col gap-2 group transition hover:opacity-95"
                         >
-                          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-md border border-border/40">
+                          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-sm border border-border/40">
                             {subject.coverImage ? (
                               <img
                                 src={subject.coverImage}
@@ -680,8 +680,8 @@ function Learn() {
                             <h3 className="text-sm font-bold text-foreground leading-tight line-clamp-2">
                               {subject.title}
                             </h3>
-                            <p className="text-[11px] text-muted-foreground mt-1 truncate">
-                              Dr. Angela Yu, Developer and Lead Instr...
+                            <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+                              {subject.description || "Dr. Angela Yu, Developer and Lead Instr..."}
                             </p>
                             <div className="flex items-center gap-1 mt-1 text-[11px] font-bold">
                               <span className="text-amber-600">4.7</span>
@@ -693,7 +693,9 @@ function Learn() {
                               </div>
                               <span className="text-muted-foreground font-normal ml-0.5">(472,738)</span>
                             </div>
-                            <p className="text-[13px] font-extrabold text-foreground mt-1">₹3,199.00</p>
+                            <p className="text-[13px] font-extrabold text-foreground mt-1">
+                              {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(subject.price ?? 3199)}
+                            </p>
                           </div>
                         </Link>
                       );

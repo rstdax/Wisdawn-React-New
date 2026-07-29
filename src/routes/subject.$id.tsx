@@ -1,6 +1,6 @@
 import { createFileRoute, useParams, useRouter, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Play, Loader2, Clock, ChevronRight, ChevronDown } from "lucide-react";
+import { ArrowLeft, Play, Loader2, Clock, ChevronRight, ChevronDown, FileText } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { getSubjects, getChaptersBySubject, type Subject, type Chapter } from "@/lib/admin";
@@ -23,11 +23,19 @@ function groupChapters(chapters: Chapter[]): { groupId: number; label: string; v
   // Sort each group by videoOrder
   const groups = Array.from(map.entries())
     .sort(([a], [b]) => a - b)
-    .map(([groupId, videos]) => ({
-      groupId,
-      label: groupId === 0 ? "Chapters" : `Chapter ${groupId}`,
-      videos: [...videos].sort((a, b) => (a.videoOrder ?? 1) - (b.videoOrder ?? 1)),
-    }));
+    .map(([groupId, videos]) => {
+      const shell = videos.find(v => v.isChapterShell);
+      const chapterName = shell?.chapterName || videos.find(v => v.chapterName)?.chapterName;
+      let label = groupId === 0 ? "Chapters" : `Chapter ${groupId}`;
+      if (chapterName) {
+        label = `Chapter ${groupId}: ${chapterName}`;
+      }
+      return {
+        groupId,
+        label,
+        videos: videos.filter(v => !v.isChapterShell).sort((a, b) => (a.videoOrder ?? 1) - (b.videoOrder ?? 1)),
+      };
+    });
 
   return groups;
 }
@@ -121,7 +129,7 @@ function SubjectPage() {
                   className="flex items-center gap-4 px-4 py-3.5 rounded-2xl border border-border bg-card hover:bg-primary-soft/40 transition"
                 >
                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold text-sm">
-                    {chapter.videoOrder ?? idx + 1}
+                    {chapter.lessonType === "pdf" ? <FileText className="h-4 w-4" /> : (chapter.videoOrder ?? idx + 1)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-sm text-foreground truncate">{chapter.title}</p>
@@ -137,7 +145,7 @@ function SubjectPage() {
                     </div>
                   </div>
                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-sm shadow-primary/25">
-                    <Play className="h-3.5 w-3.5 fill-current translate-x-0.5" />
+                    {chapter.lessonType === "pdf" ? <FileText className="h-4 w-4" /> : <Play className="h-3.5 w-3.5 fill-current translate-x-0.5" />}
                   </div>
                 </Link>
               ))}
@@ -149,11 +157,12 @@ function SubjectPage() {
               return (
                 <div key={group.groupId} className="rounded-2xl border border-border bg-card overflow-hidden">
                   {/* Chapter group header */}
-                  <button
-                    onClick={() => toggleGroup(group.groupId)}
-                    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/30 transition"
-                  >
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between pr-4 hover:bg-muted/30 transition">
+                    <Link
+                      to={group.videos[0] ? "/chapter/$id" : "/subject/$id"}
+                      params={{ id: group.videos[0]?.id || id }}
+                      className="flex items-center gap-3 flex-1 px-4 py-3.5"
+                    >
                       <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary text-white text-xs font-bold shrink-0">
                         {group.groupId === 0 ? "—" : group.groupId}
                       </div>
@@ -161,11 +170,20 @@ function SubjectPage() {
                         <p className="text-sm font-bold text-foreground">{group.label}</p>
                         <p className="text-[11px] text-muted-foreground">{group.videos.length} video{group.videos.length !== 1 ? "s" : ""}</p>
                       </div>
-                    </div>
-                    {isExpanded
-                      ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                      : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-                  </button>
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleGroup(group.groupId);
+                      }}
+                      className="grid h-8 w-8 place-items-center rounded-full bg-muted/50 hover:bg-muted/80 transition shrink-0 ml-2 text-foreground"
+                      aria-label="Toggle videos"
+                    >
+                      {isExpanded
+                        ? <ChevronDown className="h-4 w-4" />
+                        : <ChevronRight className="h-4 w-4" />}
+                    </button>
+                  </div>
 
                   {/* Videos list */}
                   {isExpanded && (
@@ -182,28 +200,30 @@ function SubjectPage() {
                             <img src={`https://img.youtube.com/vi/${chapter.videoId}/mqdefault.jpg`} alt={chapter.title} className="h-10 w-14 rounded-md object-cover shrink-0 bg-primary-soft" />
                           ) : (
                             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary-soft text-primary font-bold text-sm">
-                              {chapter.videoOrder ?? idx + 1}
+                              {chapter.lessonType === "pdf" ? <FileText className="h-5 w-5" /> : (chapter.videoOrder ?? idx + 1)}
                             </div>
                           )}
 
                           {/* Info */}
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-sm text-foreground truncate">{chapter.title}</p>
-                            <div className="flex items-center gap-3 mt-0.5">
-                              {chapter.duration && (
-                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-semibold">
-                                  <Clock className="h-3 w-3" /> {chapter.duration}
-                                </span>
-                              )}
-                              {chapter.difficulty && (
-                                <span className="text-[11px] text-muted-foreground font-semibold">{chapter.difficulty}</span>
-                              )}
-                            </div>
+                            {subject?.track !== "school" && (chapter.duration || chapter.difficulty) && (
+                              <div className="flex items-center gap-3 mt-0.5">
+                                {chapter.duration && (
+                                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-semibold">
+                                    <Clock className="h-3 w-3" /> {chapter.duration}
+                                  </span>
+                                )}
+                                {chapter.difficulty && (
+                                  <span className="text-[11px] text-muted-foreground font-semibold">{chapter.difficulty}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {/* Play */}
                           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-sm shadow-primary/25">
-                            <Play className="h-3.5 w-3.5 fill-current translate-x-0.5" />
+                            {chapter.lessonType === "pdf" ? <FileText className="h-4 w-4" /> : <Play className="h-3.5 w-3.5 fill-current translate-x-0.5" />}
                           </div>
                         </Link>
                       ))}

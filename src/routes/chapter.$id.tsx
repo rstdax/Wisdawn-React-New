@@ -58,6 +58,7 @@ function Chapter() {
   const [bookmarked, setBookmarked] = useState(false);
   const [markedComplete, setMarkedComplete] = useState(false);
   const [videoExpanded, setVideoExpanded] = useState(false);
+  const [pdfMaximized, setPdfMaximized] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
   // Firebase-driven state
@@ -70,6 +71,7 @@ function Chapter() {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [videoLoading, setVideoLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
+  const [subjectLoading, setSubjectLoading] = useState(true);
 
   // Local interaction state
   const [downloadedIds, setDownloadedIds] = useState<string[]>([]);
@@ -80,33 +82,50 @@ function Chapter() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    setVideoLoading(true);
-    setDataLoading(true);
-    Promise.all([
-      getChapter(id),
-      getResources(id),
-      getQA(id),
-      getDiscussions(id),
-    ]).then(([ch, res, qa, disc]) => {
-      setChapterData(ch);
-      setResources(res);
-      setQaList(qa);
-      setDiscussions(disc);
-      // Fetch all chapters from same subject for next/prev
-      if (ch?.subjectId) {
-        getChaptersBySubject(ch.subjectId).then(setSubjectChapters);
-        getSubject(ch.subjectId).then(setSubjectData);
-        // Fetch all videos in same chapter group
-        if (ch.chapterId !== undefined) {
-          getChaptersByGroupId(ch.subjectId, ch.chapterId).then(setChapterGroupVideos);
+    let active = true;
+    const fetchData = async () => {
+      setVideoLoading(true);
+      setDataLoading(true);
+      try {
+        const [ch, res, qa, disc] = await Promise.all([
+          getChapter(id),
+          getResources(id),
+          getQA(id),
+          getDiscussions(id),
+        ]);
+        if (!active) return;
+        setChapterData(ch);
+        setResources(res);
+        setQaList(qa);
+        setDiscussions(disc);
+        
+        setVideoLoading(false);
+        setDataLoading(false);
+        
+        if (ch?.subjectId) {
+          const promises: Promise<any>[] = [
+            getChaptersBySubject(ch.subjectId).then(chapters => { if (active) setSubjectChapters(chapters.filter(c => !c.isChapterShell)) }),
+            getSubject(ch.subjectId).then(sub => { if (active) setSubjectData(sub) })
+          ];
+          if (ch.chapterId !== undefined) {
+            promises.push(
+              getChaptersByGroupId(ch.subjectId, ch.chapterId).then(videos => { if (active) setChapterGroupVideos(videos.filter(v => !v.isChapterShell)) })
+            );
+          }
+          await Promise.all(promises);
+        } else if (active) {
+          setSubjectData(null);
         }
-      } else {
-        setSubjectData(null);
+      } finally {
+        if (active) {
+          setSubjectLoading(false);
+          setVideoLoading(false);
+          setDataLoading(false);
+        }
       }
-    }).finally(() => {
-      setVideoLoading(false);
-      setDataLoading(false);
-    });
+    };
+    fetchData();
+    return () => { active = false; };
   }, [id]);
 
   useEffect(() => {
@@ -146,7 +165,9 @@ function Chapter() {
   const isLockedCourse = !authLoading && isCodingCourse && !hasCourseAccess;
   const isIntroChapter = publishedSiblings[0]?.id === id;
   const showPurchaseBar = isLockedCourse && isIntroChapter;
-  const displayedResources = isCodingCourse ? publishedSiblings : chapterGroupVideos;
+  const displayedResources = (isCodingCourse ? publishedSiblings : chapterGroupVideos).filter(
+    (v) => chapterData?.lessonType === "pdf" ? v.lessonType === "pdf" : v.lessonType !== "pdf"
+  );
   const coursePrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -188,7 +209,7 @@ function Chapter() {
   return (
     <MobileFrame>
       {/* MOBILE HEADER */}
-      <header className="flex md:hidden items-center justify-between px-5 pt-2">
+      <header className="flex md:hidden items-center justify-between px-5 pt-2 pb-3">
         <button
           onClick={() => router.history.back()}
           className="grid h-9 w-9 place-items-center rounded-full active:bg-muted"
@@ -196,8 +217,23 @@ function Chapter() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="text-center">
-          <h1 className="text-sm font-bold">{chapterTitle}</h1>
-          <p className="text-[11px] text-muted-foreground">Class 10 · Science</p>
+          {dataLoading ? (
+            <div className="flex flex-col items-center justify-center gap-1.5 mt-0.5">
+              <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+              <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+            </div>
+          ) : (
+            <>
+              <h1 className="text-sm font-bold">{chapterTitle}</h1>
+              <div className="text-[11px] text-muted-foreground mt-0.5">
+                {subjectLoading ? (
+                  <div className="h-3 w-24 bg-muted animate-pulse rounded mx-auto" />
+                ) : (subjectData?.class && subjectData?.title 
+                  ? `${subjectData.class} · ${subjectData.title}`
+                  : (subjectData?.title ?? "Loading..."))}
+              </div>
+            </>
+          )}
         </div>
         <button
           onClick={() => setBookmarked((v) => !v)}
@@ -212,8 +248,17 @@ function Chapter() {
         <div className="hidden md:block mb-5 px-5 md:px-0">
           <div className="flex justify-between items-start mt-3">
             <div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{chapterTitle}</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">{lessonTitle}</p>
+              {dataLoading ? (
+                <>
+                  <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-48 bg-muted animate-pulse rounded mt-2" />
+                </>
+              ) : (
+                <>
+                  <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{chapterTitle}</h1>
+                  <p className="text-xs text-muted-foreground mt-0.5">{lessonTitle}</p>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
               <button
@@ -237,16 +282,9 @@ function Chapter() {
           <div className="lg:col-span-2 space-y-4">
 
             {/* VIDEO PLAYER */}
-            <div className="rounded-2xl bg-[oklch(0.25_0.12_265)] text-white shadow-md -mx-5 md:mx-0 relative overflow-hidden">
+            <div className={`shadow-md -mx-5 md:mx-0 relative overflow-hidden ${videoLoading ? "bg-muted animate-pulse" : "bg-black text-white"}`}>
               {videoLoading ? (
-                <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", background: "oklch(0.25 0.12 265)" }}>
-                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div className="flex flex-col items-center gap-3 opacity-50">
-                      <div className="h-14 w-14 rounded-full bg-white/20 animate-pulse" />
-                      <p className="text-xs text-white/60 font-semibold">Loading video…</p>
-                    </div>
-                  </div>
-                </div>
+                <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden" }} />
               ) : videoId ? (
                 <>
 
@@ -262,7 +300,59 @@ function Chapter() {
                     />
                   </div>
                 </>
-              ) : (
+              ) : chapterData?.lessonType === "pdf" ? (() => {
+                const urlMatch = chapterData.resourcesNote?.match(/https?:\/\/[^\s]+/);
+                const url = urlMatch?.[0] ?? null;
+                const embedUrl = url?.includes("drive.google.com/file/d/")
+                  ? url.replace("/view", "/preview").split("?")[0]
+                  : url;
+                const downloadUrl = url?.includes("drive.google.com/file/d/")
+                  ? url.replace("/view", "/export?format=pdf").split("?")[0]
+                  : url;
+
+                return (
+                  <div className={pdfMaximized 
+                    ? "fixed inset-0 z-[100] bg-black flex flex-col"
+                    : "relative w-full h-[60vh] min-h-[400px] bg-muted flex flex-col"}>
+                    
+                    {pdfMaximized && (
+                      <div className="flex items-center justify-between p-4 bg-black/90 text-white backdrop-blur-md">
+                        <h3 className="text-sm font-bold truncate pr-4">{chapterTitle}</h3>
+                        <button onClick={() => setPdfMaximized(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/20 hover:bg-white/30 transition">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {embedUrl ? (
+                      <iframe
+                        src={embedUrl}
+                        className="flex-1 w-full border-none bg-white"
+                        title={chapterTitle}
+                        allowFullScreen
+                      />
+                    ) : (
+                      <div className="flex-1 w-full flex flex-col items-center justify-center bg-black text-white">
+                        <FileText className="h-10 w-10 text-white/50 mb-3" />
+                        <p className="text-sm font-semibold">No PDF link found.</p>
+                        <p className="text-xs text-white/50 mt-1">Please add a link in the Notes field in Admin.</p>
+                      </div>
+                    )}
+                    {downloadUrl && !pdfMaximized && (
+                      <div className="absolute top-4 right-4 z-10 flex gap-2">
+                        <button onClick={() => setPdfMaximized(true)}
+                          className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-black/80 shadow-md">
+                          <Maximize2 className="h-3.5 w-3.5" /> Maximize
+                        </button>
+                        <a href={downloadUrl} target="_blank" rel="noreferrer"
+                          className="flex items-center gap-1.5 rounded-full bg-primary/90 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary shadow-md">
+                          <Download className="h-3.5 w-3.5" /> Download
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })() : (
                 <div className="relative grid aspect-video place-items-center">
                   <Wisby variant="cheer" className="h-32 opacity-90" />
                   <div className="absolute left-4 top-4 text-xs font-bold opacity-80 uppercase tracking-wider">{chapterTitle}</div>
@@ -295,9 +385,26 @@ function Chapter() {
               {/* ── OVERVIEW ── */}
               {tab === "Overview" && (
                 <div className="space-y-5">
-                  {/* Description — collapsible like YouTube */}
+                  {dataLoading ? (
+                    <div className="space-y-4 pt-2">
+                      <div className="h-5 w-32 bg-muted animate-pulse rounded" />
+                      <div className="space-y-2">
+                        <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                        <div className="h-4 w-[90%] bg-muted animate-pulse rounded" />
+                        <div className="h-4 w-[80%] bg-muted animate-pulse rounded" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-4">
+                        <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                        <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                        <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                        <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Description — collapsible like YouTube */}
                   <div>
-                    <h2 className="text-base font-bold text-foreground">About This Lesson</h2>
+                    <h2 className="text-base font-bold text-foreground">{chapterData?.lessonType === "pdf" ? "About this pdf" : "About this video"}</h2>
                     <div className="mt-2 relative overflow-hidden">
                       <p
                         className={`text-sm leading-relaxed text-muted-foreground whitespace-pre-line break-words ${descExpanded ? "" : "line-clamp-4"}`}
@@ -315,25 +422,34 @@ function Chapter() {
                       )}
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground">
-                    <div className="rounded-xl bg-muted/40 p-3">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Duration</p>
-                      <p className="mt-1 flex items-center gap-1.5 text-foreground"><Clock className="h-3.5 w-3.5 text-primary" /> {chapterData?.duration ?? "Self-paced"}</p>
+                  
+                  {subjectLoading ? (
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                      <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                      <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                      <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
                     </div>
-                    <div className="rounded-xl bg-muted/40 p-3">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Level</p>
-                      <p className="mt-1 flex items-center gap-1.5 text-foreground"><BookOpen className="h-3.5 w-3.5 text-primary" /> {chapterData?.difficulty ?? "All levels"}</p>
+                  ) : subjectData?.track !== "school" && (
+                    <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground">
+                      <div className="rounded-xl bg-muted/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Duration</p>
+                        <p className="mt-1 flex items-center gap-1.5 text-foreground"><Clock className="h-3.5 w-3.5 text-primary" /> {chapterData?.duration ?? "Self-paced"}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Level</p>
+                        <p className="mt-1 flex items-center gap-1.5 text-foreground"><BookOpen className="h-3.5 w-3.5 text-primary" /> {chapterData?.difficulty ?? "All levels"}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Course</p>
+                        <p className="mt-1 truncate text-foreground">{subjectData?.title ?? "Learning module"}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">No. of Videos</p>
+                        <p className="mt-1 text-foreground">{publishedSiblings.length || 1}</p>
+                      </div>
                     </div>
-                    <div className="rounded-xl bg-muted/40 p-3">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Course</p>
-                      <p className="mt-1 truncate text-foreground">{subjectData?.title ?? "Learning module"}</p>
-                    </div>
-                    <div className="rounded-xl bg-muted/40 p-3">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">No. of Videos</p>
-                      <p className="mt-1 text-foreground">{publishedSiblings.length || 1}</p>
-                    </div>
-                  </div>
+                  )}
 
                   {(chapterData?.whatYouLearn ?? []).length > 0 && (
                     <div>
@@ -350,7 +466,9 @@ function Chapter() {
 
                   <div className="pt-2">
                     <h3 className="text-sm font-bold text-foreground">Next Up</h3>
-                    {nextChapter ? (
+                    {subjectLoading ? (
+                      <div className="mt-2 h-[76px] rounded-2xl border border-border bg-card animate-pulse" />
+                    ) : nextChapter ? (
                       <Link
                         to="/chapter/$id"
                         params={{ id: nextChapter.id }}
@@ -361,13 +479,15 @@ function Chapter() {
                             <img src={`https://img.youtube.com/vi/${nextChapter.videoId}/mqdefault.jpg`} alt={nextChapter.title} className="h-12 w-16 rounded-md object-cover shrink-0 bg-primary-soft" />
                           ) : (
                             <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
-                              {nextChapter.duration ?? "—"}
+                              {nextChapter.lessonType === "pdf" ? <FileText className="h-5 w-5" /> : (nextChapter.duration ?? "—")}
                             </div>
                           )}
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-foreground">{nextChapter.title}</p>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                              {`Chapter ${currentIdx + 2}`}
+                              {nextChapter.chapterId !== undefined 
+                                ? (nextChapter.chapterName ? `Chapter ${nextChapter.chapterId}: ${nextChapter.chapterName}` : `Chapter ${nextChapter.chapterId}`) 
+                                : (nextChapter.chapterName ?? "Next Video")}
                             </p>
                           </div>
                         </div>
@@ -404,23 +524,32 @@ function Chapter() {
                       <div />
                     )}
                   </div>
-                </div>
+                </>
               )}
+            </div>
+          )}
 
               {/* ── RESOURCES ── */}
               {tab === "Resources" && (
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-foreground">
-                    {isCodingCourse ? "Course Chapters" : chapterData?.chapterId
-                      ? `Chapter ${chapterData.chapterId} — All Videos`
-                      : "Chapter Videos"}
-                  </p>
-                  {displayedResources.length === 0 ? (
+                  <div className="text-sm font-bold text-foreground">
+                    {subjectLoading ? (
+                      <div className="h-5 w-40 bg-muted animate-pulse rounded" />
+                    ) : isCodingCourse ? "Course Chapters" : chapterData?.chapterId
+                      ? `Chapter ${chapterData.chapterId} — ${chapterData.lessonType === "pdf" ? "All PDFs" : "All Videos"}`
+                      : (chapterData?.lessonType === "pdf" ? "Chapter PDFs" : "Chapter Videos")}
+                  </div>
+                  {subjectLoading ? (
+                    <div className="space-y-3">
+                      <div className="h-16 rounded-2xl border border-border bg-card animate-pulse" />
+                      <div className="h-16 rounded-2xl border border-border bg-card animate-pulse" />
+                    </div>
+                  ) : displayedResources.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center">
                       <Play className="h-8 w-8 mx-auto text-muted-foreground opacity-40 mb-3" />
-                      <p className="text-sm font-semibold text-muted-foreground">No other videos in this chapter group.</p>
+                      <p className="text-sm font-semibold text-muted-foreground">No other {chapterData?.lessonType === "pdf" ? "PDFs" : "videos"} in this chapter group.</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Set the same <strong>Chapter ID</strong> on related videos in the admin panel.
+                        Set the same <strong>Chapter ID</strong> on related {chapterData?.lessonType === "pdf" ? "PDFs" : "videos"} in the admin panel.
                       </p>
                     </div>
                   ) : (
@@ -441,19 +570,19 @@ function Chapter() {
                             <img src={`https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg`} alt={v.title} className="h-10 w-14 rounded-md object-cover shrink-0 bg-primary-soft" />
                           ) : (
                             <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-bold ${isCurrent ? "bg-primary text-white" : "bg-primary-soft text-primary"}`}>
-                              {v.videoOrder ?? idx + 1}
+                              {v.lessonType === "pdf" ? <FileText className="h-4 w-4" /> : v.videoOrder ?? idx + 1}
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-foreground">{v.title}</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">{v.duration ?? "—"}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{v.lessonType === "pdf" ? "PDF Document" : (v.duration ?? "—")}</p>
                           </div>
                           {isLockedCourse ? (
                             <LockKeyhole className="h-4 w-4 text-muted-foreground shrink-0" />
                           ) : isCurrent ? (
-                            <span className="text-[10px] font-bold text-primary bg-primary-soft px-2 py-1 rounded-full shrink-0">▶ Playing</span>
+                            <span className="text-[10px] font-bold text-primary bg-primary-soft px-2 py-1 rounded-full shrink-0">{v.lessonType === "pdf" ? "Viewing" : "▶ Playing"}</span>
                           ) : (
-                            <Play className="h-4 w-4 text-primary shrink-0" />
+                            v.lessonType === "pdf" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <Play className="h-4 w-4 text-primary shrink-0" />
                           )}
                         </Link>
                       );
@@ -474,46 +603,65 @@ function Chapter() {
                   ) : (
                     <>
                   {/* Admin PDF / Notes — shown at top if exists */}
-                  {chapterData?.resourcesNote && (
-                    <div className="rounded-2xl border border-primary/20 bg-primary-soft/40 p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <FileText className="h-4 w-4 text-primary shrink-0" />
-                        <p className="text-xs font-bold text-primary uppercase tracking-wider">Chapter Notes</p>
-                      </div>
-                      {(() => {
-                        const urlMatch = chapterData.resourcesNote.match(/https?:\/\/[^\s]+/);
-                        const url = urlMatch?.[0] ?? null;
-                        // Convert Google Drive view link → download link
-                        const downloadUrl = url?.includes("drive.google.com/file/d/")
-                          ? url.replace("/view", "/export?format=pdf").replace("?usp=drive_link", "")
-                          : url;
-                        // Text without URL
-                        const textOnly = chapterData.resourcesNote.replace(/https?:\/\/[^\s]+/g, "").trim();
-                        return (
-                          <>
-                            {textOnly && (
-                              <p className="text-sm text-foreground leading-relaxed whitespace-pre-line break-words mb-3"
-                                style={{ wordBreak: "break-word", overflowWrap: "break-word" }}>
-                                {textOnly}
+                  {(() => {
+                    const videosWithNotes = Array.from(new Map(
+                      [
+                        ...(chapterData?.resourcesNote ? [chapterData] : []),
+                        ...displayedResources.filter(v => v.resourcesNote)
+                      ].map(v => [v.id, v])
+                    ).values());
+
+                    if (videosWithNotes.length === 0) return null;
+
+                    return (
+                      <div className="space-y-4">
+                        {videosWithNotes.map((video) => (
+                          <div key={video.id} className="rounded-2xl border border-primary/20 bg-primary-soft/40 p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <FileText className="h-4 w-4 text-primary shrink-0" />
+                              <p className="text-xs font-bold text-primary uppercase tracking-wider">
+                                {video.chapterId !== undefined
+                                  ? `Chapter ${video.chapterId}${video.chapterName ? `: ${video.chapterName}` : ""} — ${video.title}`
+                                  : video.title ?? "Notes"}
                               </p>
-                            )}
-                            {url && (
-                              <div className="flex gap-2 flex-wrap">
-                                <a href={url} target="_blank" rel="noreferrer"
-                                  className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-primary/90">
-                                  <FileText className="h-3.5 w-3.5" /> Open PDF
-                                </a>
-                                <a href={downloadUrl ?? url} target="_blank" rel="noreferrer"
-                                  className="flex items-center gap-1.5 rounded-full border border-primary bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary-soft">
-                                  <Download className="h-3.5 w-3.5" /> Download PDF
-                                </a>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
+                            </div>
+                            {(() => {
+                              const urlMatch = video.resourcesNote!.match(/https?:\/\/[^\s]+/);
+                              const url = urlMatch?.[0] ?? null;
+                              // Convert Google Drive view link → download link
+                              const downloadUrl = url?.includes("drive.google.com/file/d/")
+                                ? url.replace("/view", "/export?format=pdf").replace("?usp=drive_link", "")
+                                : url;
+                              // Text without URL
+                              const textOnly = video.resourcesNote!.replace(/https?:\/\/[^\s]+/g, "").trim();
+                              return (
+                                <>
+                                  {textOnly && (
+                                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-line break-words mb-3"
+                                      style={{ wordBreak: "break-word", overflowWrap: "break-word" }}>
+                                      {textOnly}
+                                    </p>
+                                  )}
+                                  {url && (
+                                    <div className="flex gap-2 flex-wrap">
+                                      <a href={url} target="_blank" rel="noreferrer"
+                                        className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-primary/90">
+                                        <FileText className="h-3.5 w-3.5" /> Open PDF
+                                      </a>
+                                      <a href={downloadUrl ?? url} target="_blank" rel="noreferrer"
+                                        className="flex items-center gap-1.5 rounded-full border border-primary bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary-soft">
+                                        <Download className="h-3.5 w-3.5" /> Download PDF
+                                      </a>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {/* Student personal notes */}
                   <div>
@@ -535,10 +683,10 @@ function Chapter() {
         <div className="md:hidden fixed bottom-4 left-0 right-0 z-[100] px-3">
           <Link
             to="/support"
-            className="flex items-center justify-between rounded-[1.75rem] bg-primary px-5 py-4 text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.18)]"
+            className="flex items-center justify-between rounded-2xl bg-primary px-5 py-5 text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.18)]"
           >
-            <span className="text-sm font-extrabold">Buy Now</span>
-            <span className="text-sm font-extrabold">{coursePrice}</span>
+            <span className="text-base font-extrabold">Buy Now</span>
+            <span className="text-base font-extrabold">{coursePrice}</span>
           </Link>
         </div>
       )}

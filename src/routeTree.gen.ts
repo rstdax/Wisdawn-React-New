@@ -16,6 +16,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
@@ -59,6 +60,11 @@ const LearnRoute = LearnRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/learn': typeof LearnRoute
   '/onboarding': typeof OnboardingRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/learn': typeof LearnRoute
   '/onboarding': typeof OnboardingRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/history': typeof HistoryRoute
   '/home': typeof HomeRoute
   '/learn': typeof LearnRoute
   '/onboarding': typeof OnboardingRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/auth'
+    | '/history'
     | '/home'
     | '/learn'
     | '/onboarding'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/auth'
+    | '/history'
     | '/home'
     | '/learn'
     | '/onboarding'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/auth'
+    | '/history'
     | '/home'
     | '/learn'
     | '/onboarding'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  HistoryRoute: typeof HistoryRoute
   HomeRoute: typeof HomeRoute
   LearnRoute: typeof LearnRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -287,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -360,6 +380,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  HistoryRoute: HistoryRoute,
   HomeRoute: HomeRoute,
   LearnRoute: LearnRoute,
   OnboardingRoute: OnboardingRoute,

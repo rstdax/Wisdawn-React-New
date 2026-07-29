@@ -31,9 +31,12 @@ export type Chapter = {
   whatYouLearn?: string[];
   resourcesNote?: string;
   chapterId?: number;
+  chapterName?: string;
+  isChapterShell?: boolean;
   videoOrder?: number;
   order?: number;
   published?: boolean;
+  lessonType?: "video" | "pdf";
 };
 
 export type LessonType = "video" | "pdf" | "quiz" | "assignment" | "article" | "external_link";

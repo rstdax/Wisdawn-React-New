@@ -76,7 +76,6 @@ function Home() {
   };
 
   const [showAlerts, setShowAlerts] = useState(false);
-  const [showAllLastWatched, setShowAllLastWatched] = useState(false);
   const [bannerIndex, setBannerIndex] = useState(0);
   const bannerTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -95,20 +94,17 @@ function Home() {
     return () => { if (bannerTimer.current) clearInterval(bannerTimer.current); };
   }, [banners.length]);
 
-  const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
-    queryKey: ["homeSubjects", tab, profile?.cls],
-    queryFn: async () => {
-      const all = await getSubjects();
-      return all.filter((s) => {
-        if (s.track !== tab) return false;
-        // Filter by user class for school track
-        if (tab === "school" && profile?.cls && s.class && s.class !== profile.cls) return false;
-        return true;
-      }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4);
-    },
-    enabled: !loading,
+  const { data: allSubjects = [], isLoading: subjectsLoading } = useQuery({
+    queryKey: ["allSubjects"],
+    queryFn: getSubjects,
     staleTime: 5 * 60 * 1000,
   });
+
+  const subjects = allSubjects.filter((s) => {
+    if (s.track !== tab) return false;
+    if (tab === "school" && profile?.cls && s.class && s.class !== profile.cls) return false;
+    return true;
+  }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4);
 
   const { data: lastWatched = [], isLoading: lastWatchedLoading } = useQuery({
     queryKey: ["lastWatched", user?.uid],
@@ -147,7 +143,12 @@ function Home() {
               </div>
 
               {/* Hero Banner Skeleton */}
-              <Skeleton className="h-[180px] md:h-[220px] w-full rounded-3xl animate-pulse" />
+              <div className="relative">
+                <Skeleton className="h-[180px] md:h-[220px] w-full rounded-3xl animate-pulse" />
+                {banners.length > 0 && banners[0].imageUrl && (
+                  <img src={banners[0].imageUrl} style={{ display: "none" }} fetchPriority="high" loading="eager" alt="" />
+                )}
+              </div>
 
               {/* Subjects Section Skeleton */}
               <div className="space-y-3">
@@ -358,8 +359,8 @@ function Home() {
                     <div className="col-span-2 md:col-span-4 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
                       No coding courses yet. Admin can add them from the dashboard.
                     </div>
-                  ) : [...subjects, ...subjects, ...subjects].map((s, index) => (
-                    <FirebaseSubjectCard key={`${s.id}-${index}`} subject={s} type="coding" />
+                  ) : subjects.map((s) => (
+                    <FirebaseSubjectCard key={s.id} subject={s} type="coding" />
                   ))}
                 </div>
               </>
@@ -368,8 +369,8 @@ function Home() {
             {/* CONTINUE LEARNING */}
             <SectionHeader 
               title="Continue Learning" 
-              onClickViewAll={lastWatched.length > 3 ? () => setShowAllLastWatched(!showAllLastWatched) : undefined} 
-              viewAllText={showAllLastWatched ? "View Less" : "View All"} 
+              onClickViewAll={lastWatched.length > 3 ? () => navigate({ to: "/history" }) : undefined} 
+              viewAllText="View All" 
             />
             <div className="mt-3 space-y-3">
               {lastWatchedLoading ? (
@@ -381,7 +382,7 @@ function Home() {
                 <div className="rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-semibold">
                   Start watching a chapter to track your progress here.
                 </div>
-              ) : (showAllLastWatched ? lastWatched : lastWatched.slice(0, 3)).map((entry) => (
+              ) : lastWatched.slice(0, 3).map((entry) => (
                 <Link key={entry.chapterId} to="/chapter/$id" params={{ id: entry.chapterId }} className="block">
                   <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-sm">
                     {entry.videoId ? (
@@ -715,7 +716,7 @@ function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; t
         onClick={openCourseIntro}
         className="flex flex-col gap-2 group transition hover:opacity-95"
       >
-        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-md border border-border/40">
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-sm border border-border/40">
           {subject.coverImage ? (
             <img
               src={subject.coverImage}
@@ -732,8 +733,8 @@ function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; t
           <h3 className="text-sm font-bold text-foreground leading-tight line-clamp-2">
             {subject.title}
           </h3>
-          <p className="text-[11px] text-muted-foreground mt-1 truncate">
-            Dr. Angela Yu, Developer and Lead Instr...
+          <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+            {subject.description || "Dr. Angela Yu, Developer and Lead Instr..."}
           </p>
           <div className="flex items-center gap-1 mt-1 text-[11px] font-bold">
             <span className="text-amber-600">4.7</span>
@@ -745,7 +746,9 @@ function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; t
             </div>
             <span className="text-muted-foreground font-normal ml-0.5">(472,738)</span>
           </div>
-          <p className="text-[13px] font-extrabold text-foreground mt-1">₹3,199.00</p>
+          <p className="text-[13px] font-extrabold text-foreground mt-1">
+            {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(subject.price ?? 3199)}
+          </p>
         </div>
       </Link>
     );
