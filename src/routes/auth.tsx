@@ -83,11 +83,11 @@ function AuthPage() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-[11px] sm:text-sm font-black tracking-wider text-[#0f172a] leading-none uppercase">
-                ROYAL SYNERGY
+              <span className="text-[15px] sm:text-sm font-black tracking-wider text-[#0f172a] leading-none uppercase">
+                RST
               </span>
-              <span className="text-[7px] sm:text-[9px] font-bold text-slate-500 tracking-wider uppercase mt-0.5">
-                TECHNOLOGY
+              <span className="text-[7px] sm:text-[10px] font-bold text-slate-500 tracking-wider uppercase mt-0.5">
+                ROYAL SYNERGY TECHNOLOGY
               </span>
             </div>
           </div>
@@ -227,7 +227,7 @@ function AuthPage() {
           <span>Safe. Secure. Made for learners.</span>
         </div>
         <p className="text-white text-[10px] sm:text-xs font-medium">
-          Powered by <span className="font-bold text-slate-600">Royal Synergy Technology</span>
+          Powered by <span className="font-bold text-slate-600">&emsp;Royal Synergy Technology</span>
         </p>
       </footer>
     </div>
