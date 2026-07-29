@@ -1,6 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { signInWithGoogle, getUserProfile } from "@/lib/auth";
 import { 
   PlayCircle, Trophy, Award, CheckCircle2, FlaskConical, Atom, TestTube,
   Code2, MonitorPlay, Cpu, Users, BookOpen, GraduationCap,
@@ -154,27 +153,7 @@ const TrophyConnector: React.FC<TrophyConnectorProps> = ({
 
 function LandingPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const user = await signInWithGoogle();
-      const profile = await getUserProfile(user.uid);
-      if (profile?.onboardingCompleted) {
-        navigate({ to: "/home" });
-      } else {
-        navigate({ to: "/onboarding" });
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
-      setError(message);
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 overflow-x-hidden flex flex-col items-center">
@@ -200,20 +179,18 @@ function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-5">
-            <button
-              onClick={handleGoogleLogin}
-              disabled={loading}
+            <Link
+              to="/auth"
               className="hidden md:flex px-7 py-3 rounded-full border border-slate-200 text-base font-bold text-slate-700 hover:bg-slate-50 transition-colors"
             >
               Log In
-            </button>
-            <button
-              onClick={handleGoogleLogin}
-              disabled={loading}
+            </Link>
+            <Link
+              to="/auth"
               className="hidden sm:flex px-7 py-3 rounded-full bg-blue-600 text-base font-bold text-white shadow-xl shadow-blue-600/30 hover:bg-blue-700 hover:-translate-y-0.5 transition-all"
             >
-              {loading ? "..." : "Get Started"}
-            </button>
+              Get Started
+            </Link>
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="sm:hidden p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
@@ -233,13 +210,13 @@ function LandingPage() {
             <a href="#" className="py-2 hover:text-blue-600" onClick={() => setIsMobileMenuOpen(false)}>Achievements</a>
             <a href="#" className="py-2 hover:text-blue-600" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
             
-            <button
-              onClick={() => { setIsMobileMenuOpen(false); handleGoogleLogin(); }}
-              disabled={loading}
-              className="w-full mt-2 px-7 py-3.5 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 active:bg-blue-700 transition-all text-center"
+            <Link
+              to="/auth"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full mt-2 px-7 py-3.5 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 active:bg-blue-700 transition-all text-center flex items-center justify-center"
             >
-              {loading ? "..." : "Get Started"}
-            </button>
+              Get Started
+            </Link>
           </div>
         )}
       </header>
@@ -250,12 +227,6 @@ function LandingPage() {
         <div className="absolute top-10 right-5 w-3 h-3 bg-red-400 rounded-sm transform rotate-45 -z-10"></div>
         <div className="absolute top-40 right-20 w-2 h-2 bg-yellow-400 rounded-full -z-10"></div>
         <div className="absolute top-20 left-10 w-2 h-2 bg-blue-400 rounded-full -z-10"></div>
-
-        {error && (
-          <div className="w-full bg-red-50 text-red-600 font-bold p-4 rounded-xl text-sm border border-red-100 shadow-sm">
-            {error}
-          </div>
-        )}
 
         {/* Hero Section */}
         <section className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-10 xl:gap-12 w-full">
@@ -283,12 +254,12 @@ function LandingPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
-              <button
-                onClick={handleGoogleLogin}
+              <Link
+                to="/auth"
                 className="group flex items-center justify-center gap-2 rounded-full bg-blue-600 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition-all hover:bg-blue-700 hover:-translate-y-1 w-full sm:w-auto"
               >
                 Explore Wisdawn <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
+              </Link>
               <button className="flex items-center justify-center gap-2 rounded-full border-2 border-slate-200 bg-white px-7 py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 w-full sm:w-auto">
                 <PlayCircle className="h-4 w-4" /> Watch Demo
               </button>
@@ -618,12 +589,12 @@ function LandingPage() {
             <div className="bg-white rounded-[2rem] p-8 md:p-10 border border-slate-100 shadow-md flex-1 flex flex-col items-center justify-center text-center">
               <h3 className="text-2xl md:text-3xl font-extrabold text-blue-700 mb-4">Ready to Start<br />Your Journey?</h3>
               <p className="text-slate-600 font-medium text-base mb-8 max-w-sm">Join thousands of students who are learning, coding and achieving with Wisdawn.</p>
-              <button
-                onClick={handleGoogleLogin}
+              <Link
+                to="/auth"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-blue-600 text-sm font-bold text-white shadow-lg shadow-blue-600/30 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group"
               >
                 Get Started Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
+              </Link>
             </div>
           </div>
         </section>

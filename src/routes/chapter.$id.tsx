@@ -330,8 +330,8 @@ function Chapter() {
                       <p className="mt-1 truncate text-foreground">{subjectData?.title ?? "Learning module"}</p>
                     </div>
                     <div className="rounded-xl bg-muted/40 p-3">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Lesson</p>
-                      <p className="mt-1 text-foreground">{currentIdx >= 0 ? `${currentIdx + 1} of ${publishedSiblings.length}` : "Intro lesson"}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">No. of Videos</p>
+                      <p className="mt-1 text-foreground">{publishedSiblings.length || 1}</p>
                     </div>
                   </div>
 

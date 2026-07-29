@@ -14,7 +14,15 @@ const items = [
 export function BottomNav() {
   const { pathname } = useLocation();
   
-  if (pathname === "/" || pathname === "/onboarding" || pathname.startsWith("/chapter/")) return null;
+  if (
+    pathname === "/" ||
+    pathname === "/auth" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/onboarding" ||
+    pathname.startsWith("/chapter/")
+  ) {
+    return null;
+  }
 
   return (
     <div className="md:hidden fixed bottom-4 left-0 right-0 z-[100] px-3 pointer-events-none">

@@ -18,7 +18,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { auth } from "../lib/firebase";
 
 // Routes that do NOT require authentication
-const PUBLIC_ROUTES = ["/", "/onboarding", "/admin"];
+const PUBLIC_ROUTES = ["/", "/onboarding", "/admin", "/auth"];
 
 function NotFoundComponent() {
   return (
