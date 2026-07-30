@@ -106,7 +106,7 @@ function AuthPage() {
         </div>
 
         {/* Auth Card */}
-        <div className="w-full bg-white/95 backdrop-blur-md rounded-[2.25rem] sm:rounded-[2.5rem] shadow-[0_20px_50px_-10px_rgba(29,99,237,0.15)] border border-white/80 p-6 sm:p-8 text-center relative z-10">
+        <div className="w-full bg-white/95 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-[0_20px_50px_-10px_rgba(29,99,237,0.15)] border border-white/80 p-6 sm:p-8 text-center relative z-10">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight">
             Welcome to{" "}
             <span className="relative inline-block text-[#1d63ed]">

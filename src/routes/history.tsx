@@ -10,6 +10,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getLastWatched, LastWatchedEntry } from "@/lib/admin";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import wisbyReading from "@/assets/wisby-reading.png";
+import wisbyThumbs from "@/assets/wisby-thumbs.png";
 
 export const Route = createFileRoute("/history")({
   component: HistoryPage,
@@ -169,14 +171,11 @@ function HistoryPage() {
                   {lastWatched.length} lessons in progress
                 </p>
               </div>
-              <div className="absolute right-[-10px] top-1 w-28 h-28 opacity-90 pointer-events-none">
-                 <div className="w-full h-full bg-blue-500 rounded-tl-[50px] rounded-tr-[30px] flex items-center justify-center text-white relative shadow-inner overflow-hidden">
-                   <span className="text-5xl absolute -mt-3">🦉</span>
-                   <div className="absolute bottom-0 w-full h-5 bg-blue-600"></div>
-                 </div>
-                 <Sparkles className="absolute top-2 left-0 w-3 h-3 text-amber-400" />
-                 <Sparkles className="absolute top-8 right-3 w-4 h-4 text-amber-400 opacity-60" />
-              </div>
+              <img
+                src={wisbyReading}
+                alt="Wisby reading a book"
+                className="pointer-events-none absolute -right-5 -top-4 h-34 w-38 object-cover object-center mix-blend-multiply"
+              />
             </div>
 
             <div className="px-5 pb-6 space-y-7">
@@ -236,19 +235,19 @@ function HistoryPage() {
                 </div>
               )}
 
-              {restLessons.length > 0 && (
+              {lastWatched.length > 0 && (
                 <div className="mt-6">
                   <h3 className="text-[17px] font-bold text-foreground mb-4">In Progress</h3>
                   
-                  <div className="relative border-l-2 border-primary/20 ml-2 pl-5 space-y-6">
+                    <div className="relative pl-0 space-y-6">
                     
                     {todayLessons.length > 0 && (
                       <div className="relative">
-                        <div className="absolute -left-[29px] top-0 bg-background py-1">
-                          <div className="w-2.5 h-4 bg-primary rounded-full"></div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-1 h-4 bg-primary rounded-full" />
+                          <h4 className="text-primary font-bold text-xs">Today</h4>
                         </div>
-                        <h4 className="text-primary font-bold text-xs mb-3 absolute -top-0.5 -left-[14px] bg-background pr-2">Today</h4>
-                        <div className="pt-6">
+                        <div>
                           {renderLessonList(todayLessons)}
                         </div>
                       </div>
@@ -256,40 +255,46 @@ function HistoryPage() {
                     
                     {yesterdayLessons.length > 0 && (
                       <div className="relative">
-                        <div className="absolute -left-[29px] top-0 bg-background py-1">
-                          <div className="w-2.5 h-4 bg-[#8b5cf6] rounded-full"></div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-1 h-4 bg-[#8b5cf6] rounded-full" />
+                          <h4 className="text-[#8b5cf6] font-bold text-xs">Yesterday</h4>
                         </div>
-                        <h4 className="text-[#8b5cf6] font-bold text-xs mb-3 absolute -top-0.5 -left-[14px] bg-background pr-2">Yesterday</h4>
-                        <div className="pt-6">
+                        <div>
                           {renderLessonList(yesterdayLessons)}
                         </div>
                       </div>
                     )}
                     
-                    {earlierLessons.length > 0 && (
-                      <div className="relative">
-                        <div className="absolute -left-[29px] top-0 bg-background py-1">
-                          <div className="w-2.5 h-4 bg-muted-foreground/40 rounded-full"></div>
-                        </div>
-                        <h4 className="text-muted-foreground font-bold text-xs mb-3 absolute -top-0.5 -left-[14px] bg-background pr-2">Earlier</h4>
-                        <div className="pt-6">
-                          {renderLessonList(earlierLessons)}
-                        </div>
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-4 bg-muted-foreground/40 rounded-full" />
+                        <h4 className="text-muted-foreground font-bold text-xs">Earlier</h4>
                       </div>
-                    )}
+                      <div>
+                        {earlierLessons.length > 0 ? renderLessonList(earlierLessons) : (
+                          <p className="rounded-2xl border border-dashed border-border px-4 py-3 text-xs font-medium text-muted-foreground">
+                            No earlier lessons yet.
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
               
-              <div className="mt-6 rounded-[24px] bg-gradient-to-r from-blue-50/80 to-indigo-50/40 dark:from-blue-950/30 dark:to-indigo-950/10 p-4 flex items-center gap-3 border border-blue-100/50 dark:border-blue-900/30">
-                <div className="w-14 h-14 shrink-0 bg-blue-100/60 dark:bg-blue-900/50 rounded-2xl flex items-center justify-center text-3xl">
-                  🤩
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+              <div className="relative mt-6 min-h-[84px] overflow-hidden rounded-2xl border border-[#E2E0FF] bg-[linear-gradient(105deg,#F0F2FF_0%,#F7F5FF_62%,#EFECFF_100%)] py-4 pl-[7.5rem] pr-5">
+                <img
+                  src={wisbyThumbs}
+                  alt="Wisby giving a thumbs up"
+                  className="pointer-events-none absolute -bottom-6 left-1 h-28 w-28 object-contain"
+                />
+                <Sparkles className="pointer-events-none absolute right-5 top-3 h-3 w-3 text-[#D6D0FF]" />
+                <Sparkles className="pointer-events-none absolute bottom-3 right-10 h-2.5 w-2.5 text-[#D6D0FF]" />
+                <div className="relative z-10">
+                  <h4 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
                     You're doing amazing! <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                   </h4>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
                     You're only <span className="font-semibold text-foreground">3 lessons</span> away from finishing your <span className="text-primary font-medium">Web Development course</span>.
                   </p>
                 </div>

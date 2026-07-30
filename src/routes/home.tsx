@@ -253,7 +253,7 @@ function Home() {
             {bannersLoading ? (
               <Skeleton className="h-[180px] md:h-[220px] w-full rounded-3xl animate-pulse" />
             ) : banners.length > 0 ? (
-              <div className="relative overflow-hidden rounded-3xl min-h-[180px] md:min-h-[220px]">
+              <div className="relative overflow-hidden rounded-3xl min-h-[200px] md:min-h-[220px]">
                 {banners.map((banner, idx) => (
                   <div
                     key={banner.id}

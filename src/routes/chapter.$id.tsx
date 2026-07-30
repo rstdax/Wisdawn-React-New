@@ -15,7 +15,15 @@ import {
   Link as LinkIcon,
   LockKeyhole,
   Maximize2,
-  X, 
+  X,
+  GraduationCap,
+  Target,
+  ShieldCheck,
+  ShoppingCart,
+  Gem,
+  RefreshCcw,
+  MonitorPlay,
+  Award,
 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
@@ -249,7 +257,7 @@ function Chapter() {
         </button>
       </header>
 
-      <div className={`flex-1 overflow-y-auto md:overflow-visible ${showPurchaseBar ? "pb-24" : "pb-6"}`}>
+      <div className={`flex-1 overflow-y-auto md:overflow-visible ${showPurchaseBar ? "pb-52 md:pb-6" : "pb-6"}`}>
         {/* DESKTOP HEADING */}
         <div className="hidden md:block mb-5 px-5 md:px-0">
           <div className="flex justify-between items-start mt-3">
@@ -416,35 +424,75 @@ function Chapter() {
                       <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
                     </div>
                   ) : subjectData?.track !== "school" && (
-                    <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground">
-                      <div className="rounded-xl bg-muted/40 p-3">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Duration</p>
-                        <p className="mt-1 flex items-center gap-1.5 text-foreground"><Clock className="h-3.5 w-3.5 text-primary" /> {chapterData?.duration ?? "Self-paced"}</p>
+                    <div className="grid grid-cols-2 gap-3 mt-5">
+                      {/* DURATION */}
+                      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-100/50 text-purple-600">
+                           <Clock className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Duration</p>
+                          <p className="text-xs sm:text-sm font-extrabold text-foreground mt-0.5 truncate">{chapterData?.duration ?? "Self-paced"}</p>
+                        </div>
                       </div>
-                      <div className="rounded-xl bg-muted/40 p-3">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Level</p>
-                        <p className="mt-1 flex items-center gap-1.5 text-foreground"><BookOpen className="h-3.5 w-3.5 text-primary" /> {chapterData?.difficulty ?? "All levels"}</p>
+                      
+                      {/* LEVEL */}
+                      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-green-100/50 text-green-600">
+                           <BookOpen className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Level</p>
+                          <p className="text-xs sm:text-sm font-extrabold text-foreground mt-0.5 truncate">{chapterData?.difficulty ?? "Beginner"}</p>
+                        </div>
                       </div>
-                      <div className="rounded-xl bg-muted/40 p-3">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Course</p>
-                        <p className="mt-1 truncate text-foreground">{subjectData?.title ?? "Learning module"}</p>
+
+                      {/* COURSE */}
+                      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-100/50 text-blue-600">
+                           <GraduationCap className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Course</p>
+                          <p className="text-xs sm:text-sm font-extrabold text-foreground mt-0.5 leading-tight line-clamp-2">{subjectData?.title ?? "Web Development"}</p>
+                        </div>
                       </div>
-                      <div className="rounded-xl bg-muted/40 p-3">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">No. of Videos</p>
-                        <p className="mt-1 text-foreground">{publishedSiblings.length || 1}</p>
+
+                      {/* NO. OF VIDEOS */}
+                      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-orange-100/50 text-orange-500">
+                           <Play className="h-5 w-5 fill-current" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">No. of Videos</p>
+                          <p className="text-xs sm:text-sm font-extrabold text-foreground mt-0.5 truncate">{publishedSiblings.length || 2}</p>
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {(chapterData?.whatYouLearn ?? []).length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground mb-3">What You'll Learn</h3>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground font-semibold">
-                        {chapterData!.whatYouLearn!.map((item, i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <Check className="h-4 w-4 text-emerald-500 shrink-0" /> {item}
+                    <div className="mt-6 rounded-[24px] bg-[#F7F5FF] p-5 border border-purple-100 relative overflow-hidden">
+                      <div className="absolute right-0 bottom-0 opacity-80 mix-blend-multiply translate-x-4 translate-y-4">
+                         <div className="bg-purple-100/50 rounded-xl p-4">
+                            <MonitorPlay className="h-16 w-16 text-purple-300" />
+                         </div>
+                      </div>
+                      <div className="relative z-10 flex gap-4">
+                        <div className="shrink-0 pt-0.5">
+                           <Target className="h-6 w-6 text-[#7F56D9]" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-[#42307D] mb-4">What you'll learn</h3>
+                          <div className="space-y-2.5 text-xs text-[#6941C6] font-semibold">
+                            {chapterData!.whatYouLearn!.map((item, i) => (
+                              <div key={i} className="flex items-start gap-2.5">
+                                <CheckCircle className="h-4 w-4 text-[#7F56D9] shrink-0 mt-0.5 fill-[#7F56D9] stroke-white" /> 
+                                <span className="leading-tight pr-12">{item}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -677,14 +725,38 @@ function Chapter() {
 
       {/* ── MOBILE FULLSCREEN VIDEO OVERLAY ── */}
       {showPurchaseBar && (
-        <div className="md:hidden fixed bottom-4 left-0 right-0 z-[100] px-3">
-          <Link
-            to="/support"
-            className="flex items-center justify-between rounded-2xl bg-primary px-5 py-5 text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.18)]"
-          >
-            <span className="text-base font-extrabold">Buy Now</span>
-            <span className="text-base font-extrabold">{coursePrice}</span>
-          </Link>
+        <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 md:static md:px-0 md:pb-8 md:pt-4">
+          <div className="mx-auto max-w-110 overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_8px_30px_rgb(0,0,0,0.12)] md:max-w-none">
+            <div className="flex items-center gap-2 p-4 md:flex-row md:justify-between md:gap-5 md:p-5">
+              <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-4">
+                <div className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#F5F3FF] text-[#7F56D9] md:h-14 md:w-14">
+                  <Award className="absolute h-7 w-7 fill-current opacity-20" />
+                  <Award className="relative z-10 h-6 w-6" />
+                </div>
+                <div className="min-w-0 md:border-r md:border-border/50 md:pr-6">
+                  <p className="text-sm font-bold text-[#6941C6]">Lifetime Access</p>
+                  <p className="mt-1 text-[10px] leading-snug text-muted-foreground whitespace-nowrap md:text-xs">Learn at your own pace<br />with full lifetime access</p>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col items-center justify-center md:items-end">
+                <span className="text-xl font-extrabold tracking-tight text-foreground md:text-2xl">{coursePrice}</span>
+                <Link
+                  to="/support"
+                  className="mt-2 flex items-center gap-2 rounded-full bg-[#7F56D9] px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-purple-500/30 transition hover:bg-[#6941C6] md:px-10 md:py-3"
+                >
+                  Buy Now <ShoppingCart className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 border-t border-border bg-[#FAF9FF] px-3 py-3 text-[10px] font-semibold text-muted-foreground sm:gap-4 sm:text-[11px]">
+              <span className="flex items-center gap-1 whitespace-nowrap"><LockKeyhole className="h-3.5 w-3.5 text-[#7F56D9]" /> Secure Payment</span>
+              <span className="h-4 w-px bg-border" />
+              <span className="flex items-center gap-1 whitespace-nowrap"><Gem className="h-3.5 w-3.5 text-[#7F56D9]" /> One-time Payment</span>
+              <span className="h-4 w-px bg-border" />
+              <span className="flex items-center gap-1 whitespace-nowrap"><RefreshCcw className="h-3.5 w-3.5 text-[#7F56D9]" /> Lifetime Access</span>
+            </div>
+          </div>
         </div>
       )}
 

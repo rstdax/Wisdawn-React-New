@@ -156,7 +156,7 @@ function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 overflow-x-hidden flex flex-col items-center">
+    <div className="landing-page min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 overflow-x-hidden flex flex-col items-center">
       
       {/* Navbar */}
       <header className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-slate-100/80">

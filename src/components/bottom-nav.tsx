@@ -26,7 +26,7 @@ export function BottomNav() {
 
   return (
     <div className="md:hidden fixed bottom-4 left-0 right-0 z-[100] px-3 pointer-events-none">
-      <nav className="pointer-events-auto rounded-[1.75rem] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] ring-1 ring-slate-900/5 p-1">
+      <nav className="pointer-events-auto rounded-2xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] ring-1 ring-slate-900/5 p-1">
         <ul className="flex items-center justify-between relative">
           {items.map(({ to, label, icon: Icon }, index) => {
             const active = pathname === to || pathname.startsWith(to + "/");
@@ -36,7 +36,7 @@ export function BottomNav() {
                   <Link
                     to={to}
                     aria-current={active ? "page" : undefined}
-                    className={`relative flex w-full h-[60px] flex-col items-center justify-center gap-0.5 rounded-[1rem] transition-colors duration-300 z-10 ${
+                    className={`relative flex w-full h-[60px] flex-col items-center justify-center gap-0.5 rounded-lg transition-colors duration-300 z-10 ${
                       active
                         ? "text-primary"
                         : "text-slate-500 hover:text-slate-900"
@@ -45,7 +45,7 @@ export function BottomNav() {
                     {active && (
                       <motion.div
                         layoutId="nav-bg"
-                        className="absolute inset-0 rounded-[1.25rem] bg-primary-soft -z-10"
+                        className="absolute inset-0 rounded-xl bg-primary-soft -z-10"
                         transition={{ type: "spring", stiffness: 400, damping: 35 }}
                       />
                     )}

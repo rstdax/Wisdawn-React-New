@@ -58,7 +58,7 @@
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 0.45rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.18 0.04 265);
   --card: oklch(1 0 0);
@@ -93,6 +93,11 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+}
+
+:root[data-landing="true"],
+.landing-page {
+  --radius: 0.875rem;
 }
 
 :root[data-theme="bootcamp"] {

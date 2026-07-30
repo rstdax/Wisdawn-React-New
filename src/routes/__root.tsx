@@ -162,7 +162,12 @@ function ThemeManager() {
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
-  }, [search?.track]);
+    if (location.pathname === "/") {
+      document.documentElement.setAttribute("data-landing", "true");
+    } else {
+      document.documentElement.removeAttribute("data-landing");
+    }
+  }, [search?.track, location.pathname]);
 
   return null;
 }
