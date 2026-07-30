@@ -11,7 +11,7 @@ import { Wisby } from "@/components/wisby";
 import {
   getLesson, getChapter, getLessonNavContext, getResources, getQA, addQA,
   getDiscussions, addDiscussion, getLessonsByChapter, saveLastWatched, getSubject,
-  type Lesson, type Chapter, type Resource, type QAItem,
+  type Lesson, type Chapter, type Subject, type Resource, type QAItem,
   type Discussion, type LessonNavContext,
 } from "@/lib/admin";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,6 +42,7 @@ function LessonPage() {
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [subjectData, setSubjectData] = useState<Subject | null>(null);
   const [navCtx, setNavCtx] = useState<LessonNavContext | null>(null);
   const [chapterLessons, setChapterLessons] = useState<Lesson[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
@@ -68,7 +69,7 @@ function LessonPage() {
       getResources(chapterId),
       getQA(chapterId),
       getDiscussions(chapterId),
-    ]).then(([les, ch, nav, allLessons, res, qa, disc]) => {
+    ]).then(async ([les, ch, nav, allLessons, res, qa, disc]) => {
       setLesson(les);
       setChapter(ch);
       setNavCtx(nav);
@@ -76,6 +77,13 @@ function LessonPage() {
       setResources(res);
       setQaList(qa);
       setDiscussions(disc);
+
+      if (ch?.subjectId) {
+        const sub = await getSubject(ch.subjectId);
+        setSubjectData(sub);
+      } else {
+        setSubjectData(null);
+      }
     }).finally(() => setLoading(false));
   }, [chapterId, lessonId]);
 
@@ -302,45 +310,47 @@ function LessonPage() {
                   )}
 
                   {/* Next Up */}
-                  <div className="pt-2">
-                    <h3 className="text-sm font-bold text-foreground">Next Up</h3>
-                    {navCtx?.nextLesson ? (
-                      <Link
-                        to="/lesson/$chapterId/$lessonId"
-                        params={{ chapterId: navCtx.nextLessonChapter?.id ?? chapterId, lessonId: navCtx.nextLesson.id }}
-                        className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:shadow-xs hover:border-primary/30"
-                      >
-                        <div className="flex items-center gap-3">
-                          {navCtx.nextLesson.youtubeVideoId ? (
-                            <img src={`https://img.youtube.com/vi/${navCtx.nextLesson.youtubeVideoId}/mqdefault.jpg`} alt={navCtx.nextLesson.title} className="h-12 w-16 rounded-md object-cover shrink-0 bg-primary-soft" />
-                          ) : (
-                            <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
-                              {navCtx.nextLesson.durationDisplay ?? "—"}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-foreground">{navCtx.nextLesson.title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                              {navCtx.nextLessonChapter ? navCtx.nextLessonChapter.title : chapterTitle}
-                            </p>
-                            {navCtx.nextLesson.durationDisplay && (
-                              <p className="text-[10px] text-primary font-semibold mt-0.5">{navCtx.nextLesson.durationDisplay}</p>
+                  {subjectData?.track !== "coding" && (
+                    <div className="pt-2">
+                      <h3 className="text-sm font-bold text-foreground">Next Up</h3>
+                      {navCtx?.nextLesson ? (
+                        <Link
+                          to="/lesson/$chapterId/$lessonId"
+                          params={{ chapterId: navCtx.nextLessonChapter?.id ?? chapterId, lessonId: navCtx.nextLesson.id }}
+                          className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:shadow-xs hover:border-primary/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            {navCtx.nextLesson.youtubeVideoId ? (
+                              <img src={`https://img.youtube.com/vi/${navCtx.nextLesson.youtubeVideoId}/mqdefault.jpg`} alt={navCtx.nextLesson.title} className="h-12 w-16 rounded-md object-cover shrink-0 bg-primary-soft" />
+                            ) : (
+                              <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
+                                {navCtx.nextLesson.durationDisplay ?? "—"}
+                              </div>
                             )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-foreground">{navCtx.nextLesson.title}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                {navCtx.nextLessonChapter ? navCtx.nextLessonChapter.title : chapterTitle}
+                              </p>
+                              {navCtx.nextLesson.durationDisplay && (
+                                <p className="text-[10px] text-primary font-semibold mt-0.5">{navCtx.nextLesson.durationDisplay}</p>
+                              )}
+                            </div>
                           </div>
+                          <Play className="h-4 w-4 text-primary shrink-0" />
+                        </Link>
+                      ) : navCtx?.isLastLessonOfSubject ? (
+                        <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+                          <p className="text-sm font-bold text-emerald-700">🎉 Course Complete!</p>
+                          <p className="text-xs text-emerald-600 mt-1">You've finished all lessons in this course.</p>
                         </div>
-                        <Play className="h-4 w-4 text-primary shrink-0" />
-                      </Link>
-                    ) : navCtx?.isLastLessonOfSubject ? (
-                      <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-                        <p className="text-sm font-bold text-emerald-700">🎉 Course Complete!</p>
-                        <p className="text-xs text-emerald-600 mt-1">You've finished all lessons in this course.</p>
-                      </div>
-                    ) : (
-                      <div className="mt-2 rounded-2xl border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground text-center font-semibold">
-                        You've reached the last lesson in this chapter.
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="mt-2 rounded-2xl border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground text-center font-semibold">
+                          You've reached the last lesson in this chapter.
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Prev / Next desktop */}
                   <div className="hidden md:flex justify-between items-center pt-4 border-t border-border">

@@ -144,6 +144,12 @@ function Chapter() {
     }
   }, [chapterData, user?.uid]);
 
+  useEffect(() => {
+    if (chapterData?.lessonType === "pdf") {
+      setPdfMaximized(true);
+    }
+  }, [chapterData?.id, chapterData?.lessonType]);
+
   const chapterTitle = chapterData?.title ?? id.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const lessonTitle = chapterTitle;
   const videoId = chapterData?.videoId ?? null;
@@ -303,27 +309,16 @@ function Chapter() {
               ) : chapterData?.lessonType === "pdf" ? (() => {
                 const urlMatch = chapterData.resourcesNote?.match(/https?:\/\/[^\s]+/);
                 const url = urlMatch?.[0] ?? null;
-                const embedUrl = url?.includes("drive.google.com/file/d/")
-                  ? url.replace("/view", "/preview").split("?")[0]
-                  : url;
-                const downloadUrl = url?.includes("drive.google.com/file/d/")
-                  ? url.replace("/view", "/export?format=pdf").split("?")[0]
+                const isDrive = url?.includes("drive.google.com/file/d/");
+                const embedUrl = isDrive
+                  ? url!.replace("/view", "/preview").split("?")[0]
+                  : url ? `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true` : null;
+                const downloadUrl = isDrive
+                  ? url!.replace("/view", "/export?format=pdf").split("?")[0]
                   : url;
 
                 return (
-                  <div className={pdfMaximized 
-                    ? "fixed inset-0 z-[100] bg-black flex flex-col"
-                    : "relative w-full h-[60vh] min-h-[400px] bg-muted flex flex-col"}>
-                    
-                    {pdfMaximized && (
-                      <div className="flex items-center justify-between p-4 bg-black/90 text-white backdrop-blur-md">
-                        <h3 className="text-sm font-bold truncate pr-4">{chapterTitle}</h3>
-                        <button onClick={() => setPdfMaximized(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/20 hover:bg-white/30 transition">
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-
+                  <div className="relative w-full h-[calc(100vh-80px)] md:h-[80vh] min-h-[400px] bg-muted flex flex-col">
                     {embedUrl ? (
                       <iframe
                         src={embedUrl}
@@ -336,18 +331,6 @@ function Chapter() {
                         <FileText className="h-10 w-10 text-white/50 mb-3" />
                         <p className="text-sm font-semibold">No PDF link found.</p>
                         <p className="text-xs text-white/50 mt-1">Please add a link in the Notes field in Admin.</p>
-                      </div>
-                    )}
-                    {downloadUrl && !pdfMaximized && (
-                      <div className="absolute top-4 right-4 z-10 flex gap-2">
-                        <button onClick={() => setPdfMaximized(true)}
-                          className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-black/80 shadow-md">
-                          <Maximize2 className="h-3.5 w-3.5" /> Maximize
-                        </button>
-                        <a href={downloadUrl} target="_blank" rel="noreferrer"
-                          className="flex items-center gap-1.5 rounded-full bg-primary/90 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary shadow-md">
-                          <Download className="h-3.5 w-3.5" /> Download
-                        </a>
                       </div>
                     )}
                   </div>
@@ -369,15 +352,17 @@ function Chapter() {
             </div>
 
             {/* TABS */}
-            <div className="flex border-b border-border text-sm">
-              {tabs.map((t) => (
-                <button key={t} onClick={() => setTab(t)}
-                  className={`flex-1 -mb-px border-b-2 py-3.5 font-bold transition text-center ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            {chapterData?.lessonType !== "pdf" && (
+              <>
+                <div className="flex border-b border-border text-sm">
+                  {tabs.map((t) => (
+                    <button key={t} onClick={() => setTab(t)}
+                      className={`flex-1 -mb-px border-b-2 py-3.5 font-bold transition text-center ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
 
             {/* TAB CONTENT */}
             <div className="pt-2">
@@ -404,7 +389,7 @@ function Chapter() {
                     <>
                       {/* Description — collapsible like YouTube */}
                   <div>
-                    <h2 className="text-base font-bold text-foreground">{chapterData?.lessonType === "pdf" ? "About this pdf" : "About this video"}</h2>
+                    <h2 className="text-base font-bold text-foreground">About this video</h2>
                     <div className="mt-2 relative overflow-hidden">
                       <p
                         className={`text-sm leading-relaxed text-muted-foreground whitespace-pre-line break-words ${descExpanded ? "" : "line-clamp-4"}`}
@@ -536,8 +521,8 @@ function Chapter() {
                     {subjectLoading ? (
                       <div className="h-5 w-40 bg-muted animate-pulse rounded" />
                     ) : isCodingCourse ? "Course Chapters" : chapterData?.chapterId
-                      ? `Chapter ${chapterData.chapterId} — ${chapterData.lessonType === "pdf" ? "All PDFs" : "All Videos"}`
-                      : (chapterData?.lessonType === "pdf" ? "Chapter PDFs" : "Chapter Videos")}
+                      ? `Chapter ${chapterData.chapterId} — All Videos`
+                      : "Chapter Videos"}
                   </div>
                   {subjectLoading ? (
                     <div className="space-y-3">
@@ -547,9 +532,9 @@ function Chapter() {
                   ) : displayedResources.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center">
                       <Play className="h-8 w-8 mx-auto text-muted-foreground opacity-40 mb-3" />
-                      <p className="text-sm font-semibold text-muted-foreground">No other {chapterData?.lessonType === "pdf" ? "PDFs" : "videos"} in this chapter group.</p>
+                      <p className="text-sm font-semibold text-muted-foreground">No other videos in this chapter group.</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Set the same <strong>Chapter ID</strong> on related {chapterData?.lessonType === "pdf" ? "PDFs" : "videos"} in the admin panel.
+                        Set the same <strong>Chapter ID</strong> on related videos in the admin panel.
                       </p>
                     </div>
                   ) : (
@@ -604,11 +589,21 @@ function Chapter() {
                     <>
                   {/* Admin PDF / Notes — shown at top if exists */}
                   {(() => {
+                    const pdfLessonsInGroup = isCodingCourse
+                      ? publishedSiblings.filter(v => v.lessonType === "pdf" && v.resourcesNote)
+                      : chapterGroupVideos.filter(v => v.lessonType === "pdf" && v.resourcesNote);
+
                     const videosWithNotes = Array.from(new Map(
-                      [
-                        ...(chapterData?.resourcesNote ? [chapterData] : []),
-                        ...displayedResources.filter(v => v.resourcesNote)
-                      ].map(v => [v.id, v])
+                      (isCodingCourse
+                        ? [
+                            ...(chapterData?.resourcesNote ? [chapterData] : []),
+                            ...displayedResources.filter(v => v.resourcesNote),
+                            ...pdfLessonsInGroup
+                          ]
+                        : [
+                            ...pdfLessonsInGroup
+                          ]
+                      ).map(v => [v.id, v])
                     ).values());
 
                     if (videosWithNotes.length === 0) return null;
@@ -673,6 +668,8 @@ function Chapter() {
 
 
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
