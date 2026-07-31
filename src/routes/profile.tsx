@@ -39,7 +39,9 @@ function Profile() {
 
   const handleSignOut = async () => {
     await signOutUser();
-    navigate({ to: "/" });
+    navigate({ to: "/", replace: true }).then(() => {
+      navigate({ to: "/auth" });
+    });
   };
 
   return (

@@ -292,11 +292,11 @@ function Chapter() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-5 md:px-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:px-0">
           <div className="lg:col-span-2 space-y-4">
 
             {/* VIDEO PLAYER */}
-            <div className={`shadow-md -mx-5 md:mx-0 relative overflow-hidden ${videoLoading ? "bg-muted animate-pulse" : "bg-black text-white"}`}>
+            <div className={`shadow-md md:rounded-2xl relative overflow-hidden ${videoLoading ? "bg-muted animate-pulse" : "bg-black text-white"}`}>
               {videoLoading ? (
                 <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden" }} />
               ) : videoId ? (
@@ -361,7 +361,7 @@ function Chapter() {
 
             {/* TABS */}
             {chapterData?.lessonType !== "pdf" && (
-              <>
+              <div className="px-5 md:px-0 space-y-4">
                 <div className="flex border-b border-border text-sm">
                   {tabs.map((t) => (
                     <button key={t} onClick={() => setTab(t)}
@@ -502,30 +502,60 @@ function Chapter() {
                     {subjectLoading ? (
                       <div className="mt-2 h-[76px] rounded-2xl border border-border bg-card animate-pulse" />
                     ) : nextChapter ? (
-                      <Link
-                        to="/chapter/$id"
-                        params={{ id: nextChapter.id }}
-                        className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:shadow-xs hover:border-primary/30"
-                      >
-                        <div className="flex items-center gap-3">
-                          {nextChapter.videoId ? (
-                            <img src={`https://img.youtube.com/vi/${nextChapter.videoId}/mqdefault.jpg`} alt={nextChapter.title} className="h-12 w-16 rounded-md object-cover shrink-0 bg-primary-soft" />
-                          ) : (
-                            <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
-                              {nextChapter.lessonType === "pdf" ? <FileText className="h-5 w-5" /> : (nextChapter.duration ?? "—")}
+                      isLockedCourse ? (
+                        <div
+                          className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 opacity-80"
+                        >
+                          <div className="flex items-center gap-3">
+                            {nextChapter.videoId ? (
+                              <div className="relative h-12 w-16 shrink-0 rounded-md overflow-hidden bg-primary-soft">
+                                <img src={`https://img.youtube.com/vi/${nextChapter.videoId}/mqdefault.jpg`} alt={nextChapter.title} className="h-full w-full object-cover blur-[2px]" />
+                                <div className="absolute inset-0 grid place-items-center bg-black/10">
+                                  <LockKeyhole className="h-5 w-5 text-white drop-shadow-md" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
+                                <LockKeyhole className="h-5 w-5" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-foreground">{nextChapter.title}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                {nextChapter.chapterId !== undefined 
+                                  ? (nextChapter.chapterName ? `Chapter ${nextChapter.chapterId}: ${nextChapter.chapterName}` : `Chapter ${nextChapter.chapterId}`) 
+                                  : (nextChapter.chapterName ?? "Next Video")}
+                              </p>
                             </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-foreground">{nextChapter.title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                              {nextChapter.chapterId !== undefined 
-                                ? (nextChapter.chapterName ? `Chapter ${nextChapter.chapterId}: ${nextChapter.chapterName}` : `Chapter ${nextChapter.chapterId}`) 
-                                : (nextChapter.chapterName ?? "Next Video")}
-                            </p>
                           </div>
+                          <LockKeyhole className="h-4 w-4 text-muted-foreground shrink-0" />
                         </div>
-                        <Play className="h-4 w-4 text-primary shrink-0" />
-                      </Link>
+                      ) : (
+                        <Link
+                          to="/chapter/$id"
+                          params={{ id: nextChapter.id }}
+                          className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 transition hover:shadow-xs hover:border-primary/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            {nextChapter.videoId ? (
+                              <img src={`https://img.youtube.com/vi/${nextChapter.videoId}/mqdefault.jpg`} alt={nextChapter.title} className="h-12 w-16 rounded-md object-cover shrink-0 bg-primary-soft" />
+                            ) : (
+                              <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
+                                {nextChapter.lessonType === "pdf" ? <FileText className="h-5 w-5" /> : (nextChapter.duration ?? "—")}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-foreground">{nextChapter.title}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                {nextChapter.chapterId !== undefined 
+                                  ? (nextChapter.chapterName ? `Chapter ${nextChapter.chapterId}: ${nextChapter.chapterName}` : `Chapter ${nextChapter.chapterId}`) 
+                                  : (nextChapter.chapterName ?? "Next Video")}
+                              </p>
+                            </div>
+                          </div>
+                          <Play className="h-4 w-4 text-primary shrink-0" />
+                        </Link>
+                      )
                     ) : (
                       <div className="mt-2 rounded-2xl border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground text-center font-semibold">
                         You've reached the last chapter in this subject 🎉
@@ -546,13 +576,22 @@ function Chapter() {
                       <div />
                     )}
                     {nextChapter ? (
-                      <Link
-                        to="/chapter/$id"
-                        params={{ id: nextChapter.id }}
-                        className="rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-white transition hover:scale-105"
-                      >
-                        {nextChapter.title} →
-                      </Link>
+                      isLockedCourse ? (
+                        <div
+                          className="flex items-center gap-2 rounded-full bg-muted px-5 py-2.5 text-xs font-bold text-muted-foreground opacity-70"
+                        >
+                          <LockKeyhole className="h-3.5 w-3.5" />
+                          {nextChapter.title}
+                        </div>
+                      ) : (
+                        <Link
+                          to="/chapter/$id"
+                          params={{ id: nextChapter.id }}
+                          className="rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-white transition hover:scale-105"
+                        >
+                          {nextChapter.title} →
+                        </Link>
+                      )
                     ) : (
                       <div />
                     )}
@@ -716,7 +755,7 @@ function Chapter() {
 
 
             </div>
-            </>
+              </div>
             )}
           </div>
         </div>

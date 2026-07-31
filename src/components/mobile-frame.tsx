@@ -48,7 +48,9 @@ export function MobileFrame({ children }: { children: ReactNode }) {
 
   const handleLogOut = async () => {
     await signOutUser();
-    navigate({ to: "/" });
+    navigate({ to: "/", replace: true }).then(() => {
+      navigate({ to: "/auth" });
+    });
   };
 
   const isAuthRoute = pathname === "/" || pathname === "/onboarding";
