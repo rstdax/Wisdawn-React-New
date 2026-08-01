@@ -2,6 +2,9 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  type ConfirmationResult,
   type User,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -17,6 +20,44 @@ export async function signInWithGoogle(): Promise<User> {
 
 export async function handleGoogleRedirectResult(): Promise<User | null> {
   return null;
+}
+
+// ─── Phone Sign-In ────────────────────────────────────────────────────────────
+
+export function setupRecaptcha(containerId: string) {
+  if ((window as any).recaptchaVerifier) {
+    try {
+      (window as any).recaptchaVerifier.clear();
+    } catch (e) {
+      // Ignore clear errors
+    }
+    (window as any).recaptchaVerifier = null;
+  }
+  
+  (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+    size: "invisible",
+    callback: () => {
+      // reCAPTCHA solved
+    },
+  });
+  
+  return (window as any).recaptchaVerifier;
+}
+
+export async function sendPhoneOTP(
+  phoneNumber: string,
+  appVerifier: RecaptchaVerifier
+): Promise<ConfirmationResult> {
+  return await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+}
+
+export async function verifyPhoneOTP(
+  confirmationResult: ConfirmationResult,
+  otpCode: string
+): Promise<User> {
+  const result = await confirmationResult.confirm(otpCode);
+  await saveUserToDatabase(result.user, "phone");
+  return result.user;
 }
 
 // ─── Sign Out ─────────────────────────────────────────────────────────────────
@@ -37,7 +78,7 @@ export function getCurrentUser(): User | null {
 
 // ─── Save User to Firestore ───────────────────────────────────────────────────
 
-async function saveUserToDatabase(user: User): Promise<void> {
+async function saveUserToDatabase(user: User, provider = "google"): Promise<void> {
   const userRef = doc(db, "users", user.uid);
   const snapshot = await getDoc(userRef);
 
@@ -46,8 +87,9 @@ async function saveUserToDatabase(user: User): Promise<void> {
       uid: user.uid,
       name: user.displayName ?? "",
       email: user.email ?? "",
+      phoneNumber: user.phoneNumber ?? "",
       photoURL: user.photoURL ?? "",
-      provider: "google",
+      provider,
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
       onboardingCompleted: false,
@@ -62,6 +104,7 @@ async function saveUserToDatabase(user: User): Promise<void> {
   } else {
     await updateDoc(userRef, {
       lastLoginAt: serverTimestamp(),
+      phoneNumber: user.phoneNumber ?? snapshot.data().phoneNumber ?? "",
     });
   }
 }

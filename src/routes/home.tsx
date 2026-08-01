@@ -262,20 +262,22 @@ function Home() {
                     {banner.imageUrl ? (
                       <img src={banner.imageUrl} alt={banner.title} className="absolute inset-0 h-full w-full object-cover" fetchPriority={idx === 0 ? "high" : "auto"} loading={idx === 0 ? "eager" : "lazy"} decoding="async" />
                     ) : null}
-                    <div className={`absolute inset-0 ${banner.imageUrl ? "bg-black/40" : "bg-primary-soft"}`} />
-                    <div className="relative z-10 p-6 md:p-8 flex flex-col justify-center h-full">
-                      <h2 className={`text-xl md:text-3xl font-extrabold mt-1 ${banner.imageUrl ? "text-white" : "text-foreground"}`}>
-                        {banner.title}
-                      </h2>
+                    <div className={`absolute inset-0 ${banner.imageUrl ? "bg-transparent" : "bg-primary-soft"}`} />
+                    <div className="relative z-10 p-6 md:p-8 flex flex-col justify-center h-full max-w-[75%] md:max-w-[60%]">
+                      {banner.title && (
+                        <h2 className={`text-2xl md:text-4xl font-extrabold mt-1 max-w-[180px] md:max-w-[280px] leading-tight ${banner.imageUrl ? "text-slate-900" : "text-foreground"}`}>
+                          {banner.title}
+                        </h2>
+                      )}
                       {banner.subtitle && (
-                        <p className={`text-xs md:text-sm mt-2 max-w-md ${banner.imageUrl ? "text-white/80" : "text-muted-foreground"}`}>
+                        <p className={`text-xs md:text-sm mt-2 whitespace-nowrap overflow-hidden text-ellipsis ${banner.imageUrl ? "text-slate-700 font-medium" : "text-muted-foreground"}`}>
                           {banner.subtitle}
                         </p>
                       )}
                       {banner.buttonText && (
                         <div className="mt-4 md:mt-6">
                           <Link
-                             to={(banner.buttonLink as "/learn") || "/learn"}
+                            to={(banner.buttonLink as "/learn") || "/learn"}
                             className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground transition shadow-md shadow-primary/20 hover:scale-105"
                           >
                             {banner.buttonText}
@@ -367,10 +369,10 @@ function Home() {
             )}
 
             {/* CONTINUE LEARNING */}
-            <SectionHeader 
-              title="Continue Learning" 
-              onClickViewAll={lastWatched.length > 3 ? () => navigate({ to: "/history" }) : undefined} 
-              viewAllText="View All" 
+            <SectionHeader
+              title="Continue Learning"
+              onClickViewAll={lastWatched.length > 3 ? () => navigate({ to: "/history" }) : undefined}
+              viewAllText="View All"
             />
             <div className="mt-3 space-y-3">
               {lastWatchedLoading ? (
@@ -645,7 +647,7 @@ function Home() {
           </div>
         </div>
       </div>
-      
+
     </MobileFrame>
   );
 }
@@ -742,7 +744,7 @@ function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; t
               {[...Array(4)].map((_, i) => (
                 <svg key={i} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" /></svg>
               ))}
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" clipPath="url(#half)"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" clipPath="url(#half)" /></svg>
             </div>
             <span className="text-muted-foreground font-normal ml-0.5">(472,738)</span>
           </div>
