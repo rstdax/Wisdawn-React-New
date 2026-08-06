@@ -1,48 +1,39 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ClipboardCheck, Clock, Sparkles, Trophy, CheckCircle, ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ClipboardCheck, Clock, Sparkles, Loader2 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
-import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getPracticeTests, type PracticeTest } from "@/lib/admin";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/tests")({
   head: () => ({ meta: [{ title: "Tests — WisDawn" }] }),
   component: Tests,
 });
 
-const testsList = [
-  {
-    id: "chemical-reactions",
-    t: "Chemical Reactions",
-    s: "Chapter 2 · Class 10",
-    q: 10,
-    m: 15,
-    tag: "School",
-  },
-  {
-    id: "light-refraction",
-    t: "Light – Reflection & Refraction",
-    s: "Chapter 10 · Class 10",
-    q: 12,
-    m: 20,
-    tag: "School",
-  },
-  {
-    id: "life-processes",
-    t: "Life Processes",
-    s: "Chapter 6 · Class 10",
-    q: 10,
-    m: 15,
-    tag: "School",
-  },
-  { id: "python-basics", t: "Python Basics", s: "Coding Bootcamp", q: 8, m: 12, tag: "Coding" },
-];
+type FilterType = "All" | "School" | "Coding";
 
 function Tests() {
-  const [activeFilter, setActiveFilter] = useState<"All" | "School" | "Coding">("All");
-  const visibleTests = testsList.filter(
-    (test) => activeFilter === "All" || test.tag === activeFilter,
+  const [activeFilter, setActiveFilter] = useState<FilterType>("All");
+  const { profile, loading: authLoading } = useAuth();
+
+  const { data: tests = [], isLoading: testsLoading } = useQuery({
+    queryKey: ["practiceTests"],
+    queryFn: () => getPracticeTests(50),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const loading = authLoading || testsLoading;
+
+  const visibleTests = tests.filter(
+    (t) => activeFilter === "All" || t.tag === activeFilter,
   );
+
+  // Derive real stats from user profile
+  const xp = profile?.stats?.xp ?? 0;
+  const courses = profile?.stats?.courses ?? 0;
 
   return (
     <MobileFrame>
@@ -70,10 +61,11 @@ function Tests() {
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`rounded-full px-4 py-2 text-xs font-bold transition border ${activeFilter === filter
-                  ? "bg-primary text-white border-primary"
-                  : "bg-card text-muted-foreground border-border hover:bg-muted"
-                  }`}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition border ${
+                  activeFilter === filter
+                    ? "bg-primary text-white border-primary"
+                    : "bg-card text-muted-foreground border-border hover:bg-muted"
+                }`}
               >
                 {filter}
               </button>
@@ -87,10 +79,12 @@ function Tests() {
             {/* MOBILE ONLY BANNER */}
             <div className="rounded-2xl bg-primary p-4 text-primary-foreground shadow-lg shadow-primary/25 md:hidden">
               <div className="flex items-center gap-2 text-xs opacity-80">
-                <Sparkles className="h-4 w-4" /> Weekly streak
+                <Sparkles className="h-4 w-4" /> Your XP
               </div>
-              <p className="mt-1 text-3xl font-extrabold">82%</p>
-              <p className="mt-1 text-xs opacity-80">Across 14 attempted tests</p>
+              <p className="mt-1 text-3xl font-extrabold">{xp.toLocaleString()}</p>
+              <p className="mt-1 text-xs opacity-80">
+                {courses > 0 ? `Across ${courses} enrolled course${courses > 1 ? "s" : ""}` : "Start a course to earn XP"}
+              </p>
             </div>
 
             {/* MOBILE FILTER BUTTONS */}
@@ -99,10 +93,11 @@ function Tests() {
                 <button
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${activeFilter === filter
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                    }`}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                    activeFilter === filter
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
                 >
                   {filter}
                 </button>
@@ -110,30 +105,31 @@ function Tests() {
             </div>
 
             <h2 className="text-base font-bold text-foreground mb-3">Available Tests</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {visibleTests.map((t) => (
-                <Link
-                  key={t.id}
-                  to="/practice/$id"
-                  params={{ id: t.id }}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-xs hover:border-primary/50"
-                >
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
-                    <ClipboardCheck className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{t.t}</p>
-                    <p className="truncate text-xs text-muted-foreground mt-0.5">{t.s}</p>
-                    <p className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold">
-                      <Clock className="h-3 w-3 text-primary" /> {t.q} questions · {t.m} min
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/95">
-                    Start
-                  </span>
-                </Link>
-              ))}
-            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Skeleton className="h-24 rounded-2xl animate-pulse" />
+                <Skeleton className="h-24 rounded-2xl animate-pulse" />
+                <Skeleton className="h-24 rounded-2xl animate-pulse" />
+                <Skeleton className="h-24 rounded-2xl animate-pulse" />
+              </div>
+            ) : visibleTests.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+                <ClipboardCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm font-semibold text-muted-foreground">
+                  No tests available yet.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Check back soon — new practice sets are added regularly.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {visibleTests.map((t) => (
+                  <TestCard key={t.id} test={t} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* RIGHT SIDEBAR (Desktop Only) */}
@@ -161,29 +157,31 @@ function Tests() {
                       strokeWidth="8"
                       fill="transparent"
                       strokeDasharray={2 * Math.PI * 45}
-                      strokeDashoffset={2 * Math.PI * 45 * (1 - 0.82)}
+                      strokeDashoffset={2 * Math.PI * 45 * (1 - (xp > 0 ? Math.min(xp / 5000, 1) : 0))}
                     />
                   </svg>
                   <div className="text-center">
-                    <span className="text-xl font-extrabold text-foreground">82%</span>
+                    <span className="text-xl font-extrabold text-foreground">
+                      {xp > 0 ? `${Math.min(Math.round((xp / 5000) * 100), 100)}%` : "0%"}
+                    </span>
                     <p className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider">
-                      Average Score
+                      XP Level
                     </p>
                   </div>
                 </div>
 
                 <div className="w-full mt-5 space-y-2.5 text-xs font-semibold text-muted-foreground border-t border-border pt-4">
                   <div className="flex items-center justify-between">
-                    <span>Tests Attempted</span>
-                    <span className="text-foreground">14</span>
+                    <span>Tests Available</span>
+                    <span className="text-foreground">{tests.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Tests Completed</span>
-                    <span className="text-foreground">12</span>
+                    <span>Courses Enrolled</span>
+                    <span className="text-foreground">{courses}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Practice Points</span>
-                    <span className="text-primary font-bold">+1,200 XP</span>
+                    <span>Total XP</span>
+                    <span className="text-primary font-bold">+{xp.toLocaleString()} XP</span>
                   </div>
                 </div>
               </div>
@@ -192,12 +190,11 @@ function Tests() {
             {/* PRACTICE STREAK */}
             <div className="rounded-3xl border border-border bg-gradient-to-br from-indigo-50 to-violet-50 p-5 shadow-xs">
               <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-primary uppercase tracking-wider">
-                <Sparkles className="h-3 w-3 text-yellow-500 fill-yellow-500" /> Practice Streak
+                <Sparkles className="h-3 w-3 text-yellow-500 fill-yellow-500" /> Practice Tips
               </span>
-              <h4 className="text-xs font-bold text-foreground mt-2">Active Study Streak!</h4>
+              <h4 className="text-xs font-bold text-foreground mt-2">Build daily habits!</h4>
               <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                You've completed 3 tests in the last 5 days. Keep up this momentum to lock in your
-                daily XP multipliers!
+                Attempting at least one practice test per day sharpens your recall and builds exam confidence.
               </p>
             </div>
 
@@ -214,7 +211,31 @@ function Tests() {
           </div>
         </div>
       </div>
-      
     </MobileFrame>
+  );
+}
+
+function TestCard({ test }: { test: PracticeTest }) {
+  return (
+    <Link
+      to="/practice/$id"
+      params={{ id: test.id }}
+      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:shadow-xs hover:border-primary/50"
+    >
+      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+        <ClipboardCheck className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">{test.title}</p>
+        <p className="truncate text-xs text-muted-foreground mt-0.5">{test.subtitle}</p>
+        <p className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold">
+          <Clock className="h-3 w-3 text-primary" />
+          {test.questions} questions · {test.durationMinutes} min
+        </p>
+      </div>
+      <span className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/95">
+        Start
+      </span>
+    </Link>
   );
 }

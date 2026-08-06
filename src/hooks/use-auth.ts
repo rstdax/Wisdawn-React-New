@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import { type User } from "firebase/auth";
 import { onAuthChange, getUserProfile } from "@/lib/auth";
 
@@ -23,68 +23,70 @@ export type UserProfile = {
   };
 };
 
-// Global auth cache variables to share state across route transitions
-let cachedUser: User | null = null;
-let cachedProfile: UserProfile | null = null;
-let cachedLoading = true;
-let isInitialized = false;
-const listeners = new Set<() => void>();
+// ─── Global auth store ────────────────────────────────────────────────────────
+// Single source of truth shared across all components and route transitions.
+// Uses useSyncExternalStore to eliminate double-renders from useState + useEffect.
 
-function updateCache(user: User | null, profile: UserProfile | null, loading: boolean) {
-  cachedUser = user;
-  cachedProfile = profile;
-  cachedLoading = loading;
-  listeners.forEach((l) => l());
+type AuthState = {
+  user: User | null;
+  profile: UserProfile | null;
+  loading: boolean;
+};
+
+let authState: AuthState = { user: null, profile: null, loading: true };
+const subscribers = new Set<() => void>();
+
+function setAuthState(next: AuthState) {
+  authState = next;
+  subscribers.forEach((fn) => fn());
+}
+
+function subscribe(fn: () => void) {
+  subscribers.add(fn);
+  return () => subscribers.delete(fn);
+}
+
+function getSnapshot(): AuthState {
+  return authState;
+}
+
+// Server snapshot — always "loading" so SSR doesn't block on auth
+function getServerSnapshot(): AuthState {
+  return { user: null, profile: null, loading: true };
 }
 
 export async function refreshUserProfile(): Promise<void> {
-  if (!cachedUser) return;
-  const profile = await getUserProfile(cachedUser.uid);
-  updateCache(cachedUser, profile as UserProfile | null, false);
+  if (!authState.user) return;
+  const profile = await getUserProfile(authState.user.uid);
+  setAuthState({ ...authState, profile: profile as UserProfile | null });
 }
 
-// Start listener once globally in browser environments
-if (typeof window !== "undefined" && !isInitialized) {
-  isInitialized = true;
+// Start the Firebase auth listener exactly once in the browser
+if (typeof window !== "undefined") {
   onAuthChange(async (firebaseUser) => {
     if (firebaseUser) {
-      if (!cachedUser || cachedUser.uid !== firebaseUser.uid) {
-        try {
-          const data = await getUserProfile(firebaseUser.uid);
-          updateCache(firebaseUser, data as UserProfile | null, false);
-        } catch (err) {
-          console.error("Error fetching user profile:", err);
-          updateCache(firebaseUser, null, false);
-        }
-      } else {
-        updateCache(firebaseUser, cachedProfile, false);
+      // Avoid unnecessary profile re-fetch if same user is already loaded
+      if (authState.user?.uid === firebaseUser.uid && authState.profile) {
+        setAuthState({ user: firebaseUser, profile: authState.profile, loading: false });
+        return;
+      }
+      try {
+        const data = await getUserProfile(firebaseUser.uid);
+        setAuthState({ user: firebaseUser, profile: data as UserProfile | null, loading: false });
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+        setAuthState({ user: firebaseUser, profile: null, loading: false });
       }
     } else {
-      updateCache(null, null, false);
+      setAuthState({ user: null, profile: null, loading: false });
     }
   });
 }
 
 export function useAuth() {
-  const [state, setState] = useState({
-    user: cachedUser,
-    profile: cachedProfile,
-    loading: cachedLoading,
-  });
-
-  useEffect(() => {
-    const handleUpdate = () => {
-      setState({
-        user: cachedUser,
-        profile: cachedProfile,
-        loading: cachedLoading,
-      });
-    };
-    listeners.add(handleUpdate);
-    return () => {
-      listeners.delete(handleUpdate);
-    };
-  }, []);
+  // useSyncExternalStore is React 18+ and guarantees a single consistent render
+  // — no tearing, no double-renders from separate useState + useEffect.
+  const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   // Name: prefer onboarding name > Google display name > fallback
   const displayName =
@@ -103,12 +105,12 @@ export function useAuth() {
     .toUpperCase()
     .slice(0, 2);
 
-  return { 
-    user: state.user, 
-    profile: state.profile, 
-    loading: state.loading, 
-    initials, 
-    displayName, 
-    displayEmail 
+  return {
+    user: state.user,
+    profile: state.profile,
+    loading: state.loading,
+    initials,
+    displayName,
+    displayEmail,
   };
 }

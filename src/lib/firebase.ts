@@ -4,13 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBTlK9k9j4NGLcozwBzqiSkuTPlm5ZM4m8",
-  authDomain: "wisdawn-official.firebaseapp.com",
-  projectId: "wisdawn-official",
-  storageBucket: "wisdawn-official.firebasestorage.app",
-  messagingSenderId: "1009283394364",
-  appId: "1:1009283394364:web:12de623dd94a0a2510cc39",
-  measurementId: "G-WZZHRFPNRZ",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Prevent duplicate app initialization

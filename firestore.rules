@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.admin == true;
+    }
+    
+    // Users collection - users can only read/write their own data
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+    
+    // User progress - users can only read/write their own progress
+    match /userProgress/{userId}/{documents=**} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // User last watched - users can only read/write their own history
+    match /userLastWatched/{userId}/{documents=**} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Admins collection - only admins can read, no public writes
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if false; // Admin status managed via Firebase console
+    }
+    
+    // Public read, admin-only write collections
+    match /subjects/{subjectId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /chapters/{chapterId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /lessons/{lessonId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /resources/{resourceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /practiceTests/{testId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      
+      // Test questions subcollection
+      match /questions/{questionId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+    
+    // Q&A - authenticated users can create, everyone can read, owner/admin can delete
+    match /qa/{qaId} {
+      allow read: if true;
+      allow create: if isSignedIn() && 
+                      request.resource.data.askedBy == request.auth.uid &&
+                      request.resource.data.question is string &&
+                      request.resource.data.question.size() > 0 &&
+                      request.resource.data.question.size() <= 500;
+      allow update: if isAdmin(); // Only admins can answer
+      allow delete: if isAdmin() || 
+                      (isSignedIn() && resource.data.askedBy == request.auth.uid);
+    }
+    
+    // Discussions - authenticated users can create, everyone can read, owner/admin can delete
+    match /discussions/{discussionId} {
+      allow read: if true;
+      allow create: if isSignedIn() && 
+                      request.resource.data.authorUid == request.auth.uid &&
+                      request.resource.data.message is string &&
+                      request.resource.data.message.size() > 0 &&
+                      request.resource.data.message.size() <= 1000;
+      allow delete: if isAdmin() || 
+                      (isSignedIn() && resource.data.authorUid == request.auth.uid);
+    }
+    
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

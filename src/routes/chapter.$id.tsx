@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
-import { Wisby } from "@/components/wisby";
+import { PlyrVideoPlayer } from "@/components/plyr-video-player";
 import { getChapter, getChaptersBySubject, getChaptersByGroupId, saveLastWatched, getSubject } from "@/lib/admin";
 import {
   getResources,
@@ -300,20 +300,7 @@ function Chapter() {
               {videoLoading ? (
                 <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden" }} />
               ) : videoId ? (
-                <>
-
-                  <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden" }}>
-                    <iframe
-                      key={videoId}
-                      src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1&iv_load_policy=3&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "http://localhost:8081")}&widget_referrer=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "http://localhost:8081")}${startTime ? `&start=${startTime}` : ""}`}
-                      title={chapterTitle}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                      allowFullScreen
-                      referrerPolicy="origin"
-                      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
-                    />
-                  </div>
-                </>
+                <PlyrVideoPlayer videoId={videoId} startTime={startTime} />
               ) : chapterData?.lessonType === "pdf" ? (() => {
                 const urlMatch = chapterData.resourcesNote?.match(/https?:\/\/[^\s]+/);
                 const url = urlMatch?.[0] ?? null;
@@ -820,22 +807,9 @@ function Chapter() {
 
           {/* Full-height iframe */}
           <div className="flex-1 flex items-center justify-center px-0">
-            <iframe
-              key={`expand-${videoId}`}
-              src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1&autoplay=1&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "http://localhost:8081")}${startTime ? `&start=${startTime}` : ""}`}
-              title={chapterTitle}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-              allowFullScreen
-              referrerPolicy="origin"
-              style={{
-                width: "100vw",
-                height: "56.25vw",
-                minHeight: "270px",
-                maxHeight: "100vh",
-                border: "none",
-                display: "block",
-              }}
-            />
+            <div style={{ width: "100vw", height: "56.25vw", minHeight: "270px", maxHeight: "100vh" }}>
+              <PlyrVideoPlayer videoId={videoId} startTime={startTime} />
+            </div>
           </div>
 
           {/* Bottom hint */}

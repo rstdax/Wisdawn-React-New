@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc,
-  query, where, orderBy, updateDoc, serverTimestamp, Timestamp,
+  query, where, orderBy, updateDoc, serverTimestamp, Timestamp, limit,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -120,15 +120,43 @@ function stripUndefined<T extends object>(obj: T): Partial<T> {
   ) as Partial<T>;
 }
 
-const cache = new Map<string, { data: any; timestamp: number }>();
+// LRU Cache with size limit
+const MAX_CACHE_SIZE = 100;
+const cache = new Map<string, { data: any; timestamp: number; accessCount: number }>();
+
+function evictLRU() {
+  if (cache.size <= MAX_CACHE_SIZE) return;
+  
+  // Find least recently used (lowest accessCount)
+  let lruKey = "";
+  let minAccess = Infinity;
+  
+  for (const [key, value] of cache.entries()) {
+    if (value.accessCount < minAccess) {
+      minAccess = value.accessCount;
+      lruKey = key;
+    }
+  }
+  
+  if (lruKey) cache.delete(lruKey);
+}
 
 async function withCache<T>(key: string, fetcher: () => Promise<T>, ttlMs = 5 * 60 * 1000): Promise<T> {
   const cached = cache.get(key);
   if (cached && Date.now() - cached.timestamp < ttlMs) {
+    // Update access count for LRU
+    cached.accessCount++;
     return cached.data as T;
   }
+  
   const data = await fetcher();
-  cache.set(key, { data, timestamp: Date.now() });
+  
+  // Evict if cache is full
+  if (cache.size >= MAX_CACHE_SIZE) {
+    evictLRU();
+  }
+  
+  cache.set(key, { data, timestamp: Date.now(), accessCount: 1 });
   return data;
 }
 
@@ -385,16 +413,38 @@ export async function deleteResource(chapterId: string, resourceId: string): Pro
   await deleteDoc(doc(db, "resources", resourceId));
 }
 
+// ─── Rate Limiter ─────────────────────────────────────────────────────────────
+// Tracks per-user submission timestamps to prevent spam (client-side guard)
+const rateLimitMap = new Map<string, number[]>();
+
+function checkRateLimit(key: string, maxRequests = 3, windowMs = 60_000): void {
+  const now = Date.now();
+  const timestamps = (rateLimitMap.get(key) ?? []).filter((t) => now - t < windowMs);
+  if (timestamps.length >= maxRequests) {
+    throw new Error("Too many requests. Please wait a moment before trying again.");
+  }
+  timestamps.push(now);
+  rateLimitMap.set(key, timestamps);
+}
+
 // ─── Q&A ──────────────────────────────────────────────────────────────────────
 
-export async function getQA(chapterId: string): Promise<QAItem[]> {
+export async function getQA(chapterId: string, limitCount = 20): Promise<QAItem[]> {
   const snap = await getDocs(
-    query(collection(db, "qa"), where("chapterId", "==", chapterId), orderBy("createdAt", "desc"))
+    query(
+      collection(db, "qa"),
+      where("chapterId", "==", chapterId),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    )
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as QAItem));
 }
 
 export async function addQA(chapterId: string, question: string, authorUid: string): Promise<string> {
+  // Rate limit: max 3 questions per user per minute
+  checkRateLimit(`qa_${authorUid}`, 3, 60_000);
+
   const ref = await addDoc(collection(db, "qa"), {
     chapterId, question, answer: "", askedBy: authorUid, createdAt: Date.now(),
   });
@@ -412,9 +462,14 @@ export async function deleteQA(chapterId: string, qaId: string): Promise<void> {
 
 // ─── Discussions ──────────────────────────────────────────────────────────────
 
-export async function getDiscussions(chapterId: string): Promise<Discussion[]> {
+export async function getDiscussions(chapterId: string, limitCount = 30): Promise<Discussion[]> {
   const snap = await getDocs(
-    query(collection(db, "discussions"), where("chapterId", "==", chapterId), orderBy("createdAt", "desc"))
+    query(
+      collection(db, "discussions"),
+      where("chapterId", "==", chapterId),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    )
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Discussion));
 }
@@ -422,6 +477,9 @@ export async function getDiscussions(chapterId: string): Promise<Discussion[]> {
 export async function addDiscussion(
   chapterId: string, message: string, authorName: string, authorUid: string
 ): Promise<string> {
+  // Rate limit: max 5 messages per user per minute
+  checkRateLimit(`discussion_${authorUid}`, 5, 60_000);
+
   const ref = await addDoc(collection(db, "discussions"), {
     chapterId, message, authorName, authorUid, createdAt: Date.now(),
   });
@@ -445,14 +503,15 @@ export async function saveLastWatched(
   );
 }
 
-export async function getLastWatched(uid: string, limit = 3): Promise<LastWatchedEntry[]> {
+export async function getLastWatched(uid: string, limitCount = 3): Promise<LastWatchedEntry[]> {
   const snap = await getDocs(
     query(
       collection(db, "userLastWatched", uid, "entries"),
-      orderBy("watchedAt", "desc")
+      orderBy("watchedAt", "desc"),
+      limit(limitCount)
     )
   );
-  return snap.docs.slice(0, limit).map((d) => d.data() as LastWatchedEntry);
+  return snap.docs.map((d) => d.data() as LastWatchedEntry);
 }
 
 // ─── User Progress ────────────────────────────────────────────────────────────
@@ -482,6 +541,60 @@ export async function getSubjectProgress(
   const percent = Math.round((watched.length / total) * 100);
 
   return { watched, total, percent };
+}
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+export type McqOption = {
+  key: string;
+  text: string;
+};
+
+export type McqQuestion = {
+  id: string;
+  question: string;
+  options: McqOption[];
+  correctKey: string;
+  explanation?: string;
+  order: number;
+};
+
+export type PracticeTest = {
+  id: string;
+  title: string;
+  subtitle: string;
+  questions: number;
+  durationMinutes: number;
+  tag: "School" | "Coding";
+  subjectId?: string;
+  published?: boolean;
+  order?: number;
+};
+
+export async function getPracticeTests(limitCount = 20): Promise<PracticeTest[]> {
+  return withCache("practiceTests", async () => {
+    const snap = await getDocs(
+      query(
+        collection(db, "practiceTests"),
+        where("published", "==", true),
+        orderBy("order", "asc"),
+        limit(limitCount)
+      )
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PracticeTest));
+  });
+}
+
+export async function getTestQuestions(testId: string): Promise<McqQuestion[]> {
+  return withCache(`testQuestions_${testId}`, async () => {
+    const snap = await getDocs(
+      query(
+        collection(db, "practiceTests", testId, "questions"),
+        orderBy("order", "asc")
+      )
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as McqQuestion));
+  });
 }
 
 // ─── Admin auth ───────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
+import { PlyrVideoPlayer } from "@/components/plyr-video-player";
 import { Wisby } from "@/components/wisby";
 import {
   getLesson, getChapter, getLessonNavContext, getResources, getQA, addQA,
@@ -132,10 +133,6 @@ function LessonPage() {
     setSubmitting(false);
   };
 
-  const iframeSrc = videoId
-    ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&fs=1&iv_load_policy=3${startTime ? `&start=${startTime}` : ""}`
-    : null;
-
   return (
     <MobileFrame>
       {/* MOBILE HEADER */}
@@ -198,16 +195,8 @@ function LessonPage() {
                     </div>
                   </div>
                 </div>
-              ) : iframeSrc ? (
-                <>
-
-                  <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden" }}>
-                    <iframe key={`${lessonId}-${videoId}`} src={iframeSrc} title={lessonTitle}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                      allowFullScreen referrerPolicy="origin"
-                      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }} />
-                  </div>
-                </>
+              ) : videoId ? (
+                <PlyrVideoPlayer videoId={videoId} startTime={startTime} />
               ) : (
                 <div className="relative grid aspect-video place-items-center">
                   <Wisby variant="cheer" className="h-32 opacity-90" />
@@ -556,7 +545,7 @@ function LessonPage() {
       
 
       {/* MOBILE FULLSCREEN VIDEO */}
-      {videoExpanded && iframeSrc && (
+      {videoExpanded && videoId && (
         <div className="md:hidden fixed inset-0 z-50 bg-black flex flex-col" style={{ touchAction: "none" }}>
           <button onClick={() => setVideoExpanded(false)}
             className="absolute top-4 right-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/20 text-white hover:bg-white/30 transition">
@@ -566,12 +555,9 @@ function LessonPage() {
             <p className="text-white text-xs font-semibold opacity-70 truncate pr-12">{lessonTitle}</p>
           </div>
           <div className="flex-1 flex items-center justify-center">
-            <iframe key={`expand-${lessonId}`}
-              src={iframeSrc.replace("playsinline=1", "playsinline=1&autoplay=1")}
-              title={lessonTitle}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-              allowFullScreen referrerPolicy="origin"
-              style={{ width: "100vw", height: "56.25vw", minHeight: 270, maxHeight: "100vh", border: "none", display: "block" }} />
+            <div style={{ width: "100vw", height: "56.25vw", minHeight: "270px", maxHeight: "100vh" }}>
+              <PlyrVideoPlayer videoId={videoId} startTime={startTime} />
+            </div>
           </div>
           <div className="px-5 py-4 text-center">
             <p className="text-white/40 text-[10px] font-semibold">Tap × to go back</p>
