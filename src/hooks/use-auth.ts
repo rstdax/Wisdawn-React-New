@@ -51,8 +51,9 @@ function getSnapshot(): AuthState {
 }
 
 // Server snapshot — always "loading" so SSR doesn't block on auth
+const serverSnapshot: AuthState = { user: null, profile: null, loading: true };
 function getServerSnapshot(): AuthState {
-  return { user: null, profile: null, loading: true };
+  return serverSnapshot;
 }
 
 export async function refreshUserProfile(): Promise<void> {

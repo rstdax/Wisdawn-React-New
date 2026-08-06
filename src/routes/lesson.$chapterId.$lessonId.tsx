@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   ArrowLeft, Bookmark, Play, FileText, Download, ListChecks,
   MessageSquareText, CheckCircle, Check, Clock, BookOpen,
-  Maximize2, X, ChevronRight, Link as LinkIcon,
+  Maximize2, X, ChevronRight, Link as LinkIcon, ArrowRight,
 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
@@ -150,7 +150,7 @@ function LessonPage() {
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto md:overflow-visible pb-6">
+      <div className="flex-1 overflow-y-auto md:overflow-visible pb-24 md:pb-6">
         {/* DESKTOP HEADING */}
         <div className="hidden md:block mb-5 px-5 md:px-0">
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold mb-2">
@@ -300,7 +300,7 @@ function LessonPage() {
 
                   {/* Next Up */}
                   {subjectData?.track !== "coding" && (
-                    <div className="pt-2">
+                    <div className="pt-2 md:block hidden">
                       <h3 className="text-sm font-bold text-foreground">Next Up</h3>
                       {navCtx?.nextLesson ? (
                         <Link
@@ -310,7 +310,17 @@ function LessonPage() {
                         >
                           <div className="flex items-center gap-3">
                             {navCtx.nextLesson.youtubeVideoId ? (
-                              <img src={`https://img.youtube.com/vi/${navCtx.nextLesson.youtubeVideoId}/mqdefault.jpg`} alt={navCtx.nextLesson.title} className="h-12 w-16 rounded-md object-cover shrink-0 bg-primary-soft" />
+                              <div className="relative h-12 w-16 shrink-0 rounded-md overflow-hidden bg-primary-soft">
+                                <img src={`https://img.youtube.com/vi/${navCtx.nextLesson.youtubeVideoId}/mqdefault.jpg`} alt={navCtx.nextLesson.title} className="h-full w-full object-cover" />
+                                <div className="absolute bottom-0.5 right-0.5 bg-black/80 text-white text-[8px] font-bold px-1 py-0.5 rounded backdrop-blur-sm">
+                                  VIDEO
+                                </div>
+                              </div>
+                            ) : navCtx.nextLesson.lessonType === "pdf" ? (
+                              <div className="relative h-12 w-16 place-items-center rounded-md bg-gradient-to-br from-red-50 to-red-100 border border-red-200 shrink-0 flex flex-col justify-center items-center">
+                                <FileText className="h-5 w-5 text-red-600" />
+                                <span className="text-[7px] font-bold text-red-600 mt-0.5">PDF</span>
+                              </div>
                             ) : (
                               <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
                                 {navCtx.nextLesson.durationDisplay ?? "—"}
@@ -326,7 +336,11 @@ function LessonPage() {
                               )}
                             </div>
                           </div>
-                          <Play className="h-4 w-4 text-primary shrink-0" />
+                          {navCtx.nextLesson.lessonType === "pdf" ? (
+                            <FileText className="h-4 w-4 text-red-600 shrink-0" />
+                          ) : (
+                            <Play className="h-4 w-4 text-primary shrink-0" />
+                          )}
                         </Link>
                       ) : navCtx?.isLastLessonOfSubject ? (
                         <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
@@ -562,6 +576,33 @@ function LessonPage() {
           <div className="px-5 py-4 text-center">
             <p className="text-white/40 text-[10px] font-semibold">Tap × to go back</p>
           </div>
+        </div>
+      )}
+
+      {/* FIXED BOTTOM NEXT UP (Mobile Only) */}
+      {navCtx?.nextLesson && !videoExpanded && (
+        <div className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] z-50 bg-background border-t border-border shadow-lg">
+          <Link
+            to="/lesson/$chapterId/$lessonId"
+            params={{ chapterId: navCtx.nextLessonChapter?.id ?? chapterId, lessonId: navCtx.nextLesson.id }}
+            className="flex items-center justify-between px-5 py-3"
+          >
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Next Up</span>
+              <p className="text-sm font-bold text-foreground truncate mt-0.5">{navCtx.nextLesson.title}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {navCtx.nextLessonChapter ? navCtx.nextLessonChapter.title : chapterTitle}
+                </p>
+                <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${navCtx.nextLesson.lessonType === "pdf" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                  {navCtx.nextLesson.lessonType === "pdf" ? ".pdf" : ".video"}
+                </span>
+              </div>
+            </div>
+            <div className="shrink-0 ml-4 grid h-12 w-12 place-items-center rounded-full bg-primary text-white shadow-md">
+              <ArrowRight className="h-6 w-6" />
+            </div>
+          </Link>
         </div>
       )}
     </MobileFrame>
