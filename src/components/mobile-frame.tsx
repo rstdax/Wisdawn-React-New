@@ -159,7 +159,7 @@ export function MobileFrame({ children }: { children: ReactNode }) {
 
   if (isAuthRoute) {
     return (
-      <div className="min-h-screen w-full bg-[linear-gradient(180deg,rgba(117,95,255,0.08),rgba(255,255,255,0.92))]">
+      <div className="min-h-screen w-full overflow-hidden bg-[linear-gradient(180deg,rgba(117,95,255,0.08),rgba(255,255,255,0.92))]">
         {/* On desktop/tablet, show full bleed */}
         <div className="hidden md:block min-h-screen w-full">{children}</div>
         {/* On mobile, show centered frame */}

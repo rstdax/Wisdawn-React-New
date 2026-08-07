@@ -165,10 +165,24 @@ function Chapter() {
   const videoId = chapterData?.videoId ?? null;
   const startTime = chapterData?.startTime ?? 0;
 
-  // Next / Previous chapters from same subject (sorted by order)
-  const publishedSiblings = subjectChapters.filter((c) => c.published);
+  // Next / Previous chapters from same subject
+  // Sort by: chapterId (chapter group) first, then videoOrder/order within group
+  const publishedSiblings = subjectChapters
+    .filter((c) => c.published)
+    .sort((a, b) => {
+      const chpA = a.chapterId ?? 0;
+      const chpB = b.chapterId ?? 0;
+      if (chpA !== chpB) return chpA - chpB;
+      return (a.videoOrder ?? a.order ?? 0) - (b.videoOrder ?? b.order ?? 0);
+    });
   const currentIdx = publishedSiblings.findIndex((c) => c.id === id);
-  const allSiblings = subjectChapters;
+  const allSiblings = subjectChapters
+    .sort((a, b) => {
+      const chpA = a.chapterId ?? 0;
+      const chpB = b.chapterId ?? 0;
+      if (chpA !== chpB) return chpA - chpB;
+      return (a.videoOrder ?? a.order ?? 0) - (b.videoOrder ?? b.order ?? 0);
+    });
   const currentIdxAll = allSiblings.findIndex((c) => c.id === id);
 
   // For chapter groups (school subjects): use chapterGroupVideos for next/prev within same chapter
@@ -185,16 +199,10 @@ function Chapter() {
     ? allShells[currentShellIdx + 1]
     : null;
 
-  const nextChapter = useGroupNav && groupIdx >= 0
-    ? (groupIdx < chapterGroupVideos.length - 1
-        ? chapterGroupVideos[groupIdx + 1]   // next video in same chapter group
-        : nextChapterShell                    // last in group → go to next chapter shell
-      )
-    : currentIdx >= 0
-      ? (currentIdx < publishedSiblings.length - 1 ? publishedSiblings[currentIdx + 1] : null)
-      : (currentIdxAll >= 0 && currentIdxAll < allSiblings.length - 1
-          ? allSiblings.filter((c) => (c.order ?? 0) > (allSiblings[currentIdxAll]?.order ?? 0))[0] ?? null
-          : null);
+  // nextChapter: only within same chapterId group â€” last item shows Chapter Complete
+  const currentChapterId = chapterData?.chapterId ?? null;
+  const nextSibling = currentIdx >= 0 && currentIdx < publishedSiblings.length - 1 ? publishedSiblings[currentIdx + 1] : null;
+  const nextChapter = nextSibling && nextSibling.chapterId === currentChapterId ? nextSibling : null;
 
   const prevChapter = useGroupNav && groupIdx > 0
     ? chapterGroupVideos[groupIdx - 1]
@@ -207,7 +215,8 @@ function Chapter() {
   );
   const isLockedCourse = !authLoading && isCodingCourse && !hasCourseAccess;
   const isIntroChapter = publishedSiblings[0]?.id === id;
-  const showPurchaseBar = isLockedCourse && isIntroChapter;
+  // Only show purchase bar for video type — not PDF or link (they show content freely)
+  const showPurchaseBar = isLockedCourse && isIntroChapter && chapterData?.lessonType !== "pdf" && chapterData?.lessonType !== "link";
   const displayedResources = (isCodingCourse ? publishedSiblings : chapterGroupVideos).filter(
     (v) => chapterData?.lessonType === "pdf" ? v.lessonType === "pdf" : v.lessonType !== "pdf"
   );
@@ -288,7 +297,7 @@ function Chapter() {
 
       <div className={`flex-1 md:overflow-visible ${
         showPurchaseBar ? "overflow-y-auto pb-52 md:pb-6" 
-        : chapterData?.lessonType === "pdf" ? "overflow-hidden flex flex-col" 
+        : chapterData?.lessonType === "pdf" || chapterData?.lessonType === "link" ? "overflow-hidden flex flex-col" 
         : "overflow-y-auto pb-24 md:pb-6"
       }`}>
         {/* DESKTOP HEADING */}
@@ -325,11 +334,11 @@ function Chapter() {
           </div>
         </div>
 
-        <div className={chapterData?.lessonType === "pdf" ? "flex flex-col flex-1 min-h-0 md:px-0" : "grid grid-cols-1 lg:grid-cols-3 gap-6 md:px-0"}>
-          <div className={chapterData?.lessonType === "pdf" ? "flex flex-col flex-1 min-h-0" : "lg:col-span-2 space-y-4"}>
+        <div className={chapterData?.lessonType === "pdf" || chapterData?.lessonType === "link" ? "flex flex-col flex-1 min-h-0 md:px-0" : "grid grid-cols-1 lg:grid-cols-3 gap-6 md:px-0"}>
+          <div className={chapterData?.lessonType === "pdf" || chapterData?.lessonType === "link" ? "flex flex-col flex-1 min-h-0" : "lg:col-span-2 space-y-4"}>
 
             {/* VIDEO PLAYER */}
-            <div className={`${chapterData?.lessonType === "pdf" ? "flex flex-col flex-1 min-h-0" : "shadow-md md:rounded-2xl relative overflow-hidden"} ${videoLoading ? "bg-muted animate-pulse" : chapterData?.lessonType !== "pdf" ? "bg-black text-white" : ""}`}>
+            <div className={`${chapterData?.lessonType === "pdf" || chapterData?.lessonType === "link" ? "flex flex-col flex-1 min-h-0" : "shadow-md md:rounded-2xl relative overflow-hidden"} ${videoLoading ? "bg-muted animate-pulse" : chapterData?.lessonType !== "pdf" && chapterData?.lessonType !== "link" ? "bg-black text-white" : ""}`}>
               {videoLoading ? (
                 <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden" }} />
               ) : videoId ? (
@@ -343,7 +352,7 @@ function Chapter() {
                   : url ? `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true` : null;
 
                 return (
-                  <div className="flex-1 flex flex-col bg-[#1a1a1a] overflow-hidden" style={{ minHeight: 0 }}>
+                  <div className="flex-1 flex flex-col overflow-hidden -mx-5 md:mx-0" style={{ minHeight: 0 }}>
                     {embedUrl ? (
                       <iframe
                         src={embedUrl}
@@ -353,10 +362,33 @@ function Chapter() {
                         allowFullScreen
                       />
                     ) : (
-                      <div className="flex-1 flex flex-col items-center justify-center text-white gap-3">
+                      <div className="flex-1 flex flex-col items-center justify-center bg-[#1a1a1a] text-white gap-3">
                         <FileText className="h-12 w-12 text-white/40" />
                         <p className="text-sm font-semibold">No PDF link found.</p>
                         <p className="text-xs text-white/40">Add a link in the Notes field in Admin.</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })() : chapterData?.lessonType === "link" ? (() => {
+                const url = chapterData.resourcesNote?.trim() ?? null;
+                return (
+                  <div className="flex-1 flex flex-col bg-[#1a1a1a] overflow-hidden" style={{ minHeight: 0 }}>
+                    {url ? (
+                      <div className="relative flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+                        <iframe
+                          src={url}
+                          className="absolute inset-0 border-none bg-white"
+                          style={{ width: "100%", height: "100%" }}
+                          title={chapterTitle}
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-white gap-3">
+                        <LinkIcon className="h-12 w-12 text-white/40" />
+                        <p className="text-sm font-semibold">No URL configured.</p>
+                        <p className="text-xs text-white/40">Add a website URL in Admin.</p>
                       </div>
                     )}
                   </div>
@@ -415,7 +447,7 @@ function Chapter() {
             )}
 
             {/* TABS */}
-            {chapterData?.lessonType !== "pdf" && (
+            {chapterData && !videoLoading && chapterData?.lessonType !== "pdf" && chapterData?.lessonType !== "link" && (
               <div className="px-5 md:px-0 space-y-4">
                 <div className="flex border-b border-border text-sm">
                   {tabs.map((t) => (
@@ -927,8 +959,8 @@ function Chapter() {
                       ? (nextChapter.chapterName ? `Chapter ${nextChapter.chapterId}: ${nextChapter.chapterName}` : `Chapter ${nextChapter.chapterId}`)
                       : (nextChapter.chapterName ?? "")}
                   </p>
-                  <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${nextChapter.lessonType === "pdf" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
-                    {nextChapter.lessonType === "pdf" ? ".pdf" : ".video"}
+                  <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${nextChapter.lessonType === "pdf" ? "bg-red-100 text-red-600" : nextChapter.lessonType === "link" ? "bg-purple-100 text-purple-600" : "bg-blue-100 text-blue-600"}`}>
+                    {nextChapter.lessonType === "pdf" ? ".pdf" : nextChapter.lessonType === "link" ? ".material" : ".video"}
                   </span>
                 </div>
               </div>

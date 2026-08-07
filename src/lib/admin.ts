@@ -36,7 +36,7 @@ export type Chapter = {
   videoOrder?: number;
   order?: number;
   published?: boolean;
-  lessonType?: "video" | "pdf";
+  lessonType?: "video" | "pdf" | "link";
 };
 
 export type LessonType = "video" | "pdf" | "quiz" | "assignment" | "article" | "external_link";
@@ -205,7 +205,14 @@ export async function getChaptersBySubject(subjectId: string): Promise<Chapter[]
     const snap = await getDocs(
       query(collection(db, "chapters"), where("subjectId", "==", subjectId), orderBy("order", "asc"))
     );
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Chapter));
+    const chapters = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Chapter));
+    // Secondary sort by videoOrder within same order value
+    return chapters.sort((a, b) => {
+      const orderA = a.order ?? 0;
+      const orderB = b.order ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.videoOrder ?? 0) - (b.videoOrder ?? 0);
+    });
   });
 }
 
