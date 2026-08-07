@@ -139,7 +139,7 @@ function SubjectPage() {
                       </div>
                       <div className="text-left">
                         <p className="text-sm font-bold text-foreground">{group.label}</p>
-                        <p className="text-[11px] text-muted-foreground">{group.videos.length} video{group.videos.length !== 1 ? "s" : ""}</p>
+                        <p className="text-[11px] text-muted-foreground">{group.videos.length} resource{group.videos.length !== 1 ? "s" : ""}</p>
                       </div>
                     </Link>
                     <button
@@ -170,7 +170,11 @@ function SubjectPage() {
                           {chapter.videoId ? (
                             <img src={`https://img.youtube.com/vi/${chapter.videoId}/mqdefault.jpg`} alt={chapter.title} className="h-10 w-14 rounded-md object-cover shrink-0 bg-primary-soft" />
                           ) : (
-                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary-soft text-primary font-bold text-sm">
+                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-md font-bold text-sm ${
+                              chapter.lessonType === "pdf" ? "bg-rose-50 text-rose-400" :
+                              chapter.lessonType === "link" ? "bg-teal-50 text-teal-500" :
+                              "bg-primary-soft text-primary"
+                            }`}>
                               {chapter.lessonType === "pdf" ? <FileText className="h-5 w-5" /> : chapter.lessonType === "link" ? <Paperclip className="h-5 w-5" /> : (chapter.videoOrder ?? idx + 1)}
                             </div>
                           )}
@@ -192,8 +196,12 @@ function SubjectPage() {
                             )}
                           </div>
 
-                          {/* Play */}
-                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-sm shadow-primary/25">
+                          {/* Action button */}
+                          <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm ${
+                            chapter.lessonType === "pdf" ? "bg-rose-400 shadow-rose-100" :
+                            chapter.lessonType === "link" ? "bg-teal-500 shadow-teal-100" :
+                            "bg-primary shadow-primary/25"
+                          }`}>
                             {chapter.lessonType === "pdf" ? <FileText className="h-4 w-4" /> : chapter.lessonType === "link" ? <Paperclip className="h-4 w-4" /> : <Play className="h-3.5 w-3.5 fill-current translate-x-0.5" />}
                           </div>
                         </Link>
