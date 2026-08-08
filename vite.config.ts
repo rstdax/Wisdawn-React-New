@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'Wisdawn Academy',
@@ -16,6 +17,8 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
+        scope: '/home/',       // Tells the browser the PWA is ONLY active for /home
+        start_url: '/home/',   // Ensures the app opens directly to the home dashboard
         icons: [
           {
             src: 'pwa-192x192.png',
