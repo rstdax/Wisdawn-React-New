@@ -96,7 +96,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" }, // Prevents zoom on mobile inputs
+      { name: "theme-color", content: "#ffffff" }, // Required for PWA
       { title: "WisDawn — Learn Today, Lead Tomorrow" },
       {
         name: "description",
@@ -123,6 +124,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      // 🚀 THESE ARE THE CRUCIAL PWA LINKS THAT WERE MISSING 🚀
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/pwa-192x192.png" } 
     ],
   }),
   shellComponent: RootShell,
