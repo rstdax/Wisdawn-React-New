@@ -17,8 +17,8 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        scope: '/home/',       // Tells the browser the PWA is ONLY active for /home
-        start_url: '/home/',   // Ensures the app opens directly to the home dashboard
+        scope: '/',          // EXPANDED: Covers /learn, /tests, /profile to hide the header
+        start_url: '/home',  // KEEPS functionality to open directly to the dashboard
         icons: [
           {
             src: 'pwa-192x192.png',
