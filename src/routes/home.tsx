@@ -300,24 +300,31 @@ function Home() {
     <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
 
       {/* MOBILE-ONLY HEADER */}
+      {/* MOBILE-ONLY HEADER */}
       <header className="flex md:hidden items-center justify-between gap-3 px-5 pt-2">
-        <div className="relative flex-1 rounded-full bg-muted p-1">
+        {/* Pill-shaped 3D Tab Switcher */}
+        <div className="relative flex-1 rounded-full bg-slate-100 p-1 flex shadow-inner overflow-hidden">
+          {/* Active Pill Background indicator with 3D shadow */}
           <div
-            className={`absolute inset-1 w-1/2 rounded-full shadow-lg transition-all duration-300 bg-primary ${tab === "coding" ? "translate-x-full" : "translate-x-0"}`}
+            className={`absolute inset-y-1 w-1/2 rounded-full shadow-sm transition-all duration-300 bg-blue-600 ${
+              tab === "coding" ? "translate-x-full" : "translate-x-0"
+            }`}
             aria-hidden
           />
-          <div className="relative grid grid-cols-2">
+          <div className="relative grid grid-cols-2 w-full">
             <button
               onClick={() => setTab("school")}
-              className={`relative z-10 rounded-full py-2 text-xs font-semibold ${tab === "school" ? "text-white" : "text-muted-foreground"
-                }`}
+              className={`relative z-10 rounded-full py-2 text-xs font-bold transition-colors duration-300 ${
+                tab === "school" ? "text-white" : "text-slate-500 hover:text-slate-700"
+              }`}
             >
               School Academy
             </button>
             <button
               onClick={() => setTab("coding")}
-              className={`relative z-10 rounded-full py-2 text-xs font-semibold ${tab === "coding" ? "text-white" : "text-muted-foreground"
-                }`}
+              className={`relative z-10 rounded-full py-2 text-xs font-bold transition-colors duration-300 ${
+                tab === "coding" ? "text-white" : "text-slate-500 hover:text-slate-700"
+              }`}
             >
               Coding
             </button>
@@ -325,7 +332,7 @@ function Home() {
         </div>
         <Link
           to="/notifications"
-          className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 hover:bg-slate-100 transition shrink-0 text-slate-700"
+          className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 hover:bg-slate-100 transition shrink-0 text-slate-700 border border-slate-100 shadow-sm"
           aria-label="View notifications"
         >
           <Bell className="h-4 w-4" />

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WispyRouteImport } from './routes/wispy'
 import { Route as TestsRouteImport } from './routes/tests'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as RankingsRouteImport } from './routes/rankings'
@@ -28,6 +29,11 @@ import { Route as PracticeIdRouteImport } from './routes/practice.$id'
 import { Route as ChapterIdRouteImport } from './routes/chapter.$id'
 import { Route as LessonChapterIdLessonIdRouteImport } from './routes/lesson.$chapterId.$lessonId'
 
+const WispyRoute = WispyRouteImport.update({
+  id: '/wispy',
+  path: '/wispy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TestsRoute = TestsRouteImport.update({
   id: '/tests',
   path: '/tests',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/rankings': typeof RankingsRoute
   '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
+  '/wispy': typeof WispyRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
   '/profile/edit': typeof ProfileEditRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/rankings': typeof RankingsRoute
   '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
+  '/wispy': typeof WispyRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
   '/profile/edit': typeof ProfileEditRoute
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/rankings': typeof RankingsRoute
   '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
+  '/wispy': typeof WispyRoute
   '/chapter/$id': typeof ChapterIdRoute
   '/practice/$id': typeof PracticeIdRoute
   '/profile_/edit': typeof ProfileEditRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/rankings'
     | '/support'
     | '/tests'
+    | '/wispy'
     | '/chapter/$id'
     | '/practice/$id'
     | '/profile/edit'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/rankings'
     | '/support'
     | '/tests'
+    | '/wispy'
     | '/chapter/$id'
     | '/practice/$id'
     | '/profile/edit'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/rankings'
     | '/support'
     | '/tests'
+    | '/wispy'
     | '/chapter/$id'
     | '/practice/$id'
     | '/profile_/edit'
@@ -257,6 +269,7 @@ export interface RootRouteChildren {
   RankingsRoute: typeof RankingsRoute
   SupportRoute: typeof SupportRoute
   TestsRoute: typeof TestsRoute
+  WispyRoute: typeof WispyRoute
   ChapterIdRoute: typeof ChapterIdRoute
   PracticeIdRoute: typeof PracticeIdRoute
   ProfileEditRoute: typeof ProfileEditRoute
@@ -266,6 +279,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wispy': {
+      id: '/wispy'
+      path: '/wispy'
+      fullPath: '/wispy'
+      preLoaderRoute: typeof WispyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tests': {
       id: '/tests'
       path: '/tests'
@@ -409,6 +429,7 @@ const rootRouteChildren: RootRouteChildren = {
   RankingsRoute: RankingsRoute,
   SupportRoute: SupportRoute,
   TestsRoute: TestsRoute,
+  WispyRoute: WispyRoute,
   ChapterIdRoute: ChapterIdRoute,
   PracticeIdRoute: PracticeIdRoute,
   ProfileEditRoute: ProfileEditRoute,
