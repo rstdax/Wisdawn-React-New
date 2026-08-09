@@ -45,6 +45,8 @@ import {
 } from "@/lib/admin";
 import { useAuth } from "@/hooks/use-auth";
 
+import logoImg from "@/assets/jjj.png";
+
 export const Route = createFileRoute("/chapter/$id")({
   head: () => ({ meta: [{ title: "Chapter — WisDawn" }] }),
   component: Chapter,
@@ -260,6 +262,31 @@ function Chapter() {
 
   return (
     <MobileFrame>
+
+     {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
+    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-3 bg-primary">
+      {/* Left Side: Logo and Name */}
+      <div className="flex items-center gap-2">
+        <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
+        <span className="text-2xl font-bold text-white">Wisdawn</span>
+      </div>
+
+      {/* Right Side: Coin Pill */}
+      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 shadow-sm">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-amber-700 opacity-90">
+            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <span className="text-xl font-bold text-amber-500">
+          {profile?.stats?.xp ?? 0}
+        </span>
+      </div>
+    </div>
+
+    {/* THE DIVIDER LINE */}
+    <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
+
       {/* MOBILE HEADER */}
       <header className="flex md:hidden items-center justify-between px-5 pt-2 pb-3">
         <button
@@ -706,155 +733,206 @@ function Chapter() {
 
               {/* ── RESOURCES ── */}
               {tab === "Resources" && (
-                <div className="space-y-3">
-                  <div className="text-sm font-bold text-foreground">
+                <div className="mt-2">
+                  <div className="text-[15px] font-extrabold text-slate-900 mb-4">
                     {subjectLoading ? (
-                      <div className="h-5 w-40 bg-muted animate-pulse rounded" />
+                      <div className="h-5 w-40 bg-slate-100 animate-pulse rounded" />
                     ) : isCodingCourse ? "Course Chapters" : chapterData?.chapterId
                       ? `Chapter ${chapterData.chapterId} — All Videos`
                       : "Chapter Videos"}
                   </div>
                   {subjectLoading ? (
-                    <div className="space-y-3">
-                      <div className="h-16 rounded-2xl border border-border bg-card animate-pulse" />
-                      <div className="h-16 rounded-2xl border border-border bg-card animate-pulse" />
+                    <div className="space-y-4">
+                      <div className="h-20 w-full rounded-2xl bg-slate-50 animate-pulse" />
+                      <div className="h-20 w-full rounded-2xl bg-slate-50 animate-pulse" />
                     </div>
                   ) : displayedResources.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center">
-                      <Play className="h-8 w-8 mx-auto text-muted-foreground opacity-40 mb-3" />
-                      <p className="text-sm font-semibold text-muted-foreground">No other videos in this chapter group.</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Set the same <strong>Chapter ID</strong> on related videos in the admin panel.
-                      </p>
+                    <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+                      <Play className="h-8 w-8 mx-auto text-slate-300 mb-3" />
+                      <p className="text-sm font-bold text-slate-700">No other videos found.</p>
                     </div>
                   ) : (
-                    displayedResources.map((v, idx) => {
-                      const isCurrent = v.id === id;
-                      return (
-                        <Link
-                          key={v.id}
-                          to="/chapter/$id"
-                          params={{ id: v.id }}
-                          onClick={(event) => {
-                            if (isLockedCourse) event.preventDefault();
-                          }}
-                          aria-disabled={isLockedCourse}
-                          className={`flex items-center gap-3 rounded-2xl border p-3.5 transition hover:shadow-xs ${isCurrent ? "border-primary bg-primary-soft/50" : "border-border bg-card"} ${isLockedCourse ? "cursor-not-allowed opacity-70" : ""}`}
-                        >
-                          {v.videoId ? (
-                            <img src={`https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg`} alt={v.title} className="h-10 w-14 rounded-md object-cover shrink-0 bg-primary-soft" />
-                          ) : (
-                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-bold ${isCurrent ? "bg-primary text-white" : "bg-primary-soft text-primary"}`}>
-                              {v.lessonType === "pdf" ? <FileText className="h-4 w-4" /> : v.videoOrder ?? idx + 1}
+                    <div className="flex flex-col divide-y divide-slate-100">
+                      {displayedResources.map((v, idx) => {
+                        const isCurrent = v.id === id;
+                        
+                        // Semantic Color Mapper for Resources
+                        const getMaterialTheme = (type: string | undefined | null) => {
+                          if (type === "pdf") return { main: "bg-rose-500", light: "bg-rose-50", text: "text-rose-500", border: "border-rose-200", groupLight: "group-hover:bg-rose-50", groupText: "group-hover:text-rose-500", groupBorder: "group-hover:border-rose-200", groupMain: "group-hover:bg-rose-500 group-hover:border-rose-500", icon: FileText };
+                          if (type === "link") return { main: "bg-teal-500", light: "bg-teal-50", text: "text-teal-500", border: "border-teal-200", groupLight: "group-hover:bg-teal-50", groupText: "group-hover:text-teal-500", groupBorder: "group-hover:border-teal-200", groupMain: "group-hover:bg-teal-500 group-hover:border-teal-500", icon: LinkIcon };
+                          return { main: "bg-blue-600", light: "bg-blue-50", text: "text-blue-600", border: "border-blue-200", groupLight: "group-hover:bg-blue-50", groupText: "group-hover:text-blue-600", groupBorder: "group-hover:border-blue-200", groupMain: "group-hover:bg-blue-600 group-hover:border-blue-600", icon: Play };
+                        };
+                        
+                        const theme = getMaterialTheme(v.lessonType);
+                        const Icon = theme.icon;
+
+                        return (
+                          <Link
+                            key={v.id}
+                            to="/chapter/$id"
+                            params={{ id: v.id }}
+                            onClick={(event) => {
+                              if (isLockedCourse) event.preventDefault();
+                            }}
+                            aria-disabled={isLockedCourse}
+                            className={`flex items-center gap-3 md:gap-4 py-4 group ${isLockedCourse ? "cursor-not-allowed opacity-60" : ""}`}
+                          >
+                            {/* 1. Left Large Icon / Thumbnail (With specific material colors) */}
+                            {v.videoId ? (
+                              <div className={`relative h-16 w-24 shrink-0 rounded-xl overflow-hidden border ${isCurrent ? `border-blue-500 ring-2 ring-blue-500/20` : `border-slate-200/50 bg-slate-100`}`}>
+                                <img src={`https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg`} alt={v.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                {/* Playing Animation Overlay */}
+                                {isCurrent && (
+                                  <div className="absolute inset-0 bg-blue-900/30 flex items-center justify-center backdrop-blur-[1px]">
+                                    <div className="flex items-end gap-[3px] h-4">
+                                      <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite] h-full"></span>
+                                      <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite_0.2s] h-2/3"></span>
+                                      <span className="w-1 bg-white rounded-full animate-[bounce_1s_infinite_0.4s] h-full"></span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className={`flex h-16 w-24 shrink-0 items-center justify-center rounded-xl border transition-colors duration-300 ${isCurrent ? `${theme.light} ${theme.border}` : `bg-slate-50 border-slate-100 ${theme.groupLight} ${theme.groupBorder}`}`}>
+                                {v.lessonType === "pdf" || v.lessonType === "link" ? (
+                                  <Icon className={`h-7 w-7 transition-colors duration-300 ${isCurrent ? theme.text : `text-slate-300 ${theme.groupText}`}`} />
+                                ) : (
+                                  <span className={`text-xl font-bold transition-colors duration-300 ${isCurrent ? theme.text : `text-slate-400 ${theme.groupText}`}`}>{v.videoOrder ?? idx + 1}</span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* 2. Middle Content */}
+                            <div className="min-w-0 flex-1 flex flex-col justify-center">
+                              <div className="flex items-center gap-2">
+                                <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-md transition-colors duration-300 ${isCurrent ? `${theme.light} ${theme.text}` : `bg-slate-100 text-slate-400 ${theme.groupLight} ${theme.groupText}`}`}>
+                                  <Icon className={`h-3 w-3 ${v.lessonType !== 'pdf' && v.lessonType !== 'link' ? 'fill-current translate-x-[0.5px]' : ''}`} />
+                                </div>
+                                <p className={`truncate text-[15px] font-bold transition-colors duration-300 ${isCurrent ? theme.text : `text-slate-800 ${theme.groupText}`}`}>
+                                  {v.title}
+                                </p>
+                              </div>
+                              <p className="truncate text-[13px] font-medium text-slate-500 mt-1">
+                                {v.lessonType === "pdf" ? "PDF Document" : v.lessonType === "link" ? "External Material" : (v.duration ?? "—")}
+                              </p>
                             </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-foreground">{v.title}</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">{v.lessonType === "pdf" ? "PDF Document" : (v.duration ?? "—")}</p>
-                          </div>
-                          {isLockedCourse ? (
-                            <LockKeyhole className="h-4 w-4 text-muted-foreground shrink-0" />
-                          ) : isCurrent ? (
-                            <span className="text-[10px] font-bold text-primary bg-primary-soft px-2 py-1 rounded-full shrink-0">{v.lessonType === "pdf" ? "Viewing" : "▶ Playing"}</span>
-                          ) : (
-                            v.lessonType === "pdf" ? <FileText className="h-4 w-4 text-primary shrink-0" /> : <Play className="h-4 w-4 text-primary shrink-0" />
-                          )}
-                        </Link>
-                      );
-                    })
+
+                            {/* 3. Right Action Button (Fills with specific material color on hover) */}
+                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border shadow-sm transition-all duration-300 ${isCurrent ? `${theme.main} border-transparent text-white` : `bg-white border-slate-200 text-slate-400 ${theme.groupMain} group-hover:text-white group-hover:scale-105`}`}>
+                              {isLockedCourse ? (
+                                <LockKeyhole className="h-4 w-4" />
+                              ) : (
+                                <Icon className={`h-4 w-4 ${v.lessonType !== 'pdf' && v.lessonType !== 'link' ? 'fill-current translate-x-[1px]' : ''}`} />
+                              )}
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               )}
 
               {/* ── NOTES ── */}
               {tab === "Notes" && (
-                <div className="space-y-4">
+                <div className="mt-2">
                   {isLockedCourse ? (
-                    <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-8 text-center">
-                      <LockKeyhole className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-                      <p className="text-sm font-bold text-foreground">Course notes are locked</p>
-                      <p className="text-xs text-muted-foreground mt-1">Buy this course to open and download all notes.</p>
+                    <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+                      <LockKeyhole className="h-8 w-8 mx-auto text-slate-300 mb-3" />
+                      <p className="text-sm font-bold text-slate-900">Course notes are locked</p>
+                      <p className="text-xs text-slate-500 mt-1">Buy this course to open and download all notes.</p>
                     </div>
                   ) : (
                     <>
-                  {/* Admin PDF / Notes — shown at top if exists */}
-                  {(() => {
-                    const pdfLessonsInGroup = isCodingCourse
-                      ? publishedSiblings.filter(v => v.lessonType === "pdf" && v.resourcesNote)
-                      : chapterGroupVideos.filter(v => v.lessonType === "pdf" && v.resourcesNote);
+                      {/* Admin PDF / Notes */}
+                      {(() => {
+                        const pdfLessonsInGroup = isCodingCourse
+                          ? publishedSiblings.filter(v => v.lessonType === "pdf" && v.resourcesNote)
+                          : chapterGroupVideos.filter(v => v.lessonType === "pdf" && v.resourcesNote);
 
-                    const videosWithNotes = Array.from(new Map(
-                      (isCodingCourse
-                        ? [
-                            ...(chapterData?.resourcesNote ? [chapterData] : []),
-                            ...displayedResources.filter(v => v.resourcesNote),
-                            ...pdfLessonsInGroup
-                          ]
-                        : [
-                            ...pdfLessonsInGroup
-                          ]
-                      ).map(v => [v.id, v])
-                    ).values());
+                        const videosWithNotes = Array.from(new Map(
+                          (isCodingCourse
+                            ? [
+                                ...(chapterData?.resourcesNote ? [chapterData] : []),
+                                ...displayedResources.filter(v => v.resourcesNote),
+                                ...pdfLessonsInGroup
+                              ]
+                            : [
+                                ...pdfLessonsInGroup
+                              ]
+                          ).map(v => [v.id, v])
+                        ).values());
 
-                    if (videosWithNotes.length === 0) return null;
+                        if (videosWithNotes.length === 0) return (
+                          <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+                            <FileText className="h-8 w-8 mx-auto text-slate-300 mb-3" />
+                            <p className="text-sm font-bold text-slate-700">No notes available.</p>
+                          </div>
+                        );
 
-                    return (
-                      <div className="space-y-4">
-                        {videosWithNotes.map((video) => (
-                          <div key={video.id} className="rounded-2xl border border-primary/20 bg-primary-soft/40 p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                              <FileText className="h-4 w-4 text-primary shrink-0" />
-                              <p className="text-xs font-bold text-primary uppercase tracking-wider">
-                                {video.chapterId !== undefined
-                                  ? `Chapter ${video.chapterId}${video.chapterName ? `: ${video.chapterName}` : ""} — ${video.title}`
-                                  : video.title ?? "Notes"}
-                              </p>
-                            </div>
-                            {(() => {
+                        // Notes are all treated as PDF materials, so we assign the Rose/Red theme
+                        const theme = { main: "bg-rose-500", light: "bg-rose-50", text: "text-rose-500", border: "border-rose-200", groupLight: "group-hover:bg-rose-50", groupText: "group-hover:text-rose-500", groupBorder: "group-hover:border-rose-200", groupMain: "group-hover:bg-rose-500 group-hover:border-rose-500" };
+
+                        return (
+                          <div className="flex flex-col divide-y divide-slate-100">
+                            {videosWithNotes.map((video) => {
                               const urlMatch = video.resourcesNote!.match(/https?:\/\/[^\s]+/);
                               const url = urlMatch?.[0] ?? null;
-                              // Convert Google Drive view link → download link
-                              const downloadUrl = url?.includes("drive.google.com/file/d/")
-                                ? url.replace("/view", "/export?format=pdf").replace("?usp=drive_link", "")
-                                : url;
                               // Text without URL
                               const textOnly = video.resourcesNote!.replace(/https?:\/\/[^\s]+/g, "").trim();
+
+                              // Make the entire row clickable if there's a URL
+                              const Wrapper = url ? 'a' : 'div';
+                              const wrapperProps = url ? { href: url, target: "_blank", rel: "noreferrer" } : {};
+
                               return (
-                                <>
-                                  {textOnly && (
-                                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-line break-words mb-3"
-                                      style={{ wordBreak: "break-word", overflowWrap: "break-word" }}>
-                                      {textOnly}
+                                <Wrapper key={video.id} {...wrapperProps} className="flex items-center gap-3 md:gap-4 py-4 group cursor-pointer">
+                                  {/* 1. Left Large Icon (Fills with Red on hover) */}
+                                  <div className={`flex h-16 w-24 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 transition-colors duration-300 ${theme.groupLight} ${theme.groupBorder}`}>
+                                    <FileText className={`h-7 w-7 text-slate-300 transition-colors duration-300 ${theme.groupText}`} />
+                                  </div>
+
+                                  {/* 2. Middle Content */}
+                                  <div className="min-w-0 flex-1 flex flex-col justify-center">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400 transition-colors duration-300 ${theme.groupLight} ${theme.groupText}`}>
+                                        <FileText className="h-3 w-3" />
+                                      </div>
+                                      <p className={`truncate text-[15px] font-bold text-slate-800 transition-colors duration-300 ${theme.groupText}`}>
+                                        {video.title ?? "Lesson Notes"}
+                                      </p>
+                                    </div>
+                                    <p className="truncate text-[13px] font-medium text-slate-500 mt-1">
+                                      {video.chapterId !== undefined
+                                        ? `Chapter ${video.chapterId}${video.chapterName ? `: ${video.chapterName}` : ""}`
+                                        : "Notes"}
                                     </p>
-                                  )}
+                                    {/* If there is additional text description, show it neatly truncated */}
+                                    {textOnly && (
+                                      <p className="text-[11px] text-slate-400 mt-1 line-clamp-1 font-medium">
+                                        {textOnly}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* 3. Right Action Arrow Button (Turns Red on hover) */}
                                   {url && (
-                                    <div className="flex gap-2 flex-wrap">
-                                      <a href={url} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-primary/90">
-                                        <FileText className="h-3.5 w-3.5" /> Open PDF
-                                      </a>
-                                      <a href={downloadUrl ?? url} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-1.5 rounded-full border border-primary bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary-soft">
-                                        <Download className="h-3.5 w-3.5" /> Download PDF
-                                      </a>
+                                    <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border border-slate-200 text-slate-400 shadow-sm transition-all duration-300 ${theme.groupMain} group-hover:text-white group-hover:scale-105`}>
+                                      <ArrowRight className="h-4 w-4" />
                                     </div>
                                   )}
-                                </>
+                                </Wrapper>
                               );
-                            })()}
+                            })}
                           </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-
-                  {/* Student personal notes */}
-                  <div>
-                  </div>
+                        );
+                      })()}
                     </>
                   )}
                 </div>
               )}
+
+              
 
 
             </div>

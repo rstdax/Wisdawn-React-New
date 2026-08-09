@@ -1,9 +1,12 @@
 import { createFileRoute, useParams, useRouter, Link, Navigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Play, Loader2, Clock, ChevronRight, ChevronDown, FileText, Paperclip } from "lucide-react";
+import { ArrowLeft, Play, Loader2, Clock, ChevronRight, ChevronDown, FileText, Paperclip, ArrowRight } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { getSubjects, getChaptersBySubject, type Subject, type Chapter } from "@/lib/admin";
+
+import logoImg from "@/assets/jjj.png";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/subject/$id")({
   head: () => ({ meta: [{ title: "Subject — WisDawn" }] }),
@@ -44,6 +47,8 @@ function SubjectPage() {
   const { id } = useParams({ from: "/subject/$id" });
   const router = useRouter();
 
+  const { profile } = useAuth();
+
   const [subject, setSubject] = useState<Subject | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +82,37 @@ function SubjectPage() {
 
   return (
     <MobileFrame>
+
+      {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
+    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
+      {/* Left Side: Logo and Name */}
+      <div className="flex items-center gap-2">
+        <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
+        <span className="text-2xl font-bold text-primary">Wisdawn</span>
+      </div>
+
+      {/* Right Side: Coin Pill (No image file needed) */}
+      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+        {/* Custom CSS Coin with Star SVG */}
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="currentColor" 
+            className="h-4 w-4 text-amber-700 opacity-90"
+          >
+            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <span className="text-xl font-bold text-amber-500">
+          {profile?.stats?.xp ?? 0}
+        </span>
+      </div>
+    </div>
+
+    {/* THE DIVIDER LINE */}
+    <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
+
       {/* MOBILE HEADER */}
       <header className="flex md:hidden items-center gap-3 px-5 pt-2 pb-1">
         <button onClick={() => router.history.back()}
@@ -126,86 +162,120 @@ function SubjectPage() {
             {groups.map((group) => {
               const isExpanded = expandedGroups.has(group.groupId);
               return (
-                <div key={group.groupId} className="rounded-2xl border border-border bg-card overflow-hidden">
-                  {/* Chapter group header */}
-                  <div className="flex items-center justify-between pr-4 hover:bg-muted/30 transition">
+                <div key={group.groupId} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                  
+                  {/* ── CHAPTER GROUP HEADER ── */}
+                  <div className="flex items-center justify-between pr-3 group/header hover:bg-slate-50 transition-colors duration-300">
                     <Link
                       to={group.videos[0] ? "/chapter/$id" : "/subject/$id"}
                       params={{ id: group.videos[0]?.id || id }}
-                      className="flex items-center gap-3 flex-1 px-4 py-3.5"
+                      className="flex items-center gap-3 md:gap-4 flex-1 px-4 py-4"
                     >
-                      <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary text-white text-xs font-bold shrink-0">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 text-sm font-bold transition-colors duration-300 group-hover/header:bg-blue-50 group-hover/header:text-blue-600 group-hover/header:border-blue-100">
                         {group.groupId === 0 ? "—" : group.groupId}
                       </div>
-                      <div className="text-left">
-                        <p className="text-sm font-bold text-foreground">{group.label}</p>
-                        <p className="text-[11px] text-muted-foreground">{group.videos.length} resource{group.videos.length !== 1 ? "s" : ""}</p>
+                      <div className="text-left min-w-0">
+                        <p className="text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover/header:text-blue-600 truncate">
+                          {group.label}
+                        </p>
+                        <p className="text-[12px] font-medium text-slate-500 mt-0.5">
+                          {group.videos.length} resource{group.videos.length !== 1 ? "s" : ""}
+                        </p>
                       </div>
                     </Link>
+                    
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         toggleGroup(group.groupId);
                       }}
-                      className="grid h-8 w-8 place-items-center rounded-full bg-muted/50 hover:bg-muted/80 transition shrink-0 ml-2 text-foreground"
+                      className="grid h-10 w-10 place-items-center rounded-full bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition shrink-0 ml-2 shadow-sm"
                       aria-label="Toggle videos"
                     >
-                      {isExpanded
-                        ? <ChevronDown className="h-4 w-4" />
-                        : <ChevronRight className="h-4 w-4" />}
+                      {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                     </button>
                   </div>
 
-                  {/* Videos list */}
+                  {/* ── VIDEOS / RESOURCES LIST ── */}
                   {isExpanded && (
-                    <div className="border-t border-border/60">
-                      {group.videos.map((chapter, idx) => (
-                        <Link
-                          key={chapter.id}
-                          to="/chapter/$id"
-                          params={{ id: chapter.id }}
-                          className="flex items-center gap-4 px-4 py-3.5 hover:bg-primary-soft/40 transition border-b border-border/30 last:border-b-0"
-                        >
-                          {/* Video thumbnail or number within chapter */}
-                          {chapter.videoId ? (
-                            <img src={`https://img.youtube.com/vi/${chapter.videoId}/mqdefault.jpg`} alt={chapter.title} className="h-10 w-14 rounded-md object-cover shrink-0 bg-primary-soft" />
-                          ) : (
-                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-md font-bold text-sm ${
-                              chapter.lessonType === "pdf" ? "bg-rose-50 text-rose-400" :
-                              chapter.lessonType === "link" ? "bg-teal-50 text-teal-500" :
-                              "bg-primary-soft text-primary"
-                            }`}>
-                              {chapter.lessonType === "pdf" ? <FileText className="h-5 w-5" /> : chapter.lessonType === "link" ? <Paperclip className="h-5 w-5" /> : (chapter.videoOrder ?? idx + 1)}
-                            </div>
-                          )}
+                    <div className="border-t border-slate-100 px-4 bg-white">
+                      <div className="flex flex-col divide-y divide-slate-100">
+                        {group.videos.map((chapter, idx) => {
+                          // Semantic Color Mapper - Colors are ALWAYS active now!
+                          const getMaterialTheme = (type: string | undefined | null) => {
+                            if (type === "pdf") return { main: "bg-rose-500", light: "bg-rose-50", text: "text-rose-500", border: "border-rose-100", hoverMain: "group-hover:bg-rose-500 group-hover:border-rose-500", icon: FileText };
+                            if (type === "link") return { main: "bg-teal-500", light: "bg-teal-50", text: "text-teal-500", border: "border-teal-100", hoverMain: "group-hover:bg-teal-500 group-hover:border-teal-500", icon: Paperclip };
+                            return { main: "bg-blue-500", light: "bg-blue-50", text: "text-blue-500", border: "border-blue-100", hoverMain: "group-hover:bg-blue-500 group-hover:border-blue-500", icon: Play };
+                          };
 
-                          {/* Info */}
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm text-foreground truncate">{chapter.title}</p>
-                            {subject?.track !== "school" && (chapter.duration || chapter.difficulty) && (
-                              <div className="flex items-center gap-3 mt-0.5">
-                                {chapter.duration && (
-                                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-semibold">
-                                    <Clock className="h-3 w-3" /> {chapter.duration}
-                                  </span>
-                                )}
-                                {chapter.difficulty && (
-                                  <span className="text-[11px] text-muted-foreground font-semibold">{chapter.difficulty}</span>
+                          const theme = getMaterialTheme(chapter.lessonType);
+                          const Icon = theme.icon;
+
+                          return (
+                            <Link
+                              key={chapter.id}
+                              to="/chapter/$id"
+                              params={{ id: chapter.id }}
+                              className="flex items-center gap-3 md:gap-4 py-4 group"
+                            >
+                              {/* 1. Left Large Icon / Thumbnail (Colored by default) */}
+                              {chapter.videoId ? (
+                                <div className={`relative h-16 w-24 shrink-0 rounded-xl overflow-hidden bg-slate-100 border ${theme.border}`}>
+                                  <img src={`https://img.youtube.com/vi/${chapter.videoId}/mqdefault.jpg`} alt={chapter.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                </div>
+                              ) : (
+                                <div className={`flex h-16 w-24 shrink-0 items-center justify-center rounded-xl border transition-colors duration-300 ${theme.light} ${theme.border}`}>
+                                  {chapter.lessonType === "pdf" || chapter.lessonType === "link" ? (
+                                    <Icon className={`h-7 w-7 ${theme.text}`} />
+                                  ) : (
+                                    <span className={`text-xl font-bold ${theme.text}`}>{chapter.videoOrder ?? idx + 1}</span>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* 2. Middle Content */}
+                              <div className="min-w-0 flex-1 flex flex-col justify-center">
+                                <div className="flex items-center gap-2">
+                                  <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${theme.light} ${theme.text}`}>
+                                    <Icon className={`h-3 w-3 ${chapter.lessonType !== 'pdf' && chapter.lessonType !== 'link' ? 'fill-current translate-x-[0.5px]' : ''}`} />
+                                  </div>
+                                  <p className="truncate text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover:text-blue-600">
+                                    {chapter.title}
+                                  </p>
+                                </div>
+                                
+                                <div className="flex items-center gap-1.5 mt-1 text-slate-400">
+                                  {chapter.lessonType === "pdf" ? (
+                                     <p className="text-[13px] font-medium text-slate-500">PDF Document</p>
+                                  ) : chapter.lessonType === "link" ? (
+                                     <p className="text-[13px] font-medium text-slate-500">External Material</p>
+                                  ) : (
+                                    <>
+                                      <Clock className="h-3.5 w-3.5" />
+                                      <p className="text-[11px] font-semibold">{chapter.duration || "Self-paced"}</p>
+                                      {chapter.difficulty && (
+                                        <>
+                                          <span className="mx-1 opacity-50">•</span>
+                                          <p className="text-[11px] font-semibold">{chapter.difficulty}</p>
+                                        </>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* 3. Right Action Button (Colored border & icon by default, fills on hover) */}
+                              <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border shadow-sm transition-all duration-300 ${theme.border} ${theme.text} ${theme.hoverMain} group-hover:text-white group-hover:scale-105`}>
+                                {chapter.lessonType === "pdf" || chapter.lessonType === "link" ? (
+                                  <ArrowRight className="h-4 w-4" />
+                                ) : (
+                                  <Play className="h-4 w-4 fill-current translate-x-[1px]" />
                                 )}
                               </div>
-                            )}
-                          </div>
-
-                          {/* Action button */}
-                          <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm ${
-                            chapter.lessonType === "pdf" ? "bg-rose-400 shadow-rose-100" :
-                            chapter.lessonType === "link" ? "bg-teal-500 shadow-teal-100" :
-                            "bg-primary shadow-primary/25"
-                          }`}>
-                            {chapter.lessonType === "pdf" ? <FileText className="h-4 w-4" /> : chapter.lessonType === "link" ? <Paperclip className="h-4 w-4" /> : <Play className="h-3.5 w-3.5 fill-current translate-x-0.5" />}
-                          </div>
-                        </Link>
-                      ))}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>

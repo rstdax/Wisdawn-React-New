@@ -14,6 +14,8 @@ import { SubjectIcon } from "@/components/SubjectIcon";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import logoImg from "@/assets/jjj.png";
+
 export const Route = createFileRoute("/learn")({
   head: () => ({ meta: [{ title: "Learn — WisDawn" }] }),
   component: Learn,
@@ -23,6 +25,48 @@ const filters = {
   school: ["All", "Physics", "Chemistry", "Biology", "Maths", "Science", "Geography", "History"],
   coding: ["All", "Python", "Web Dev", "DSA", "React", "JavaScript", "HTML", "C", "More"],
 };
+
+// NEW: Animated Cones Component for the Learn Banner
+function AnimatedZigZag() {
+  const CONE_COUNT = 10; // Number of triangles across the banner
+  const COLORS = [
+    "text-blue-400/20",
+    "text-purple-400/20",
+    "text-emerald-400/20",
+    "text-amber-400/20",
+  ];
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    // Ticks every 120ms to drive the wave animation
+    const timer = setInterval(() => setTick((t) => t + 1), 120);
+    return () => clearInterval(timer);
+  }, []);
+
+  const cycleLength = CONE_COUNT * 2 + 8; // Total ticks for one full show/hide cycle
+  const currentCycle = Math.floor(tick / cycleLength);
+  const phaseTick = tick % cycleLength;
+  const currentColor = COLORS[currentCycle % COLORS.length];
+
+  return (
+    <div className="absolute bottom-0 left-0 w-full flex items-end z-0 pointer-events-none h-[28px]">
+      {Array.from({ length: CONE_COUNT }).map((_, i) => {
+        // Math to make them emerge left-to-right, pause, then hide left-to-right
+        const isShown = phaseTick >= i && phaseTick < (CONE_COUNT + 4 + i);
+        return (
+          <div 
+            key={i} 
+            className={`flex-1 transition-transform duration-300 ease-out origin-bottom ${currentColor} ${isShown ? "scale-y-100" : "scale-y-0"}`}
+          >
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full block">
+              <polygon points="0,100 50,0 100,100" fill="currentColor" />
+            </svg>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function Learn() {
   const navigate = useNavigate();
@@ -98,6 +142,34 @@ function Learn() {
   if (loading) {
     return (
       <MobileFrame>
+
+    {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
+    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
+      {/* Left Side: Logo and Name */}
+      <div className="flex items-center gap-2">
+        <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
+        <span className="text-2xl font-bold text-primary">Wisdawn</span>
+      </div>
+
+      {/* Right Side: Coin Pill (No image file needed) */}
+      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+        {/* Custom CSS Coin with Star SVG */}
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="currentColor" 
+            className="h-4 w-4 text-amber-700 opacity-90"
+          >
+            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <span className="text-xl font-bold text-amber-500">
+          {profile?.stats?.xp ?? 0}
+        </span>
+      </div>
+    </div>
+
         {/* MOBILE HEADER SKELETON */}
         <div className="px-5 pt-3 md:hidden">
           <div className="flex items-center justify-between gap-3">
@@ -129,10 +201,22 @@ function Learn() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left & Center Column */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Focus Banner Skeleton */}
-              <div className="mt-4 md:hidden">
-                <Skeleton className="h-20 w-full rounded-2xl animate-pulse" />
-              </div>
+              {/* ENHANCED TODAY'S FOCUS BANNER */}
+                <div className="mt-4 relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-4.5 text-sm md:hidden shadow-sm">
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 font-extrabold text-blue-700">
+                      <Lightbulb className="h-4.5 w-4.5 fill-blue-500 text-blue-500" /> Today’s focus
+                    </div>
+                    <p className="mt-1.5 text-[13px] font-medium text-slate-600 leading-relaxed max-w-[90%]">
+                      {track === 'school'
+                        ? 'Master one concept at a time and keep your streak alive.'
+                        : 'Build momentum with a short coding sprint.'}
+                    </p>
+                  </div>
+                  
+                  {/* The Animated Wave */}
+                  <AnimatedZigZag />
+                </div>
 
               {/* Available Subjects Section */}
               <div className="space-y-3">
@@ -181,6 +265,37 @@ function Learn() {
 
   return (
     <MobileFrame>
+
+      {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
+    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
+      {/* Left Side: Logo and Name */}
+      <div className="flex items-center gap-2">
+        <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
+        <span className="text-2xl font-bold text-primary">Wisdawn</span>
+      </div>
+
+      {/* Right Side: Coin Pill (No image file needed) */}
+      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+        {/* Custom CSS Coin with Star SVG */}
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="currentColor" 
+            className="h-4 w-4 text-amber-700 opacity-90"
+          >
+            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <span className="text-xl font-bold text-amber-500">
+          {profile?.stats?.xp ?? 0}
+        </span>
+      </div>
+    </div>
+
+    {/* THE DIVIDER LINE */}
+    <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
+
       <div className="px-5 pt-3 md:hidden">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -283,15 +398,21 @@ function Learn() {
           <div className="lg:col-span-2 space-y-6">
             {track === 'school' ? (
               <>
-                <div className="mt-4 rounded-2xl border border-border bg-primary-soft p-3 text-sm md:hidden">
-                  <div className="flex items-center gap-2 font-semibold text-primary">
-                    <Lightbulb className="h-4 w-4" /> Today’s focus
+                {/* ENHANCED TODAY'S FOCUS BANNER */}
+                <div className="mt-4 relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-4.5 text-sm md:hidden shadow-sm">
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 font-extrabold text-blue-700">
+                      <Lightbulb className="h-4.5 w-4.5 fill-blue-500 text-blue-500" /> Today’s focus
+                    </div>
+                    <p className="mt-1.5 text-[13px] font-medium text-slate-600 leading-relaxed max-w-[90%]">
+                      {track === 'school'
+                        ? 'Master one concept at a time and keep your streak alive.'
+                        : 'Build momentum with a short coding sprint.'}
+                    </p>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {track === 'school'
-                      ? 'Master one concept at a time and keep your streak alive.'
-                      : 'Build momentum with a short coding sprint.'}
-                  </p>
+                  
+                  {/* The Animated Wave */}
+                  <AnimatedZigZag />
                 </div>
 
                 <div>

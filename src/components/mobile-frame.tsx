@@ -162,8 +162,8 @@ export function MobileFrame({ children }: { children: ReactNode }) {
       <div className="min-h-screen w-full overflow-hidden bg-[linear-gradient(180deg,rgba(117,95,255,0.08),rgba(255,255,255,0.92))]">
         {/* On desktop/tablet, show full bleed */}
         <div className="hidden md:block min-h-screen w-full">{children}</div>
-        {/* On mobile, show centered frame */}
-        <div className="md:hidden mx-auto flex min-h-screen w-full max-w-110 flex-col border-x border-border/70 bg-background shadow-[0_25px_80px_-32px_rgba(15,23,42,0.35)]">
+        {/* On mobile, show full bleed frame */}
+        <div className="md:hidden flex min-h-screen w-full flex-col bg-background">
           <div className="flex min-h-screen flex-1 flex-col">{children}</div>
         </div>
       </div>
@@ -364,7 +364,7 @@ export function MobileFrame({ children }: { children: ReactNode }) {
       </div>
 
       {/* MOBILE LAYOUT (less than md) */}
-      <div className="md:hidden mx-auto flex min-h-screen w-full max-w-110 flex-col border-x border-border/70 bg-background shadow-[0_25px_80px_-32px_rgba(15,23,42,0.35)]">
+      <div className="md:hidden flex min-h-screen w-full flex-col bg-background">
         <div className="flex min-h-screen flex-1 flex-col pb-24">{isMobile && children}</div>
       </div>
     </div>

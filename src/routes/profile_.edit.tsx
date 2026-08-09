@@ -12,15 +12,10 @@ import {
   Bookmark,
   Mail
 } from "lucide-react";
-import { format } from "date-fns";
 import { MobileFrame } from "@/components/mobile-frame";
 import { refreshUserProfile, useAuth } from "@/hooks/use-auth";
 import { saveOnboardingData } from "@/lib/auth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import wisbyAvatar from "@/assets/jjj.jpeg";
 
 const ASSAM_DISTRICTS = [
@@ -226,30 +221,18 @@ function EditProfile() {
                 </div>
               </Field>
 
-              {/* Date of Birth */}
+              {/* Date of Birth - NATIVE DATE INPUT */}
               <Field label="Date of Birth">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        `h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs sm:text-sm font-medium text-slate-800 hover:bg-white justify-start relative focus:${theme.focusBorder} focus:ring-1 ${theme.focusRing} transition shadow-none`,
-                        !form.dob && "text-slate-400"
-                      )}
-                    >
-                      <CalendarIcon className={`absolute left-3 h-3.5 w-3.5 ${theme.primaryText} stroke-[2.2] pointer-events-none transition-colors duration-300`} />
-                      <span className="truncate">{form.dob ? format(new Date(form.dob), "MMMM d, yyyy") : "Select date"}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={form.dob ? new Date(form.dob) : undefined}
-                      onSelect={(date) => updateField("dob", date ? format(date, "yyyy-MM-dd") : "")}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="relative flex items-center">
+                  <CalendarIcon className={`absolute left-3 h-3.5 w-3.5 ${theme.primaryText} stroke-[2.2] pointer-events-none z-10 transition-colors duration-300`} />
+                  <input
+                    type="date"
+                    value={form.dob}
+                    max={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => updateField("dob", e.target.value)}
+                    className={`h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs sm:text-sm font-medium ${form.dob ? "text-slate-800" : "text-slate-400"} focus:outline-none ${theme.focusBorder} focus:ring-1 ${theme.focusRing} transition appearance-none relative [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                  />
+                </div>
               </Field>
 
               {/* State */}
