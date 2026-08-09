@@ -101,7 +101,7 @@ function Tests() {
       <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-3 bg-white border-b border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
-          <span className="text-2xl font-extrabold text-slate-900 tracking-tight">Wisdawn</span>
+          <span className="text-2xl font-extrabold text-primary tracking-tight">Wisdawn</span>
         </div>
         <div className="flex items-center gap-2 rounded-full bg-slate-50 border border-slate-100 px-3 py-1 shadow-sm">
           <XPCoin className="h-6 w-6" />

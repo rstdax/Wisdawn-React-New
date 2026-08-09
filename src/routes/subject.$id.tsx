@@ -169,16 +169,16 @@ function SubjectPage() {
                     <Link
                       to={group.videos[0] ? "/chapter/$id" : "/subject/$id"}
                       params={{ id: group.videos[0]?.id || id }}
-                      className="flex items-center gap-3 md:gap-4 flex-1 px-4 py-4"
+                      className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 px-4 py-4"
                     >
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 text-sm font-bold transition-colors duration-300 group-hover/header:bg-blue-50 group-hover/header:text-blue-600 group-hover/header:border-blue-100">
                         {group.groupId === 0 ? "—" : group.groupId}
                       </div>
-                      <div className="text-left min-w-0">
+                      <div className="text-left min-w-0 flex-1">
                         <p className="text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover/header:text-blue-600 truncate">
                           {group.label}
                         </p>
-                        <p className="text-[12px] font-medium text-slate-500 mt-0.5">
+                        <p className="text-[12px] font-medium text-slate-500 mt-0.5 truncate">
                           {group.videos.length} resource{group.videos.length !== 1 ? "s" : ""}
                         </p>
                       </div>
@@ -189,7 +189,7 @@ function SubjectPage() {
                         e.preventDefault();
                         toggleGroup(group.groupId);
                       }}
-                      className="grid h-10 w-10 place-items-center rounded-full bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition shrink-0 ml-2 shadow-sm"
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition ml-2 shadow-sm"
                       aria-label="Toggle videos"
                     >
                       {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
@@ -201,7 +201,6 @@ function SubjectPage() {
                     <div className="border-t border-slate-100 px-4 bg-white">
                       <div className="flex flex-col divide-y divide-slate-100">
                         {group.videos.map((chapter, idx) => {
-                          // Semantic Color Mapper - Colors are ALWAYS active now!
                           const getMaterialTheme = (type: string | undefined | null) => {
                             if (type === "pdf") return { main: "bg-rose-500", light: "bg-rose-50", text: "text-rose-500", border: "border-rose-100", hoverMain: "group-hover:bg-rose-500 group-hover:border-rose-500", icon: FileText };
                             if (type === "link") return { main: "bg-teal-500", light: "bg-teal-50", text: "text-teal-500", border: "border-teal-100", hoverMain: "group-hover:bg-teal-500 group-hover:border-teal-500", icon: Paperclip };
@@ -218,7 +217,7 @@ function SubjectPage() {
                               params={{ id: chapter.id }}
                               className="flex items-center gap-3 md:gap-4 py-4 group"
                             >
-                              {/* 1. Left Large Icon / Thumbnail (Colored by default) */}
+                              {/* 1. Left Large Icon / Thumbnail */}
                               {chapter.videoId ? (
                                 <div className={`relative h-16 w-24 shrink-0 rounded-xl overflow-hidden bg-slate-100 border ${theme.border}`}>
                                   <img src={`https://img.youtube.com/vi/${chapter.videoId}/mqdefault.jpg`} alt={chapter.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -235,7 +234,7 @@ function SubjectPage() {
 
                               {/* 2. Middle Content */}
                               <div className="min-w-0 flex-1 flex flex-col justify-center">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
                                   <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${theme.light} ${theme.text}`}>
                                     <Icon className={`h-3 w-3 ${chapter.lessonType !== 'pdf' && chapter.lessonType !== 'link' ? 'fill-current translate-x-[0.5px]' : ''}`} />
                                   </div>
@@ -244,19 +243,19 @@ function SubjectPage() {
                                   </p>
                                 </div>
                                 
-                                <div className="flex items-center gap-1.5 mt-1 text-slate-400">
+                                <div className="flex items-center gap-1.5 mt-1 text-slate-400 min-w-0">
                                   {chapter.lessonType === "pdf" ? (
-                                     <p className="text-[13px] font-medium text-slate-500">PDF Document</p>
+                                     <p className="text-[13px] font-medium text-slate-500 truncate">PDF Document</p>
                                   ) : chapter.lessonType === "link" ? (
-                                     <p className="text-[13px] font-medium text-slate-500">External Material</p>
+                                     <p className="text-[13px] font-medium text-slate-500 truncate">External Material</p>
                                   ) : (
                                     <>
-                                      <Clock className="h-3.5 w-3.5" />
-                                      <p className="text-[11px] font-semibold">{chapter.duration || "Self-paced"}</p>
+                                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                                      <p className="text-[11px] font-semibold truncate">{chapter.duration || "Self-paced"}</p>
                                       {chapter.difficulty && (
                                         <>
-                                          <span className="mx-1 opacity-50">•</span>
-                                          <p className="text-[11px] font-semibold">{chapter.difficulty}</p>
+                                          <span className="mx-1 opacity-50 shrink-0">•</span>
+                                          <p className="text-[11px] font-semibold truncate">{chapter.difficulty}</p>
                                         </>
                                       )}
                                     </>
@@ -264,7 +263,7 @@ function SubjectPage() {
                                 </div>
                               </div>
 
-                              {/* 3. Right Action Button (Colored border & icon by default, fills on hover) */}
+                              {/* 3. Right Action Button (Added shrink-0 so it never gets squished) */}
                               <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border shadow-sm transition-all duration-300 ${theme.border} ${theme.text} ${theme.hoverMain} group-hover:text-white group-hover:scale-105`}>
                                 {chapter.lessonType === "pdf" || chapter.lessonType === "link" ? (
                                   <ArrowRight className="h-4 w-4" />

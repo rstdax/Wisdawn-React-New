@@ -161,6 +161,12 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE/Edge */
+    user-select: none;         /* Standard */
+    -webkit-touch-callout: none; /* Disables iOS long-press callout menu */
   }
 
   html {
@@ -212,4 +218,17 @@
     background-color: color-mix(in srgb, var(--color-primary) 24%, white 76%);
     color: var(--color-foreground);
   }
+}
+
+
+/* Fix Plyr video quality/settings menu overflowing upwards */
+.plyr__menu__container {
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  border-radius: 12px !important;
+}
+
+.plyr__menu__container .plyr__control {
+  padding: 8px 12px !important;
+  font-size: 13px !important;
 }
