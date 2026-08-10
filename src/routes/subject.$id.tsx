@@ -1,4 +1,4 @@
-import { createFileRoute, useParams, useRouter, Link, Navigate } from "@tanstack/react-router";
+﻿import { createFileRoute, useParams, useRouter, Link, Navigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Play, Loader2, Clock, ChevronRight, ChevronDown, FileText, Paperclip, ArrowRight } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
@@ -9,7 +9,7 @@ import logoImg from "@/assets/jjj.png";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/subject/$id")({
-  head: () => ({ meta: [{ title: "Subject — WisDawn" }] }),
+  head: () => ({ meta: [{ title: "Subject â€” WisDawn" }] }),
   component: SubjectPage,
 });
 
@@ -137,7 +137,7 @@ function SubjectPage() {
           <div>
             <h1 className="text-2xl font-extrabold text-foreground">{subject?.title}</h1>
             <p className="text-sm text-muted-foreground">
-              {subject?.class} · {subject?.track === "school" ? "School Academy" : "Coding Bootcamp"}
+              {subject?.class} Â· {subject?.track === "school" ? "School Academy" : "Coding Bootcamp"}
             </p>
           </div>
         </div>
@@ -164,18 +164,18 @@ function SubjectPage() {
               return (
                 <div key={group.groupId} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                   
-                  {/* ── CHAPTER GROUP HEADER ── */}
+                  {/* â”€â”€ CHAPTER GROUP HEADER â”€â”€ */}
                   <div className="flex items-center justify-between pr-3 group/header hover:bg-slate-50 transition-colors duration-300">
                     <Link
                       to={group.videos[0] ? "/chapter/$id" : "/subject/$id"}
                       params={{ id: group.videos[0]?.id || id }}
                       className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 px-4 py-4"
                     >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 text-sm font-bold transition-colors duration-300 group-hover/header:bg-blue-50 group-hover/header:text-blue-600 group-hover/header:border-blue-100">
-                        {group.groupId === 0 ? "—" : group.groupId}
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 text-sm font-bold transition-colors duration-300 group-hover/header:bg-primary/10 group-hover/header:text-primary group-hover/header:border-primary/20">
+                        {group.groupId === 0 ? "â€”" : group.groupId}
                       </div>
                       <div className="text-left min-w-0 flex-1">
-                        <p className="text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover/header:text-blue-600 truncate">
+                        <p className="text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover/header:text-primary truncate">
                           {group.label}
                         </p>
                         <p className="text-[12px] font-medium text-slate-500 mt-0.5 truncate">
@@ -196,7 +196,7 @@ function SubjectPage() {
                     </button>
                   </div>
 
-                  {/* ── VIDEOS / RESOURCES LIST ── */}
+                  {/* â”€â”€ VIDEOS / RESOURCES LIST â”€â”€ */}
                   {isExpanded && (
                     <div className="border-t border-slate-100 px-4 bg-white">
                       <div className="flex flex-col divide-y divide-slate-100">
@@ -204,7 +204,7 @@ function SubjectPage() {
                           const getMaterialTheme = (type: string | undefined | null) => {
                             if (type === "pdf") return { main: "bg-rose-500", light: "bg-rose-50", text: "text-rose-500", border: "border-rose-100", hoverMain: "group-hover:bg-rose-500 group-hover:border-rose-500", icon: FileText };
                             if (type === "link") return { main: "bg-teal-500", light: "bg-teal-50", text: "text-teal-500", border: "border-teal-100", hoverMain: "group-hover:bg-teal-500 group-hover:border-teal-500", icon: Paperclip };
-                            return { main: "bg-blue-500", light: "bg-blue-50", text: "text-blue-500", border: "border-blue-100", hoverMain: "group-hover:bg-blue-500 group-hover:border-blue-500", icon: Play };
+                            return { main: "bg-primary/100", light: "bg-primary/10", text: "text-blue-500", border: "border-primary/20", hoverMain: "group-hover:bg-primary group-hover:border-primary", icon: Play };
                           };
 
                           const theme = getMaterialTheme(chapter.lessonType);
@@ -238,7 +238,7 @@ function SubjectPage() {
                                   <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${theme.light} ${theme.text}`}>
                                     <Icon className={`h-3 w-3 ${chapter.lessonType !== 'pdf' && chapter.lessonType !== 'link' ? 'fill-current translate-x-[0.5px]' : ''}`} />
                                   </div>
-                                  <p className="truncate text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover:text-blue-600">
+                                  <p className="truncate text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover:text-primary">
                                     {chapter.title}
                                   </p>
                                 </div>
@@ -254,7 +254,7 @@ function SubjectPage() {
                                       <p className="text-[11px] font-semibold truncate">{chapter.duration || "Self-paced"}</p>
                                       {chapter.difficulty && (
                                         <>
-                                          <span className="mx-1 opacity-50 shrink-0">•</span>
+                                          <span className="mx-1 opacity-50 shrink-0">â€¢</span>
                                           <p className="text-[11px] font-semibold truncate">{chapter.difficulty}</p>
                                         </>
                                       )}

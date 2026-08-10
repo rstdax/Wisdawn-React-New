@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layered Animation - Depth & Perspective Coins</title>
+    
+    <!-- Include the Lottie Web Player library -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0; 
+            padding-top: 100px; 
+            overflow-x: hidden; 
+        }
+
+        /* --- Header & Points Collector Styling --- */
+        #main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background-color: white;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            z-index: 1000;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand img {
+            height: 35px; 
+            width: auto;
+        }
+
+        .brand span {
+            color: #2655FF;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        #points-pill {
+            background-color: #FFF8E7; 
+            padding: 6px 20px 6px 6px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #points-icon {
+            background-color: #FFB300; 
+            color: #B55000; 
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+        }
+
+        #score {
+            color: #FF9500;
+            font-size: 24px;
+            font-weight: 800;
+            display: inline-block; 
+        }
+
+        /* Score Pop Animation */
+        @keyframes scorePop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.6); color: #FF5722; }
+            100% { transform: scale(1); }
+        }
+
+        .pop {
+            animation: scorePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        /* ------------------------------------------- */
+
+        #animation-container {
+            margin-top: 20px;
+            width: 400px;
+            height: 400px;
+            position: relative; 
+            overflow: hidden; 
+        }
+
+        #lottie-bg {
+            display: none; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%; 
+            height: 100%;
+            z-index: 1; 
+        }
+
+        #animationImg {
+            display: none; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0; 
+            max-width: 60%;
+            max-height: 60%;
+            z-index: 2; 
+        }
+
+        @keyframes emergeCharacter {
+            from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .emerge {
+            animation: emergeCharacter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* --- UPDATED: Coin Stack Styling --- */
+        .coin-wrapper {
+            position: fixed;
+            top: 270px; /* Center of the character container */
+            left: 50%;
+            /* Increased base size */
+            width: 80px;
+            height: 80px;
+            display: none; 
+            z-index: 1001; 
+        }
+
+        /* 
+           Initial Stack Offsets - Now with scale(1.3) to make them pop out bigger initially 
+        */
+        .coin-wrapper:nth-child(1) { transform: translate(-50%, -50%) scale(1.3); }
+        .coin-wrapper:nth-child(2) { transform: translate(-50%, calc(-50% - 10px)) scale(1.3); }
+        .coin-wrapper:nth-child(3) { transform: translate(-50%, calc(-50% - 20px)) scale(1.3); }
+        .coin-wrapper:nth-child(4) { transform: translate(-50%, calc(-50% - 30px)) scale(1.3); }
+        .coin-wrapper:nth-child(5) { transform: translate(-50%, calc(-50% - 40px)) scale(1.3); }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #2655FF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            z-index: 100;
+            font-weight: bold;
+        }
+        button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <header id="main-header">
+        <div class="brand">
+            <img src="logo.png" alt="Wisdawn">
+            <span>Wisdawn</span>
+        </div>
+        
+        <div id="points-pill">
+            <div id="points-icon">★</div>
+            <span id="score">0</span>
+        </div>
+    </header>
+
+    <button id="startBtn">Start Animation</button>
+    
+    <div id="animation-container">
+        <lottie-player id="lottie-bg" src="partyanimation.json" background="transparent" speed="1" loop></lottie-player>
+        <img id="animationImg" alt="character animation" />
+    </div>
+
+    <!-- The 5 Coins -->
+    <div id="coins-container">
+        <div class="coin-wrapper"><lottie-player src="coin.json" background="transparent" speed="1" loop></lottie-player></div>
+        <div class="coin-wrapper"><lottie-player src="coin.json" background="transparent" speed="1" loop></lottie-player></div>
+        <div class="coin-wrapper"><lottie-player src="coin.json" background="transparent" speed="1" loop></lottie-player></div>
+        <div class="coin-wrapper"><lottie-player src="coin.json" background="transparent" speed="1" loop></lottie-player></div>
+        <div class="coin-wrapper"><lottie-player src="coin.json" background="transparent" speed="1" loop></lottie-player></div>
+    </div>
+
+    <script>
+        const frames = [
+            { src: "frame1.png", duration: 160 },
+            { src: "frame2.png", duration: 160 },
+            { src: "frame3.png", duration: 180 },
+            { src: "frame4.png", duration: 180 },
+            { src: "frame5.png", duration: 220 },
+            { src: "frame6.png", duration: 220 },
+            { src: "frame7.png", duration: 220 },
+            { src: "frame8.png", duration: 220 },
+            { src: "frame9.png", duration: 200 },
+            { src: "frame10.png", duration: 240 }
+        ];
+
+        frames.forEach(frame => { const img = new Image(); img.src = frame.src; });
+        const animationSound = new Audio('soundeffect.wav');
+        animationSound.preload = 'auto';
+
+        const imgEl = document.getElementById('animationImg');
+        const lottieEl = document.getElementById('lottie-bg');
+        const btn = document.getElementById('startBtn');
+        const scoreEl = document.getElementById('score');
+        const pointsIcon = document.getElementById('points-icon');
+        
+        const coins = document.querySelectorAll('.coin-wrapper');
+        const coinLotties = document.querySelectorAll('.coin-wrapper lottie-player');
+        
+        let isAnimating = false;
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        async function playAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            btn.disabled = true; 
+            
+            scoreEl.innerText = "0";
+            let currentScore = 0;
+
+            // Start Main Animations
+            lottieEl.style.display = 'block';
+            lottieEl.play(); 
+            imgEl.style.display = 'block'; 
+            imgEl.classList.add('emerge');
+            animationSound.currentTime = 0; 
+            animationSound.play();
+
+            // Reset Coin Stack (this wipes inline styles, restoring them to the large CSS state)
+            coins.forEach((coin, index) => {
+                coin.style.cssText = `display: block;`; 
+                coinLotties[index].play(); 
+            });
+
+            void document.body.offsetHeight; // Force browser to register the CSS reset
+
+            // 3. Calculate exact center of the star icon
+            const iconRect = pointsIcon.getBoundingClientRect();
+            const targetX = iconRect.left + (iconRect.width / 2);
+            const targetY = iconRect.top + (iconRect.height / 2);
+
+            // 4. Trigger Coin Flights
+            setTimeout(() => {
+                coins.forEach((coin, index) => {
+                    const delay = index * 0.1; 
+                    
+                    // We transition the transform as well to smoothly shrink them
+                    coin.style.transition = `
+                        top 0.7s ease-in ${delay}s, 
+                        left 0.7s ease-out ${delay}s, 
+                        transform 0.7s ease-in-out ${delay}s
+                    `;
+                    
+                    // Move exact top/left coordinates to the center of the icon
+                    coin.style.top = `${targetY}px`;
+                    coin.style.left = `${targetX}px`;
+                    
+                    // Keep center alignment (-50%, -50%) but scale down drastically to fit
+                    coin.style.transform = `translate(-50%, -50%) scale(0.25)`; 
+
+                    const flightDuration = (0.7 + delay) * 1000;
+                    setTimeout(() => {
+                        coin.style.display = 'none';
+                        coinLotties[index].stop();
+                        
+                        currentScore++;
+                        scoreEl.innerText = currentScore;
+                        
+                        scoreEl.classList.remove('pop');
+                        void scoreEl.offsetWidth; 
+                        scoreEl.classList.add('pop');
+                        
+                    }, flightDuration);
+                });
+            }, 400); 
+
+            // Run character frames
+            for (let i = 0; i < frames.length; i++) {
+                imgEl.src = frames[i].src; 
+                await sleep(frames[i].duration); 
+            }
+
+            imgEl.style.display = 'none';
+            imgEl.classList.remove('emerge'); 
+            imgEl.src = ''; 
+            lottieEl.style.display = 'none';
+            lottieEl.stop(); 
+            
+            isAnimating = false;
+            btn.disabled = false;
+        }
+
+        btn.addEventListener('click', playAnimation);
+    </script>
+
+</body>
+</html>

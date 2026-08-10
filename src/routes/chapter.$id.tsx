@@ -26,6 +26,7 @@ import {
   Award,
   ArrowRight,
 } from "lucide-react";
+import { SilentContentXp } from "@/components/gamification/ContentXpTimer";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { PlyrVideoPlayer } from "@/components/plyr-video-player";
@@ -44,11 +45,12 @@ import {
   type Subject,
 } from "@/lib/admin";
 import { useAuth } from "@/hooks/use-auth";
+import { useXP } from "@/hooks/use-xp";
 
 import logoImg from "@/assets/jjj.png";
 
 export const Route = createFileRoute("/chapter/$id")({
-  head: () => ({ meta: [{ title: "Chapter — WisDawn" }] }),
+  head: () => ({ meta: [{ title: "Chapter â€” WisDawn" }] }),
   component: Chapter,
 });
 
@@ -66,6 +68,8 @@ function Chapter() {
   const { id } = useParams({ from: "/chapter/$id" });
   const router = useRouter();
   const { user, profile, displayName, loading: authLoading } = useAuth();
+  const { data: xpData } = useXP(user?.uid);
+  const liveXP = xpData?.total_xp ?? profile?.stats?.xp ?? 0;
   const [tab, setTab] = useState<Tab>("Overview");
   const [bookmarked, setBookmarked] = useState(false);
   const [markedComplete, setMarkedComplete] = useState(false);
@@ -88,7 +92,8 @@ function Chapter() {
   // Local interaction state
   const [downloadedIds, setDownloadedIds] = useState<string[]>([]);
   const [notes, setNotes] = useState<string[]>([]);
-  const [noteDraft, setNoteDraft] = useState("");
+  const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+  const [iframeTitle, setIframeTitle] = useState("");
   const [qaDraft, setQaDraft] = useState("");
   const [discussionDraft, setDiscussionDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -201,7 +206,7 @@ function Chapter() {
     ? allShells[currentShellIdx + 1]
     : null;
 
-  // nextChapter: only within same chapterId group â€” last item shows Chapter Complete
+  // nextChapter: only within same chapterId group Ã¢â‚¬â€ last item shows Chapter Complete
   const currentChapterId = chapterData?.chapterId ?? null;
   const nextSibling = currentIdx >= 0 && currentIdx < publishedSiblings.length - 1 ? publishedSiblings[currentIdx + 1] : null;
   const nextChapter = nextSibling && nextSibling.chapterId === currentChapterId ? nextSibling : null;
@@ -212,21 +217,24 @@ function Chapter() {
       ? publishedSiblings[currentIdx - 1]
       : (currentIdxAll > 0 ? allSiblings[currentIdxAll - 1] : null);
   const isCodingCourse = subjectData?.track === "coding";
-  const hasCourseAccess = !isCodingCourse || Boolean(
+  const isFreeCourse = Boolean((subjectData as any)?.isFree);
+  const hasCourseAccess = !isCodingCourse || isFreeCourse || Boolean(
     chapterData?.subjectId && profile?.purchasedCourseIds?.includes(chapterData.subjectId)
   );
-  const isLockedCourse = !authLoading && isCodingCourse && !hasCourseAccess;
+  const isLockedCourse = !authLoading && !subjectLoading && isCodingCourse && !hasCourseAccess;
   const isIntroChapter = publishedSiblings[0]?.id === id;
-  // Only show purchase bar for video type — not PDF or link (they show content freely)
+  // Only show purchase bar for video type â€” not PDF or link (they show content freely)
   const showPurchaseBar = isLockedCourse && isIntroChapter && chapterData?.lessonType !== "pdf" && chapterData?.lessonType !== "link";
   const displayedResources = (isCodingCourse ? publishedSiblings : chapterGroupVideos).filter(
     (v) => chapterData?.lessonType === "pdf" ? v.lessonType === "pdf" : v.lessonType !== "pdf"
   );
-  const coursePrice = new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(subjectData?.price ?? 3199);
+  const coursePrice = (subjectData as any)?.isFree
+    ? "Free"
+    : new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }).format(subjectData?.price ?? 3199);
 
   const addNote = () => {
     if (!noteDraft.trim()) return;
@@ -272,20 +280,31 @@ function Chapter() {
       </div>
 
       {/* Right Side: Coin Pill */}
-      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 shadow-sm">
+      <div id="xp-header-pill" className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 shadow-sm">
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-amber-700 opacity-90">
             <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
           </svg>
         </div>
         <span className="text-xl font-bold text-amber-500">
-          {profile?.stats?.xp ?? 0}
+          {liveXP.toLocaleString("en-IN")}
         </span>
       </div>
     </div>
 
     {/* THE DIVIDER LINE */}
     <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
+
+      {/* Silent background XP session â€” no visible UI, auto-claims after min time */}
+      {!dataLoading && !subjectLoading && chapterData && user?.uid && !isLockedCourse && (
+        <SilentContentXp
+          uid={user.uid}
+          contentId={chapterData.id}
+          contentType={chapterData.lessonType ?? "video"}
+          xpReward={(chapterData as any).xp_reward}
+          minReadTimeSeconds={(chapterData as any).min_read_time_seconds}
+        />
+      )}
 
       {/* MOBILE HEADER */}
       <header className="flex md:hidden items-center justify-between px-5 pt-2 pb-3">
@@ -308,7 +327,7 @@ function Chapter() {
                 {subjectLoading ? (
                   <div className="h-3 w-24 bg-muted animate-pulse rounded mx-auto" />
                 ) : (subjectData?.class && subjectData?.title 
-                  ? `${subjectData.class} · ${subjectData.title}`
+                  ? `${subjectData.class} Â· ${subjectData.title}`
                   : (subjectData?.title ?? "Loading..."))}
               </div>
             </>
@@ -355,7 +374,7 @@ function Chapter() {
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${markedComplete ? "bg-emerald-500 text-white" : "bg-primary text-white hover:bg-primary/95"}`}
               >
                 <CheckCircle className="h-4 w-4" />
-                {markedComplete ? "Completed ✓" : "Mark as Complete"}
+                {markedComplete ? "Completed âœ“" : "Mark as Complete"}
               </button>
             </div>
           </div>
@@ -445,7 +464,7 @@ function Chapter() {
                     params={{ id: prevChapter.id }}
                     className="rounded-full border border-border px-5 py-2.5 text-xs font-bold text-muted-foreground hover:bg-muted transition"
                   >
-                    ← {prevChapter.title}
+                    â† {prevChapter.title}
                   </Link>
                 ) : (
                   <div />
@@ -464,7 +483,7 @@ function Chapter() {
                       params={{ id: nextChapter.id }}
                       className="rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-white transition hover:scale-105"
                     >
-                      {nextChapter.title} →
+                      {nextChapter.title} â†’
                     </Link>
                   )
                 ) : (
@@ -489,7 +508,7 @@ function Chapter() {
             {/* TAB CONTENT */}
             <div className="pt-2">
 
-              {/* ── OVERVIEW ── */}
+              {/* â”€â”€ OVERVIEW â”€â”€ */}
               {tab === "Overview" && (
                 <div className="space-y-5">
                   {dataLoading ? (
@@ -509,7 +528,7 @@ function Chapter() {
                     </div>
                   ) : (
                     <>
-                      {/* Description — collapsible like YouTube */}
+                      {/* Description â€” collapsible like YouTube */}
                   <div>
                     <h2 className="text-base font-bold text-foreground">About this video</h2>
                     <div className="mt-2 relative overflow-hidden">
@@ -524,7 +543,7 @@ function Chapter() {
                           onClick={() => setDescExpanded((v) => !v)}
                           className="mt-1 text-xs font-bold text-foreground hover:text-primary transition"
                         >
-                          {descExpanded ? "Show less ▲" : "...more ▼"}
+                          {descExpanded ? "Show less â–²" : "...more â–¼"}
                         </button>
                       )}
                     </div>
@@ -563,7 +582,7 @@ function Chapter() {
 
                       {/* COURSE */}
                       <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-100/50 text-blue-600">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-100/50 text-primary">
                            <GraduationCap className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
@@ -665,7 +684,7 @@ function Chapter() {
                               </div>
                             ) : (
                               <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
-                                {nextChapter.duration ?? "—"}
+                                {nextChapter.duration ?? "â€”"}
                               </div>
                             )}
                             <div className="min-w-0">
@@ -688,7 +707,7 @@ function Chapter() {
                       )
                     ) : (
                       <div className="mt-2 rounded-2xl border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground text-center font-semibold">
-                        You've reached the last chapter in this subject 🎉
+                        You've reached the last chapter in this subject ðŸŽ‰
                       </div>
                     )}
                   </div>
@@ -700,7 +719,7 @@ function Chapter() {
                         params={{ id: prevChapter.id }}
                         className="rounded-full border border-border px-5 py-2.5 text-xs font-bold text-muted-foreground hover:bg-muted transition"
                       >
-                        ← {prevChapter.title}
+                        â† {prevChapter.title}
                       </Link>
                     ) : (
                       <div />
@@ -719,7 +738,7 @@ function Chapter() {
                           params={{ id: nextChapter.id }}
                           className="rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-white transition hover:scale-105"
                         >
-                          {nextChapter.title} →
+                          {nextChapter.title} â†’
                         </Link>
                       )
                     ) : (
@@ -731,14 +750,14 @@ function Chapter() {
             </div>
           )}
 
-              {/* ── RESOURCES ── */}
+              {/* â”€â”€ RESOURCES â”€â”€ */}
               {tab === "Resources" && (
                 <div className="mt-2">
                   <div className="text-[15px] font-extrabold text-slate-900 mb-4">
                     {subjectLoading ? (
                       <div className="h-5 w-40 bg-slate-100 animate-pulse rounded" />
                     ) : isCodingCourse ? "Course Chapters" : chapterData?.chapterId
-                      ? `Chapter ${chapterData.chapterId} — All Videos`
+                      ? `Chapter ${chapterData.chapterId} â€” All Videos`
                       : "Chapter Videos"}
                   </div>
                   {subjectLoading ? (
@@ -760,7 +779,7 @@ function Chapter() {
                         const getMaterialTheme = (type: string | undefined | null) => {
                           if (type === "pdf") return { main: "bg-rose-500", light: "bg-rose-50", text: "text-rose-500", border: "border-rose-200", groupLight: "group-hover:bg-rose-50", groupText: "group-hover:text-rose-500", groupBorder: "group-hover:border-rose-200", groupMain: "group-hover:bg-rose-500 group-hover:border-rose-500", icon: FileText };
                           if (type === "link") return { main: "bg-teal-500", light: "bg-teal-50", text: "text-teal-500", border: "border-teal-200", groupLight: "group-hover:bg-teal-50", groupText: "group-hover:text-teal-500", groupBorder: "group-hover:border-teal-200", groupMain: "group-hover:bg-teal-500 group-hover:border-teal-500", icon: LinkIcon };
-                          return { main: "bg-blue-600", light: "bg-blue-50", text: "text-blue-600", border: "border-blue-200", groupLight: "group-hover:bg-blue-50", groupText: "group-hover:text-blue-600", groupBorder: "group-hover:border-blue-200", groupMain: "group-hover:bg-blue-600 group-hover:border-blue-600", icon: Play };
+                          return { main: "bg-primary", light: "bg-primary/10", text: "text-primary", border: "border-primary/30", groupLight: "group-hover:bg-primary/10", groupText: "group-hover:text-primary", groupBorder: "group-hover:border-primary/30", groupMain: "group-hover:bg-primary group-hover:border-primary", icon: Play };
                         };
                         
                         const theme = getMaterialTheme(v.lessonType);
@@ -813,7 +832,7 @@ function Chapter() {
                                 </p>
                               </div>
                               <p className="truncate text-[13px] font-medium text-slate-500 mt-1">
-                                {v.lessonType === "pdf" ? "PDF Document" : v.lessonType === "link" ? "External Material" : (v.duration ?? "—")}
+                                {v.lessonType === "pdf" ? "PDF Document" : v.lessonType === "link" ? "External Material" : (v.duration ?? "â€”")}
                               </p>
                             </div>
 
@@ -833,7 +852,7 @@ function Chapter() {
                 </div>
               )}
 
-              {/* ── NOTES ── */}
+              {/* â”€â”€ NOTES â”€â”€ */}
               {tab === "Notes" && (
                 <div className="mt-2">
                   {isLockedCourse ? (
@@ -853,8 +872,10 @@ function Chapter() {
                         const videosWithNotes = Array.from(new Map(
                           (isCodingCourse
                             ? [
-                                ...(chapterData?.resourcesNote ? [chapterData] : []),
-                                ...displayedResources.filter(v => v.resourcesNote),
+                                // Only include current chapter if it's a PDF type
+                                ...(chapterData?.resourcesNote && chapterData?.lessonType === "pdf" ? [chapterData] : []),
+                                // Only PDF type from siblings — NOT link/material
+                                ...displayedResources.filter(v => v.lessonType === "pdf" && v.resourcesNote),
                                 ...pdfLessonsInGroup
                               ]
                             : [
@@ -881,12 +902,29 @@ function Chapter() {
                               // Text without URL
                               const textOnly = video.resourcesNote!.replace(/https?:\/\/[^\s]+/g, "").trim();
 
-                              // Make the entire row clickable if there's a URL
-                              const Wrapper = url ? 'a' : 'div';
-                              const wrapperProps = url ? { href: url, target: "_blank", rel: "noreferrer" } : {};
+                              // Open in-app — navigate to the PDF chapter page (same as school section)
+                              // This gives fullscreen PDF with proper header and Next Up bar
+                              const handlePdfClick = (targetId: string) => {
+                                if (targetId !== id) {
+                                  router.navigate({ to: "/chapter/$id", params: { id: targetId } });
+                                }
+                                // If same chapter, open iframe modal as fallback
+                                else if (url) {
+                                  const isDrive = url.includes("drive.google.com/file/d/");
+                                  const embedUrl = isDrive
+                                    ? url.replace("/view", "/preview").split("?")[0]
+                                    : `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+                                  setIframeUrl(embedUrl);
+                                  setIframeTitle(video.title ?? "Lesson Notes");
+                                }
+                              };
 
                               return (
-                                <Wrapper key={video.id} {...wrapperProps} className="flex items-center gap-3 md:gap-4 py-4 group cursor-pointer">
+                                <div
+                                  key={video.id}
+                                  onClick={() => handlePdfClick(video.id)}
+                                  className="flex items-center gap-3 md:gap-4 py-4 group cursor-pointer"
+                                >
                                   {/* 1. Left Large Icon (Fills with Red on hover) */}
                                   <div className={`flex h-16 w-24 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 transition-colors duration-300 ${theme.groupLight} ${theme.groupBorder}`}>
                                     <FileText className={`h-7 w-7 text-slate-300 transition-colors duration-300 ${theme.groupText}`} />
@@ -921,7 +959,7 @@ function Chapter() {
                                       <ArrowRight className="h-4 w-4" />
                                     </div>
                                   )}
-                                </Wrapper>
+                                </div>
                               );
                             })}
                           </div>
@@ -977,6 +1015,41 @@ function Chapter() {
         </div>
       )}
 
+      {/* PDF / Material iframe modal — fullscreen, same style as school PDF view */}
+      {iframeUrl && (
+        <div className="fixed inset-0 z-[9990] bg-white flex flex-col" style={{ touchAction: "none" }}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-2 bg-primary shrink-0">
+            <button
+              onClick={() => { setIframeUrl(null); setIframeTitle(""); }}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/20 text-white hover:bg-white/30 transition shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="text-center min-w-0 flex-1 px-3">
+              <p className="text-sm font-bold text-white truncate">{iframeTitle}</p>
+              <p className="text-[11px] text-white/70 mt-0.5">PDF / Material</p>
+            </div>
+            <button
+              onClick={() => { setIframeUrl(null); setIframeTitle(""); }}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/20 text-white hover:bg-white/30 transition shrink-0"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          {/* Iframe fills remaining space */}
+          <div className="flex-1 overflow-hidden">
+            <iframe
+              src={iframeUrl}
+              className="w-full h-full border-none bg-white"
+              style={{ minHeight: 0, height: "100%" }}
+              title={iframeTitle}
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
+
       {videoExpanded && videoId && (
         <div
           className="md:hidden fixed inset-0 z-50 bg-black flex flex-col"
@@ -1005,13 +1078,13 @@ function Chapter() {
 
           {/* Bottom hint */}
           <div className="px-5 py-4 text-center">
-            <p className="text-white/40 text-[10px] font-semibold">Tap × to go back</p>
+            <p className="text-white/40 text-[10px] font-semibold">Tap Ã— to go back</p>
           </div>
         </div>
       )}
 
       {/* FIXED BOTTOM NEXT UP (Mobile Only) */}
-      {!videoExpanded && !showPurchaseBar && (
+      {!videoExpanded && !showPurchaseBar && !iframeUrl && (
         <div className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] z-50 bg-background border-t border-border shadow-lg">
           {subjectLoading ? (
             <div className="flex items-center justify-between px-5 py-3">
@@ -1037,7 +1110,7 @@ function Chapter() {
                       ? (nextChapter.chapterName ? `Chapter ${nextChapter.chapterId}: ${nextChapter.chapterName}` : `Chapter ${nextChapter.chapterId}`)
                       : (nextChapter.chapterName ?? "")}
                   </p>
-                  <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${nextChapter.lessonType === "pdf" ? "bg-red-100 text-red-600" : nextChapter.lessonType === "link" ? "bg-purple-100 text-purple-600" : "bg-blue-100 text-blue-600"}`}>
+                  <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${nextChapter.lessonType === "pdf" ? "bg-red-100 text-red-600" : nextChapter.lessonType === "link" ? "bg-purple-100 text-purple-600" : "bg-blue-100 text-primary"}`}>
                     {nextChapter.lessonType === "pdf" ? ".pdf" : nextChapter.lessonType === "link" ? ".material" : ".video"}
                   </span>
                 </div>
@@ -1047,7 +1120,7 @@ function Chapter() {
               </div>
             </Link>
           ) : chapterData?.subjectId ? (
-            // Last chapter — show "Chapter Completed" → go to next chapter shell or subject
+            // Last chapter â€” show "Chapter Completed" â†’ go to next chapter shell or subject
             <Link
               to={nextChapterShell ? "/chapter/$id" : "/subject/$id"}
               params={nextChapterShell ? { id: nextChapterShell.id } : { id: chapterData.subjectId }}
@@ -1061,7 +1134,7 @@ function Chapter() {
                   {nextChapterShell ? nextChapterShell.chapterName ?? nextChapterShell.title : subjectData?.title ?? "Back to Subject"}
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {nextChapterShell ? `Chapter ${nextChapterShell.chapterId ?? ""}` : "You've finished all chapters 🎉"}
+                  {nextChapterShell ? `Chapter ${nextChapterShell.chapterId ?? ""}` : "You've finished all chapters ðŸŽ‰"}
                 </p>
               </div>
               <div className="shrink-0 ml-4 grid h-12 w-12 place-items-center rounded-full bg-emerald-500 text-white shadow-md">
@@ -1074,3 +1147,4 @@ function Chapter() {
     </MobileFrame>
   );
 }
+

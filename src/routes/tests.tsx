@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardCheck, Clock, Sparkles, ArrowRight } from "lucide-react";
+import { ClipboardCheck, Sparkles, ArrowRight, Trophy } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPracticeTests, type PracticeTest } from "@/lib/admin";
+import { getPracticeTests, getTestAttemptsByUser, type PracticeTest } from "@/lib/admin";
 import { useAuth } from "@/hooks/use-auth";
+import { useXP } from "@/hooks/use-xp";
 
 import logoImg from "@/assets/jjj.png";
 
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/tests")({
   component: Tests,
 });
 
-type FilterType = "All" | "School" | "Coding";
+type FilterType = "All" | "School" | "Coding" | "Results";
 
 // Reusable SVG Coin Icon to match the header
 const XPCoin = ({ className }: { className?: string }) => (
@@ -38,7 +39,7 @@ function AnimatedZigZag({
 }) {
   const CONE_COUNT = 10; // Number of rounded cones across the card
   const COLORS = [
-    "text-blue-500/10",
+    "text-primary/10",
     "text-purple-500/10",
     "text-emerald-500/10",
     "text-amber-500/10",
@@ -78,7 +79,8 @@ function AnimatedZigZag({
 
 function Tests() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("All");
-  const { profile, loading: authLoading } = useAuth();
+  const { profile, loading: authLoading, user } = useAuth();
+  const { data: xpData } = useXP(user?.uid);
 
   const { data: tests = [], isLoading: testsLoading } = useQuery({
     queryKey: ["practiceTests"],
@@ -86,13 +88,20 @@ function Tests() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: attempts = [], isLoading: attemptsLoading } = useQuery({
+    queryKey: ["testAttempts", user?.uid],
+    queryFn: () => user?.uid ? getTestAttemptsByUser(user.uid) : Promise.resolve([]),
+    enabled: !!user?.uid,
+    staleTime: 30 * 1000,
+  });
+
   const loading = authLoading || testsLoading;
 
-  const visibleTests = tests.filter(
-    (t) => activeFilter === "All" || t.tag === activeFilter,
-  );
+  const visibleTests = activeFilter === "All" ? tests
+    : activeFilter === "Results" ? []
+    : tests.filter(t => t.tag === activeFilter);
 
-  const xp = profile?.stats?.xp ?? 0;
+  const liveXP = xpData?.total_xp ?? profile?.stats?.xp ?? 0;
   const courses = profile?.stats?.courses ?? 0;
 
   return (
@@ -103,10 +112,10 @@ function Tests() {
           <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
           <span className="text-2xl font-extrabold text-primary tracking-tight">Wisdawn</span>
         </div>
-        <div className="flex items-center gap-2 rounded-full bg-slate-50 border border-slate-100 px-3 py-1 shadow-sm">
+        <div id="liveXP-header-pill" className="flex items-center gap-2 rounded-full bg-slate-50 border border-slate-100 px-3 py-1 shadow-sm">
           <XPCoin className="h-6 w-6" />
           <span className="text-[15px] font-black text-slate-800">
-            {profile?.stats?.xp ?? 0}
+            {liveXP.toLocaleString()}
           </span>
         </div>
       </div>
@@ -123,7 +132,7 @@ function Tests() {
         <div className="hidden md:flex justify-between items-center mb-8 px-5 md:px-0 pt-6">
           <div>
             <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
-              <ClipboardCheck className="h-6 w-6 text-blue-600" /> Tests &amp; Practice
+              <ClipboardCheck className="h-6 w-6 text-primary" /> Tests &amp; Practice
             </h1>
             <p className="text-[13px] text-slate-500 font-medium mt-0.5">
               Attempt practice tests and track performance
@@ -137,7 +146,7 @@ function Tests() {
                 onClick={() => setActiveFilter(filter)}
                 className={`rounded-full px-5 py-2 font-bold transition-colors duration-300 border shadow-sm ${
                   activeFilter === filter
-                    ? "bg-blue-600 text-white border-blue-600"
+                    ? "bg-primary text-white border-primary"
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
@@ -151,19 +160,19 @@ function Tests() {
           {/* AVAILABLE TESTS LIST */}
           <div className="lg:col-span-2 space-y-4">
             {/* MOBILE ONLY BANNER — same card language + animated cone background as the Profile user card */}
-            <div className="relative rounded-[24px] bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border border-blue-100 shadow-sm overflow-hidden p-5 pb-0 md:hidden">
+            <div className="relative rounded-[24px] bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border border-primary/20 shadow-sm overflow-hidden p-5 pb-0 md:hidden">
               {/* Animated Background */}
               <div className="absolute inset-0 z-0">
                 <AnimatedZigZag heightClass="h-[36px]" speed={110} />
               </div>
 
               <div className="relative z-10 pb-6">
-                <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-blue-700 uppercase tracking-widest">
+                <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-primary uppercase tracking-widest">
                   <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500" /> Your XP
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <XPCoin className="h-9 w-9 shadow-md" />
-                  <p className="text-3xl font-black tracking-tight text-slate-900">{xp.toLocaleString()}</p>
+                <p className="text-3xl font-black tracking-tight text-slate-900">{liveXP.toLocaleString()}</p>
                 </div>
                 <p className="mt-2 text-[12px] font-medium text-slate-500">
                   {courses > 0 ? `Across ${courses} enrolled course${courses > 1 ? "s" : ""}` : "Start a course to earn XP"}
@@ -172,25 +181,73 @@ function Tests() {
             </div>
 
             {/* MOBILE FILTER BUTTONS */}
-            <div className="flex gap-2 md:hidden mt-4 pb-2">
-              {(["All", "School", "Coding"] as const).map((filter) => (
+            <div className="flex gap-2 md:hidden mt-4 pb-2 overflow-x-auto">
+              {(["All", "School", "Coding", "Results"] as const).map((filter) => (
                 <button
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
-                  className={`rounded-full px-4 py-2 text-[13px] font-bold transition-colors duration-300 border shadow-sm ${
+                  className={`rounded-full px-4 py-2 text-[13px] font-bold transition-colors duration-300 border shadow-sm shrink-0 ${
                     activeFilter === filter
-                      ? "bg-blue-600 text-white border-blue-600"
+                      ? "bg-primary text-white border-primary"
                       : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
-                  {filter}
+                  {filter === "Results" ? "My Results" : filter}
                 </button>
               ))}
             </div>
 
-            <h2 className="text-[18px] font-extrabold text-slate-900 mb-4 pt-2">Available Tests</h2>
+            <h2 className="text-[18px] font-extrabold text-slate-900 mb-4 pt-2">
+              {activeFilter === "Results" ? "My Test Results" : "Available Tests"}
+            </h2>
 
-            {loading ? (
+            {activeFilter === "Results" ? (
+              /* MY RESULTS */
+              attemptsLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-20 rounded-2xl animate-pulse" />
+                  <Skeleton className="h-20 rounded-2xl animate-pulse" />
+                </div>
+              ) : attempts.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+                  <Trophy className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-sm font-bold text-slate-700">No tests completed yet.</p>
+                  <p className="text-xs text-slate-500 mt-1">Attempt a practice test to see your results here.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {attempts.map((a: any) => {
+                    const testTitle = tests.find(t => t.id === a.test_id)?.title ?? a.test_id;
+                    return (
+                      <div key={a.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-extrabold text-sm text-slate-900 truncate">{testTitle}</p>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${a.score_percentage >= 80 ? "bg-emerald-100 text-emerald-700" : a.score_percentage >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"}`}>
+                                {a.score_percentage}%
+                              </span>
+                            </div>
+                            <p className="text-[12px] text-slate-500 font-medium">
+                              {a.correct_answers}/{a.total_questions} correct � {Math.floor(a.actual_time_seconds / 60)}:{String(a.actual_time_seconds % 60).padStart(2, "0")} taken
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="flex items-center gap-1 justify-end">
+                              <XPCoin className="h-4 w-4" />
+                              <span className="text-sm font-extrabold text-amber-700">+{a.final_xp ?? 0}</span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              {a.submitted_at?.toDate ? new Date(a.submitted_at.toDate()).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Skeleton className="h-24 rounded-2xl animate-pulse" />
                 <Skeleton className="h-24 rounded-2xl animate-pulse" />
@@ -247,15 +304,15 @@ function Tests() {
                         fill="transparent"
                         strokeLinecap="round"
                         strokeDasharray={2 * Math.PI * 50}
-                        strokeDashoffset={2 * Math.PI * 50 * (1 - (xp > 0 ? Math.min(xp / 5000, 1) : 0))}
+                        strokeDashoffset={2 * Math.PI * 50 * (1 - (liveXP > 0 ? Math.min(liveXP / 5000, 1) : 0))}
                       />
                     </svg>
                     <div className="text-center">
                       <span className="text-2xl font-black text-slate-900 tracking-tighter">
-                        {xp > 0 ? `${Math.min(Math.round((xp / 5000) * 100), 100)}%` : "0%"}
+                        {liveXP > 0 ? `${Math.min(Math.round((liveXP / 5000) * 100), 100)}%` : "0%"}
                       </span>
                       <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest mt-0.5">
-                        XP Level
+                        liveXP Level
                       </p>
                     </div>
                   </div>
@@ -271,9 +328,9 @@ function Tests() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Total XP</span>
-                      <div className="flex items-center gap-1.5 font-black text-blue-600">
+                      <div className="flex items-center gap-1.5 font-black text-primary">
                         <XPCoin className="h-4 w-4" />
-                        <span>+{xp.toLocaleString()}</span>
+                        <span>+{liveXP.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -281,14 +338,14 @@ function Tests() {
               </div>
             </div>
 
-            {/* PRACTICE TIPS — animated cone background matching the mobile XP banner treatment */}
-            <div className="relative rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-6 shadow-sm overflow-hidden">
+            {/* PRACTICE TIPS — animated cone background matching the mobile liveXP banner treatment */}
+            <div className="relative rounded-[24px] border border-primary/20 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-6 shadow-sm overflow-hidden">
               <div className="absolute inset-0 z-0">
                 <AnimatedZigZag heightClass="h-[24px]" speed={130} />
               </div>
 
               <div className="relative z-10">
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-blue-700 uppercase tracking-widest">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-primary uppercase tracking-widest">
                   <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500" /> Practice Tips
                 </span>
                 <h4 className="text-[15px] font-bold text-slate-900 mt-3">Build daily habits!</h4>
@@ -321,20 +378,24 @@ function TestCard({ test }: { test: PracticeTest }) {
     <Link
       to="/practice/$id"
       params={{ id: test.id }}
-      className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 transition-all duration-300 hover:shadow-md hover:border-blue-300 group"
+      className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 transition-all duration-300 hover:shadow-md hover:border-primary/40 group"
     >
-      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-50 border border-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shadow-sm">
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 border border-primary/20 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300 shadow-sm">
         <ClipboardCheck className="h-6 w-6" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">{test.title}</p>
+        <p className="truncate text-[15px] font-extrabold text-slate-900 group-hover:text-primary transition-colors duration-300">{test.title}</p>
+        {test.subject && <p className="truncate text-[11px] text-primary/70 font-semibold mt-0.5">{test.subject}</p>}
         <p className="truncate text-[12px] font-medium text-slate-500 mt-0.5">{test.subtitle}</p>
-        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
-          <Clock className="h-3.5 w-3.5 text-blue-500" />
-          {test.questions} questions · {test.durationMinutes} min
-        </p>
+        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-400 font-semibold">
+          <span>{test.questions} questions</span>
+          <span className="flex items-center gap-1">
+            <XPCoin className="h-3 w-3" />
+            <span className="text-amber-700">{test.base_test_xp ?? 1} XP/Q</span>
+          </span>
+        </div>
       </div>
-      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border border-slate-200 text-slate-400 group-hover:bg-blue-600 group-hover:border-blue-600 group-hover:text-white group-hover:scale-105 transition-all duration-300 shadow-sm">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border border-slate-200 text-slate-400 group-hover:bg-primary group-hover:border-primary group-hover:text-white group-hover:scale-105 transition-all duration-300 shadow-sm">
         <ArrowRight className="h-4 w-4" />
       </div>
     </Link>

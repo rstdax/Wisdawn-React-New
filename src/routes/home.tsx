@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useState, useEffect, useRef, type MouseEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -1008,8 +1008,11 @@ function FirebaseSubjectCard({ subject, type = "school" }: { subject: Subject; t
             </div>
             <span className="text-muted-foreground font-normal ml-0.5">(472,738)</span>
           </div>
-          <p className="text-[13px] font-extrabold text-foreground mt-1">
-            {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(subject.price ?? 3199)}
+          <p className="text-[13px] font-extrabold mt-1">
+            {(subject as any).isFree
+              ? <span className="text-emerald-600">Free</span>
+              : <span className="text-foreground">{new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(subject.price ?? 3199)}</span>
+            }
           </p>
         </div>
       </Link>

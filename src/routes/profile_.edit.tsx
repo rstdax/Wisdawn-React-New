@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -39,7 +39,7 @@ type EditForm = {
 };
 
 export const Route = createFileRoute("/profile_/edit")({
-  head: () => ({ meta: [{ title: "Edit Profile — WisDawn" }] }),
+  head: () => ({ meta: [{ title: "Edit Profile â€” WisDawn" }] }),
   component: EditProfile,
 });
 
@@ -107,15 +107,15 @@ function EditProfile() {
       bannerTitle: "text-[#5B21B6]",
     }
     : {
-      primaryText: "text-blue-600",
-      primaryBg: "bg-blue-600",
-      primaryHoverBg: "hover:bg-blue-700",
-      accentBg: "bg-blue-50",
+      primaryText: "text-primary",
+      primaryBg: "bg-primary",
+      primaryHoverBg: "hover:bg-primary/90",
+      accentBg: "bg-primary/10",
       accentBorder: "border-blue-100",
-      avatarBg: "bg-blue-50/70",
-      focusBorder: "focus:border-blue-600",
+      avatarBg: "bg-primary/10/70",
+      focusBorder: "focus:border-primary",
       focusRing: "focus:ring-blue-600",
-      bannerBg: "bg-blue-50/70",
+      bannerBg: "bg-primary/10/70",
       bannerBorder: "border-blue-100",
       bannerIconBorder: "border-blue-200",
       bannerTitle: "text-blue-950",

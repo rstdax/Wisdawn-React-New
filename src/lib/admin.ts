@@ -16,6 +16,7 @@ export type Subject = {
   color?: string;
   description?: string;
   price?: number;
+  isFree?: boolean;
   order?: number;
 };
 
@@ -560,6 +561,7 @@ export type McqOption = {
 export type McqQuestion = {
   id: string;
   question: string;
+  imageUrl?: string;
   options: McqOption[];
   correctKey: string;
   explanation?: string;
@@ -574,22 +576,55 @@ export type PracticeTest = {
   durationMinutes: number;
   tag: "School" | "Coding";
   subjectId?: string;
+  subject?: string;
   published?: boolean;
   order?: number;
+  base_test_xp?: number;
+  allowed_time_seconds?: number;
+  category?: string;
 };
 
-export async function getPracticeTests(limitCount = 20): Promise<PracticeTest[]> {
+export async function getPracticeTests(limitCount = 50): Promise<PracticeTest[]> {
   return withCache("practiceTests", async () => {
-    const snap = await getDocs(
-      query(
-        collection(db, "practiceTests"),
-        where("published", "==", true),
-        orderBy("order", "asc"),
-        limit(limitCount)
-      )
-    );
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PracticeTest));
+    try {
+      // Try with published filter first
+      const snap = await getDocs(
+        query(
+          collection(db, "practiceTests"),
+          where("published", "==", true),
+          orderBy("order", "asc"),
+          limit(limitCount)
+        )
+      );
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PracticeTest));
+    } catch {
+      // Fallback: fetch all and filter client-side (no composite index needed)
+      const snap = await getDocs(
+        query(collection(db, "practiceTests"), limit(limitCount))
+      );
+      return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as PracticeTest))
+        .filter((t) => t.published === true)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    }
   });
+}
+
+export async function savePracticeTest(test: Omit<PracticeTest, "id"> & { id?: string }): Promise<string> {
+  clearCache();
+  const data = stripUndefined(test);
+  if (test.id) {
+    await setDoc(doc(db, "practiceTests", test.id), data, { merge: true });
+    return test.id;
+  }
+  const ref = await addDoc(collection(db, "practiceTests"), data);
+  await setDoc(doc(db, "practiceTests", ref.id), { ...data, id: ref.id }, { merge: true });
+  return ref.id;
+}
+
+export async function deletePracticeTest(id: string): Promise<void> {
+  clearCache();
+  await deleteDoc(doc(db, "practiceTests", id));
 }
 
 export async function getTestQuestions(testId: string): Promise<McqQuestion[]> {
@@ -602,6 +637,45 @@ export async function getTestQuestions(testId: string): Promise<McqQuestion[]> {
     );
     return snap.docs.map((d) => ({ id: d.id, ...d.data() } as McqQuestion));
   });
+}
+
+export async function saveTestQuestion(
+  testId: string,
+  question: Omit<McqQuestion, "id"> & { id?: string }
+): Promise<string> {
+  clearCache();
+  const data = stripUndefined(question);
+  const colRef = collection(db, "practiceTests", testId, "questions");
+  if (question.id) {
+    await setDoc(doc(colRef, question.id), data, { merge: true });
+    return question.id;
+  }
+  const ref = await addDoc(colRef, data);
+  await setDoc(doc(colRef, ref.id), { ...data, id: ref.id }, { merge: true });
+  // Update question count on test
+  const allQ = await getDocs(colRef);
+  await setDoc(doc(db, "practiceTests", testId), { questions: allQ.size }, { merge: true });
+  return ref.id;
+}
+
+export async function deleteTestQuestion(testId: string, questionId: string): Promise<void> {
+  clearCache();
+  await deleteDoc(doc(db, "practiceTests", testId, "questions", questionId));
+  const allQ = await getDocs(collection(db, "practiceTests", testId, "questions"));
+  await setDoc(doc(db, "practiceTests", testId), { questions: allQ.size }, { merge: true });
+}
+
+export async function getTestAttemptsByUser(uid: string): Promise<any[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, "testAttempts"),
+      where("user_uid", "==", uid),
+      where("status", "==", "completed"),
+      orderBy("submitted_at", "desc"),
+      limit(50)
+    )
+  );
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 // ─── Admin auth ───────────────────────────────────────────────────────────────

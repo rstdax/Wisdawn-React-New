@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, Search, Play, FileText, Calendar, BookOpen } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
@@ -10,7 +10,7 @@ import wisbyReading from "@/assets/wisby-reading.png";
 
 export const Route = createFileRoute("/history")({
   component: HistoryPage,
-  head: () => ({ meta: [{ title: "History — WisDawn" }] }),
+  head: () => ({ meta: [{ title: "History â€” WisDawn" }] }),
 });
 
 function isToday(date: Date) {
@@ -69,7 +69,7 @@ function HistoryPage() {
                   <img src={`https://img.youtube.com/vi/${entry.videoId}/mqdefault.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
               ) : (
-                <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 transition-colors duration-300 group-hover:bg-blue-50/50">
+                <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 transition-colors duration-300 group-hover:bg-primary/10/50">
                   <FileText className="h-7 w-7 text-slate-300 group-hover:text-blue-500 transition-colors duration-300" />
                 </div>
               )}
@@ -77,10 +77,10 @@ function HistoryPage() {
               {/* 2. Middle Content */}
               <div className="min-w-0 flex-1 flex flex-col justify-center">
                 <div className="flex items-center gap-2">
-                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400 transition-colors duration-300 group-hover:bg-blue-100 group-hover:text-blue-600">
+                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400 transition-colors duration-300 group-hover:bg-blue-100 group-hover:text-primary">
                     {isVideo ? <Play className="h-3 w-3 fill-current translate-x-[0.5px]" /> : <FileText className="h-3 w-3" />}
                   </div>
-                  <p className="truncate text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover:text-blue-600">
+                  <p className="truncate text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover:text-primary">
                     {entry.chapterTitle}
                   </p>
                 </div>
@@ -94,7 +94,7 @@ function HistoryPage() {
               </div>
 
               {/* 3. Right Action Button (Neutralized until hovered) */}
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border border-slate-200 text-slate-400 shadow-sm transition-all duration-300 group-hover:bg-blue-600 group-hover:border-blue-600 group-hover:text-white group-hover:scale-105">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border border-slate-200 text-slate-400 shadow-sm transition-all duration-300 group-hover:bg-primary group-hover:border-primary group-hover:text-white group-hover:scale-105">
                 <Play className="h-4 w-4 fill-current translate-x-[1px]" />
               </div>
             </Link>

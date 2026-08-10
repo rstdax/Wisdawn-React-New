@@ -205,7 +205,7 @@ function Learn() {
                 <div className="mt-4 relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-4.5 text-sm md:hidden shadow-sm">
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 font-extrabold text-blue-700">
-                      <Lightbulb className="h-4.5 w-4.5 fill-blue-500 text-blue-500" /> Today’s focus
+                      <Lightbulb className="h-4.5 w-4.5 fill-blue-500 text-blue-500" /> Today's focus
                     </div>
                     <p className="mt-1.5 text-[13px] font-medium text-slate-600 leading-relaxed max-w-[90%]">
                       {track === 'school'
@@ -402,7 +402,7 @@ function Learn() {
                 <div className="mt-4 relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-4.5 text-sm md:hidden shadow-sm">
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 font-extrabold text-blue-700">
-                      <Lightbulb className="h-4.5 w-4.5 fill-blue-500 text-blue-500" /> Today’s focus
+                      <Lightbulb className="h-4.5 w-4.5 fill-blue-500 text-blue-500" /> Today's focus
                     </div>
                     <p className="mt-1.5 text-[13px] font-medium text-slate-600 leading-relaxed max-w-[90%]">
                       {track === 'school'
@@ -545,8 +545,11 @@ function Learn() {
                               </div>
                               <span className="text-muted-foreground font-normal ml-0.5">(472,738)</span>
                             </div>
-                            <p className="text-[13px] font-extrabold text-foreground mt-1">
-                              {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(subject.price ?? 3199)}
+                            <p className="text-[13px] font-extrabold mt-1">
+                              {(subject as any).isFree
+                                ? <span className="text-emerald-600">Free</span>
+                                : <span className="text-foreground">{new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(subject.price ?? 3199)}</span>
+                              }
                             </p>
                           </div>
                         </Link>
@@ -739,3 +742,4 @@ function RecentAddRow({ title, desc, icon }: { title: string; desc: string; icon
     </div>
   );
 }
+
