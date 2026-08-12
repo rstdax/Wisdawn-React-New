@@ -109,7 +109,7 @@ function RankMedalBadge({ rank }: { rank: number }) {
   }
 
   return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-extrabold text-slate-500 text-[13px] border border-slate-200">
+    <div className="flex h-8 w-8 items-center justify-center font-bold text-slate-400 text-[15px]">
       {rank}
     </div>
   );
@@ -141,38 +141,38 @@ function Rankings() {
   return (
     <MobileFrame>
       {/* Branding header */}
-      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-3 bg-white border-b border-slate-100 sticky top-0 z-20">
+      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-3 bg-white sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
-          <span className="text-2xl font-extrabold text-primary tracking-tight">Wisdawn</span>
+          <span className="text-2xl font-bold text-blue-600 tracking-tight">Wisdawn</span>
         </div>
-        <div id="xp-header-pill" className="flex items-center gap-2 rounded-full bg-slate-50 border border-slate-100 px-3 py-1 shadow-sm">
-          <XPCoin className="h-6 w-6" />
-          <span className="text-[15px] font-black text-slate-800">{myXP.toLocaleString()}</span>
+        <div id="xp-header-pill" className="flex items-center gap-2 rounded-full bg-slate-50 border border-slate-100 px-3 py-1.5 shadow-sm">
+          <XPCoin className="h-5 w-5" />
+          <span className="text-[15px] font-bold text-slate-800">{myXP.toLocaleString()}</span>
         </div>
       </div>
 
       {/* Page title */}
-      <header className="flex md:hidden items-center justify-between px-5 pt-6 pb-2">
+      <header className="flex md:hidden items-center justify-between px-5 pt-4 pb-4">
         <div>
-          <h1 className="text-[26px] font-extrabold text-slate-900 tracking-tight">Rankings</h1>
-          <p className="text-[13px] font-medium text-slate-500 mt-0.5 flex items-center gap-1">
-            ASOM State (All Assam) <ChevronDown className="h-3 w-3" />
+          <h1 className="text-[32px] font-bold text-slate-900 tracking-tight leading-tight">Rankings</h1>
+          <p className="text-[14px] text-slate-500 mt-1 flex items-center gap-1">
+            ASOM State (All Assam) <ChevronDown className="h-4 w-4" />
           </p>
         </div>
-        <button className="grid h-10 w-10 place-items-center rounded-full bg-slate-50 border border-slate-100 text-slate-600">
-          <Filter className="h-4 w-4" />
+        <button className="grid h-11 w-11 place-items-center rounded-full bg-transparent border border-slate-200 text-slate-500">
+          <Filter className="h-5 w-5" />
         </button>
       </header>
 
       {/* Tab switcher */}
-      <div className="px-5 pt-2 pb-1 md:hidden">
-        <div className="relative rounded-full bg-slate-100 p-1 flex shadow-inner overflow-hidden">
+      <div className="px-5 pb-2 md:hidden">
+        <div className="relative rounded-full bg-slate-50 p-1 flex border border-slate-100">
           <div
-            className="absolute inset-y-1 rounded-full shadow-sm transition-all duration-300 bg-primary"
+            className="absolute inset-y-1 rounded-full shadow-sm transition-all duration-300 bg-blue-600"
             style={{
-              width: "33.33%",
-              left: activeTab === "All" ? "4px" : activeTab === "School" ? "calc(33.33%)" : "calc(66.66% - 4px)",
+              width: "calc(33.33% - 4px)",
+              left: activeTab === "All" ? "4px" : activeTab === "School" ? "calc(33.33% + 2px)" : "calc(66.66%)",
             }}
             aria-hidden
           />
@@ -180,7 +180,7 @@ function Rankings() {
             <button
               key={t}
               onClick={() => setActiveTab(t)}
-              className={`relative z-10 flex-1 rounded-full py-2.5 text-[11px] font-bold transition-colors duration-300 truncate px-1 ${activeTab === t ? "text-white" : "text-slate-500"}`}
+              className={`relative z-10 flex-1 rounded-full py-2.5 text-[14px] font-semibold transition-colors duration-300 truncate px-1 ${activeTab === t ? "text-white" : "text-slate-500"}`}
             >
               {t}
             </button>
@@ -202,7 +202,7 @@ function Rankings() {
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
-                className={`rounded-full px-5 py-2 text-[13px] font-bold border shadow-sm transition ${activeTab === t ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                className={`rounded-full px-5 py-2 text-[13px] font-bold border shadow-sm transition ${activeTab === t ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
               >
                 {t}
               </button>
@@ -210,7 +210,7 @@ function Rankings() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-5 md:px-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-0 md:px-0">
           <div className="lg:col-span-2">
             {/* Desktop table header */}
             <div className="hidden md:grid grid-cols-12 gap-3 px-6 py-3 text-[11px] font-bold text-slate-400 tracking-widest uppercase border-b border-slate-200/60 mb-2">
@@ -222,61 +222,60 @@ function Rankings() {
 
             {isLoading ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
               </div>
             ) : entries.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
+              <div className="mx-5 md:mx-0 rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
                 No rankings yet. Start learning to appear here!
               </div>
             ) : (
-              <div className="flex flex-col divide-y divide-slate-100">
+              <div className="flex flex-col">
                 {entries.map((u) => {
                   const isMe = u.uid === user?.uid;
                   return (
                     <div
                       key={u.uid}
-                      className={`grid grid-cols-12 gap-3 md:gap-4 items-center py-4 px-2 transition-colors ${isMe ? "bg-blue-50/50" : "hover:bg-slate-50/50"}`}
+                      className={`flex items-center gap-4 py-4 px-5 transition-colors border-b border-slate-50 ${isMe ? "bg-blue-50/50" : "bg-white hover:bg-slate-50/50"}`}
                     >
                       {/* Rank badge */}
-                      <div className="col-span-2 text-center flex justify-center items-center">
+                      <div className="w-8 flex justify-center items-center shrink-0">
                         <RankMedalBadge rank={u.rank} />
                       </div>
 
-                      {/* Name */}
-                      <div className="col-span-7 md:col-span-6 flex items-center gap-3">
-                        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full font-bold text-[15px] border ${
-                          u.rank === 1 ? "bg-amber-100 text-amber-700 border-amber-200" :
-                          u.rank === 2 ? "bg-slate-200 text-slate-600 border-slate-300" :
-                          u.rank === 3 ? "bg-orange-100 text-orange-700 border-orange-200" :
-                          isMe ? "bg-primary text-white border-blue-500" :
-                          "bg-primary/10 text-primary border-blue-100"
-                        }`}>
-                          {u.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-[15px] font-bold text-slate-900">
-                            {u.name}{isMe ? " (You)" : ""}
-                          </p>
-                          <p className="truncate text-[12px] text-slate-500 font-medium mt-0.5 md:hidden">
-                            {u.district}
-                          </p>
-                        </div>
+                      {/* Avatar */}
+                      <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full font-bold text-[16px] ${
+                        u.rank === 1 ? "bg-amber-100 text-amber-600" :
+                        u.rank === 2 ? "bg-slate-100 text-slate-500" :
+                        u.rank === 3 ? "bg-orange-100 text-orange-600" :
+                        "bg-blue-50 text-blue-600"
+                      }`}>
+                        {u.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
                       </div>
 
-                      {/* District (desktop) */}
+                      {/* Name & District */}
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-[16px] font-bold text-slate-900">
+                          {u.name}{isMe ? " (You)" : ""}
+                        </p>
+                        <p className="truncate text-[13px] text-slate-500 mt-0.5">
+                          {u.district}
+                        </p>
+                      </div>
+
+                      {/* District (desktop only extra column, hidden on mobile logic handled above) */}
                       <div className="hidden md:block col-span-2 text-[13px] font-medium text-slate-500">
                         {u.district}
                       </div>
 
                       {/* XP */}
-                      <div className="col-span-3 md:col-span-2 text-right flex flex-col items-end justify-center">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <div className="text-right flex flex-col items-end justify-center shrink-0">
+                        <div className="flex items-center gap-1.5">
                           <XPCoin className="h-4 w-4" />
-                          <p className="text-[15px] font-black text-slate-900">
+                          <p className="text-[16px] font-bold text-slate-900">
                             {xpByCategory(u).toLocaleString()}
                           </p>
                         </div>
-                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                           XP POINTS
                         </span>
                       </div>
@@ -313,7 +312,7 @@ function Rankings() {
               </div>
             </div>
             <div className="rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-6 shadow-sm">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-primary uppercase tracking-widest">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-blue-600 uppercase tracking-widest">
                 <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500" /> Leaderboard
               </span>
               <h4 className="text-[15px] font-bold text-slate-900 mt-3">Updated every 10 min</h4>
@@ -326,33 +325,33 @@ function Rankings() {
       </div>
 
       {/* Mobile sticky current user bar */}
-      <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom)+64px)] left-0 w-full z-10">
-        <div className="border-t border-primary/30 bg-gradient-to-r from-primary to-primary/80 px-5 py-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 flex justify-center items-center shrink-0">
+      <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom)+56px)] left-0 w-full z-10">
+        <div className="bg-blue-600 px-5 py-4">
+          <div className="flex items-center gap-4">
+            <div className="w-8 flex justify-center items-center shrink-0">
               {userRankNumber && userRankNumber <= 3 ? (
                 <RankMedalBadge rank={userRankNumber} />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 font-black text-white text-[14px] border border-white/30 shadow-inner">
+                <div className="flex h-8 w-8 items-center justify-center font-bold text-white text-[16px]">
                   {userRankNumber ? userRankNumber : "—"}
                 </div>
               )}
             </div>
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-[15px] font-extrabold text-primary shadow-md">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-[16px] font-bold text-blue-600 shadow-sm">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-bold text-white">{displayName}</p>
-              <p className="truncate text-[11px] font-medium text-blue-100">
+              <p className="truncate text-[16px] font-bold text-white">{displayName}</p>
+              <p className="truncate text-[13px] text-blue-100 mt-0.5">
                 {profile?.district ?? "Assam"}
               </p>
             </div>
-            <div className="text-right flex flex-col items-end">
+            <div className="text-right flex flex-col items-end shrink-0">
               <div className="flex items-center gap-1.5">
                 <XPCoin className="h-4 w-4" />
-                <p className="text-[16px] font-black text-white">{myXP.toLocaleString()}</p>
+                <p className="text-[16px] font-bold text-white">{myXP.toLocaleString()}</p>
               </div>
-              <p className="text-[9px] font-bold text-blue-200 uppercase tracking-widest mt-0.5">POINTS</p>
+              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest mt-1">POINTS</p>
             </div>
           </div>
         </div>
