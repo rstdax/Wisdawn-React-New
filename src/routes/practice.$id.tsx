@@ -1,11 +1,11 @@
-﻿import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Zap, Star, Trophy, RotateCcw, ArrowRight, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Zap, Clock, RotateCcw, ArrowRight, CheckCircle, XCircle } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
-import { getTestQuestions, getPracticeTests, type McqQuestion } from "@/lib/admin";
+import { getTestQuestions, getPracticeTests } from "@/lib/admin";
 import { createTestAttempt, submitMcqTest, type McqSubmitResult } from "@/lib/xp";
 import { XpGainAnimation } from "@/components/gamification/XpGainAnimation";
 import { BadgeUnlockQueue } from "@/components/gamification/BadgeUnlock";
@@ -62,7 +62,6 @@ function Practice() {
   });
 
   const allowedSeconds = test ? (test.allowed_time_seconds || (test.durationMinutes || 30) * 60) : 1800;
-  const xpPerQuestion = test ? Math.round((test.base_test_xp || 100) / Math.max(questions.length, 1)) : 0;
   const answeredCount = Object.keys(answers).length;
   const total = questions.length;
 
@@ -88,7 +87,7 @@ function Practice() {
     if (timerRef.current) clearInterval(timerRef.current);
     setSubmitting(true);
     try {
-      const res = await submitMcqTest(attemptId, answers, user?.uid);
+      const res = await submitMcqTest(attemptId, answers);
       setResult(res);
       setSubmitted(true);
       if (res.success && res.xp_earned > 0) setShowXpAnim(true);
@@ -99,6 +98,15 @@ function Practice() {
       setSubmitted(true);
     } finally { setSubmitting(false); }
   };
+
+  // Auto-submit when time runs out
+  useEffect(() => {
+    if (submitted || submitting || !attemptId || !user?.uid) return;
+    if (elapsed >= allowedSeconds) {
+      handleSubmit();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elapsed, allowedSeconds, submitted]);
 
   const restart = () => {
     setAnswers({}); setSubmitted(false); setResult(null);
@@ -141,10 +149,17 @@ function Practice() {
       {!submitted && (
         <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border-b border-primary/10">
           <span className="text-[11px] font-bold text-primary">{total} Questions</span>
-          <div className="flex items-center gap-1.5">
-            <XPCoin className="h-4 w-4" />
-            <span className="text-[11px] font-bold text-amber-700">{(test?.base_test_xp ?? 1) * total} XP max</span>
-            <span className="text-[11px] text-muted-foreground">({test?.base_test_xp ?? 1} XP/Q)</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5 text-slate-500" />
+              <span className={`text-[11px] font-bold ${allowedSeconds - elapsed <= 60 ? "text-red-600 animate-pulse" : "text-slate-600"}`}>
+                {formatTime(Math.max(0, allowedSeconds - elapsed))}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <XPCoin className="h-4 w-4" />
+              <span className="text-[11px] font-bold text-amber-700">{test?.base_test_xp ?? 100} XP max</span>
+            </div>
           </div>
         </div>
       )}
@@ -180,8 +195,8 @@ function Practice() {
                 <span>Correct Answers</span>
                 <span className="text-slate-900">{result.correct_answers} / {result.total_questions}</span>
               </div>
-              <div className="flex justify-between text-sm font-semibold text-amber-900 pt-2 font-extrabold">
-                <span>Total XP ({result.correct_answers} x {result.base_xp / (result.correct_answers || 1)} XP/Q)</span>
+              <div className="flex justify-between text-sm text-amber-900 pt-2 font-extrabold">
+                <span>Total XP ({result.correct_answers} × {result.correct_answers > 0 ? Math.round(result.base_xp / result.correct_answers) : 0} XP/Q)</span>
                 <span>+{result.xp_earned}</span>
               </div>
             </div>

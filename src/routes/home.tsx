@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useState, useEffect, useRef, type MouseEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -20,6 +20,7 @@ import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
 import { useAuth } from "@/hooks/use-auth";
+import { useXP } from "@/hooks/use-xp";
 import { getSubjects, getLastWatched, type LastWatchedEntry, type Subject } from "@/lib/admin";
 import { getCourseIntroChapterId } from "@/lib/course-navigation";
 import { SubjectIcon } from "@/components/SubjectIcon";
@@ -104,6 +105,8 @@ function Home() {
   const location = useLocation();
   const search = location.search as Record<string, string | undefined>;
   const { initials, displayName, profile, loading, user } = useAuth();
+  const { data: userXP } = useXP(user?.uid);
+  const liveXP = userXP?.total_xp ?? (profile as any)?.total_xp ?? profile?.stats?.xp ?? 0;
 
   // Real-time greeting based on current hour
   const getGreeting = () => {
@@ -189,7 +192,7 @@ function Home() {
           </svg>
         </div>
         <span className="text-xl font-bold text-amber-500">
-          {profile?.stats?.xp ?? 0}
+          {liveXP.toLocaleString("en-IN")}
         </span>
       </div>
     </div>
@@ -291,7 +294,7 @@ function Home() {
           </svg>
         </div>
         <span className="text-xl font-bold text-amber-500">
-          {profile?.stats?.xp ?? 0}
+          {liveXP.toLocaleString("en-IN")}
         </span>
       </div>
     </div>
@@ -668,7 +671,7 @@ function Home() {
                   Keep it up, {loading ? "…" : displayName.split(" ")[0]}!
                 </h2>
                 <p className="text-[13px] font-bold text-[#635B85] mt-1.5 uppercase tracking-wide">
-                  {(profile?.stats?.xp ?? 0).toLocaleString()} XP 
+                  {liveXP.toLocaleString()} XP 
                   <span className="mx-1.5 font-normal opacity-50">•</span> 
                   {profile?.stats?.rank ? `Rank #${profile.stats.rank}` : "Unranked"}
                 </p>
@@ -735,7 +738,7 @@ function Home() {
                       <p className="text-[9px] text-muted-foreground mt-0.5">Lessons</p>
                     </div>
                     <div className="p-2 bg-muted/40 rounded-xl">
-                      <p className="font-extrabold text-primary">{(profile?.stats?.xp ?? 0).toLocaleString()}</p>
+                      <p className="font-extrabold text-primary">{liveXP.toLocaleString()}</p>
                       <p className="text-[9px] text-muted-foreground mt-0.5">XP Earned</p>
                     </div>
                   </div>
@@ -796,7 +799,7 @@ function Home() {
                     </div>
                     <div className="p-3 bg-muted/40 rounded-xl flex justify-between items-center">
                       <span className="text-muted-foreground">Points</span>
-                      <span className="font-bold text-primary">{(profile?.stats?.xp ?? 0).toLocaleString()}</span>
+                      <span className="font-bold text-primary">{liveXP.toLocaleString()}</span>
                     </div>
                     <div className="p-3 bg-muted/40 rounded-xl flex justify-between items-center">
                       <span className="text-muted-foreground">Rank</span>

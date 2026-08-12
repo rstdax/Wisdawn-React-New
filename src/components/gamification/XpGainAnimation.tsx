@@ -36,6 +36,14 @@ type Props = {
   onComplete?: () => void;
 };
 
+function triggerHaptic(pattern: number | number[] = [70, 40, 90, 40, 130]) {
+  if (typeof window !== "undefined" && "vibrate" in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch {}
+  }
+}
+
 export function XpGainAnimation({ xpEarned, show, onComplete }: Props) {
   const [active, setActive] = useState(false);
   const [frameIdx, setFrameIdx] = useState(0);
@@ -66,6 +74,9 @@ export function XpGainAnimation({ xpEarned, show, onComplete }: Props) {
     setShowChar(false);
     setShowParty(false);
     setCoinVisible(false);
+
+    // Haptic vibration feedback alongside audio sound effect
+    triggerHaptic([70, 40, 90, 40, 130]);
 
     try {
       const audio = new Audio("/xpanimation/soundeffect.wav");
@@ -106,6 +117,8 @@ export function XpGainAnimation({ xpEarned, show, onComplete }: Props) {
           if (coin) coin.style.display = "none";
           setScore((s) => s + 1);
           setScorePop(true);
+          // Haptic tick for each coin reaching the XP header pill
+          triggerHaptic(30);
           setTimeout(() => setScorePop(false), 320);
         }, flightMs);
       });

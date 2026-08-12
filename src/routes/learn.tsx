@@ -12,6 +12,7 @@ import { getSubjects, getSubjectProgress, type Subject } from "@/lib/admin";
 import { getCourseIntroChapterId } from "@/lib/course-navigation";
 import { SubjectIcon } from "@/components/SubjectIcon";
 import { useAuth } from "@/hooks/use-auth";
+import { useXP } from "@/hooks/use-xp";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import logoImg from "@/assets/jjj.png";
@@ -106,6 +107,8 @@ function Learn() {
   };
 
   const { user, profile, loading: authLoading } = useAuth();
+  const { data: userXP } = useXP(user?.uid);
+  const liveXP = userXP?.total_xp ?? (profile as any)?.total_xp ?? profile?.stats?.xp ?? 0;
 
   const { data: { subjects = [], progressMap = {} } = {}, isLoading: dataLoading } = useQuery({
     queryKey: ["learnData", track, user?.uid, profile?.cls],
@@ -165,7 +168,7 @@ function Learn() {
           </svg>
         </div>
         <span className="text-xl font-bold text-amber-500">
-          {profile?.stats?.xp ?? 0}
+          {liveXP.toLocaleString("en-IN")}
         </span>
       </div>
     </div>
@@ -288,7 +291,7 @@ function Learn() {
           </svg>
         </div>
         <span className="text-xl font-bold text-amber-500">
-          {profile?.stats?.xp ?? 0}
+          {liveXP.toLocaleString("en-IN")}
         </span>
       </div>
     </div>

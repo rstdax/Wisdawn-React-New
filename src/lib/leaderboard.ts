@@ -1,7 +1,8 @@
 /**
- * Leaderboard — reads from pre-computed leaderboard snapshot documents.
- * Cloud Functions update these snapshots every ~10 minutes.
- * For users not in the top-50, we calculate individual rank via a count query.
+ * Leaderboard
+ * - Reads from pre-computed snapshots (updated by Cloud Functions every 10 min)
+ * - Falls back to direct queries with correct per-category sorting
+ * - getUserRank filters by actual state/district of the current user
  */
 
 import {
@@ -18,7 +19,6 @@ import {
 import { db } from "./firebase";
 
 export type LeaderboardCategory = "all" | "school" | "coding";
-export type LeaderboardLocation = "assam" | string;
 
 export type LeaderboardEntry = {
   uid: string;
@@ -49,8 +49,7 @@ export async function getLeaderboard(
   location: string
 ): Promise<LeaderboardSnapshot | null> {
   try {
-    const id = leaderboardId(category, location);
-    const snap = await getDoc(doc(db, "leaderboards", id));
+    const snap = await getDoc(doc(db, "leaderboards", leaderboardId(category, location)));
     if (!snap.exists()) return null;
     return { id: snap.id, ...snap.data() } as LeaderboardSnapshot;
   } catch {
@@ -58,10 +57,14 @@ export async function getLeaderboard(
   }
 }
 
+/**
+ * Get user rank — properly filtered by state or district.
+ * Counts users with MORE XP than current user in the same location.
+ */
 export async function getUserRank(
   uid: string,
   category: LeaderboardCategory,
-  _location: string
+  location: string
 ): Promise<number | null> {
   try {
     const userSnap = await getDoc(doc(db, "users", uid));
@@ -72,19 +75,37 @@ export async function getUserRank(
       category === "school" ? "school_xp" :
       category === "coding" ? "coding_xp" :
       "total_xp";
-    const myXP: number = userData[xpField] ?? userData.stats?.xp ?? 0;
 
-    // Simple count: how many users have more XP than me?
-    const baseQuery = query(
-      collection(db, "users"),
-      where(xpField, ">", myXP)
-    );
+    const myXP: number = userData[xpField] ?? userData.stats?.xp ?? 0;
+    const userState: string = userData.state ?? "Assam";
+    const userDistrict: string = userData.district ?? "";
+
+    // Determine if location is state-level or district-level
+    const isStateLevel = location === "assam" ||
+      location === userState.toLowerCase().replace(/\s+/g, "_");
+
+    let countQuery;
+    if (isStateLevel) {
+      countQuery = query(
+        collection(db, "users"),
+        where("state", "==", userState),
+        where(xpField, ">", myXP)
+      );
+    } else {
+      // District-level: filter by that specific district
+      const districtName = location.replace(/_/g, " ");
+      countQuery = query(
+        collection(db, "users"),
+        where("district", "==", districtName),
+        where(xpField, ">", myXP)
+      );
+    }
 
     try {
-      const countSnap = await getCountFromServer(baseQuery);
+      const countSnap = await getCountFromServer(countQuery);
       return countSnap.data().count + 1;
     } catch {
-      const snap = await getDocs(baseQuery);
+      const snap = await getDocs(countQuery);
       return snap.size + 1;
     }
   } catch {
@@ -92,22 +113,45 @@ export async function getUserRank(
   }
 }
 
-/** Fallback: fetch top users directly — no composite index needed */
+/**
+ * Fallback: fetch top users per category with correct field ordering.
+ * Each category uses its own XP field — NOT derived from overall top users.
+ */
 export async function getTopUsersDirectly(
   category: LeaderboardCategory,
-  _location: string,
+  location: string,
   limitCount = 50
 ): Promise<LeaderboardEntry[]> {
+  const xpField =
+    category === "school" ? "school_xp" :
+    category === "coding" ? "coding_xp" :
+    "total_xp";
+
   try {
-    // Always order by total_xp (guaranteed to exist on all users via stats.xp)
-    // For school/coding tabs we sort client-side after fetch
-    const q = query(
-      collection(db, "users"),
-      orderBy("total_xp", "desc"),
-      limit(limitCount)
-    );
+    // Try with state filter + correct XP field
+    const isDistrict = location !== "assam" && !location.includes("assam");
+    let q;
+
+    if (isDistrict) {
+      const districtName = location.replace(/_/g, " ");
+      q = query(
+        collection(db, "users"),
+        where("district", "==", districtName),
+        orderBy(xpField, "desc"),
+        limit(limitCount)
+      );
+    } else {
+      // State level — try with state filter
+      q = query(
+        collection(db, "users"),
+        where("state", "==", "Assam"),
+        orderBy(xpField, "desc"),
+        limit(limitCount)
+      );
+    }
+
     const snap = await getDocs(q);
-    const users = snap.docs.map((d) => {
+    return snap.docs.map((d, idx) => {
       const data = d.data();
       return {
         uid: d.id,
@@ -117,28 +161,15 @@ export async function getTopUsersDirectly(
         total_xp: data.total_xp ?? data.stats?.xp ?? 0,
         school_xp: data.school_xp ?? 0,
         coding_xp: data.coding_xp ?? 0,
-      };
+        rank: idx + 1,
+      } as LeaderboardEntry;
     });
-
-    // Client-side sort for school/coding tabs
-    const xpField =
-      category === "school" ? "school_xp" :
-      category === "coding" ? "coding_xp" :
-      "total_xp";
-
-    const sorted = users
-      .sort((a, b) => b[xpField] - a[xpField])
-      .map((u, idx) => ({ ...u, rank: idx + 1 } as LeaderboardEntry));
-
-    return sorted;
-  } catch (err) {
-    console.error("[leaderboard] direct query failed:", err);
-
-    // Last resort: try stats.xp field (old schema)
+  } catch {
+    // Final fallback: no location filter, correct XP field sort
     try {
       const q2 = query(
         collection(db, "users"),
-        orderBy("stats.xp", "desc"),
+        orderBy(xpField, "desc"),
         limit(limitCount)
       );
       const snap2 = await getDocs(q2);
@@ -149,7 +180,7 @@ export async function getTopUsersDirectly(
           name: data.name ?? "Learner",
           district: data.district ?? "",
           state: data.state ?? "Assam",
-          total_xp: data.stats?.xp ?? 0,
+          total_xp: data.total_xp ?? data.stats?.xp ?? 0,
           school_xp: data.school_xp ?? 0,
           coding_xp: data.coding_xp ?? 0,
           rank: idx + 1,

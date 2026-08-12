@@ -58,15 +58,19 @@ export function useContentSession({
 
     const init = async () => {
       try {
+        console.log(`[XP System] Initializing session for content (${contentType}):`, contentId, "Required time:", resolvedMinTime, "s");
         const alreadyDone = await isContentCompleted(uid, contentId);
         if (!isMounted.current) return;
         if (alreadyDone) {
-          // Already completed — no session needed
+          console.log("[XP System] Content already completed previously by user:", contentId);
           isClaimTriggered.current = true;
           return;
         }
         const sid = await createContentSession(uid, contentId, contentType);
-        if (isMounted.current) setSessionId(sid);
+        if (isMounted.current) {
+          console.log("[XP System] Active content session created:", sid);
+          setSessionId(sid);
+        }
       } catch (err) {
         console.error("[useContentSession] init error:", err);
       }
@@ -77,25 +81,26 @@ export function useContentSession({
     return () => {
       isMounted.current = false;
     };
-  }, [uid, contentId, contentType]);
+  }, [uid, contentId, contentType, resolvedMinTime]);
 
   // Claim function — called internally, never exposed as a button
   const triggerClaim = useCallback(
     async (sid: string) => {
       if (isClaimTriggered.current) return;
       isClaimTriggered.current = true; // Set BEFORE request to prevent race
+      console.log("[XP System] Required view time reached! Claiming XP for content:", contentId);
 
       try {
-        const result = await claimContentXP(sid, contentId, uid ?? undefined);
+        const result = await claimContentXP(sid, contentId);
+        console.log("[XP System] Claim result:", result);
         if (!isMounted.current) return;
         setClaimResult(result);
         if (result.success) onXpClaimed?.(result);
       } catch (err) {
         console.error("[useContentSession] claim error:", err);
-        // Silent failure — do NOT award XP locally
       }
     },
-    [contentId, onXpClaimed]
+    [contentId, uid, onXpClaimed]
   );
 
   // Timer — runs silently in background, triggers claim automatically
@@ -105,6 +110,9 @@ export function useContentSession({
     let elapsed = 0;
     const interval = setInterval(() => {
       elapsed += 1;
+      if (elapsed % 15 === 0) {
+        console.log(`[XP System] Viewing progress: ${elapsed}/${resolvedMinTime}s`);
+      }
       if (elapsed >= resolvedMinTime) {
         clearInterval(interval);
         triggerClaim(sessionId);

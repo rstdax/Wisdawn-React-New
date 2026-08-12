@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, Search, Play, FileText, Calendar, BookOpen } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
@@ -10,7 +10,7 @@ import wisbyReading from "@/assets/wisby-reading.png";
 
 export const Route = createFileRoute("/history")({
   component: HistoryPage,
-  head: () => ({ meta: [{ title: "History â€” WisDawn" }] }),
+  head: () => ({ meta: [{ title: "History - WisDawn" }] }),
 });
 
 function isToday(date: Date) {

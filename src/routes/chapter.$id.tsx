@@ -50,7 +50,7 @@ import { useXP } from "@/hooks/use-xp";
 import logoImg from "@/assets/jjj.png";
 
 export const Route = createFileRoute("/chapter/$id")({
-  head: () => ({ meta: [{ title: "Chapter â€” WisDawn" }] }),
+  head: () => ({ meta: [{ title: "Chapter - WisDawn" }] }),
   component: Chapter,
 });
 
@@ -92,6 +92,7 @@ function Chapter() {
   // Local interaction state
   const [downloadedIds, setDownloadedIds] = useState<string[]>([]);
   const [notes, setNotes] = useState<string[]>([]);
+  const [noteDraft, setNoteDraft] = useState("");
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
   const [iframeTitle, setIframeTitle] = useState("");
   const [qaDraft, setQaDraft] = useState("");
@@ -206,7 +207,7 @@ function Chapter() {
     ? allShells[currentShellIdx + 1]
     : null;
 
-  // nextChapter: only within same chapterId group Ã¢â‚¬â€ last item shows Chapter Complete
+  // nextChapter: only within same chapterId group — last item shows Chapter Complete
   const currentChapterId = chapterData?.chapterId ?? null;
   const nextSibling = currentIdx >= 0 && currentIdx < publishedSiblings.length - 1 ? publishedSiblings[currentIdx + 1] : null;
   const nextChapter = nextSibling && nextSibling.chapterId === currentChapterId ? nextSibling : null;
@@ -223,7 +224,7 @@ function Chapter() {
   );
   const isLockedCourse = !authLoading && !subjectLoading && isCodingCourse && !hasCourseAccess;
   const isIntroChapter = publishedSiblings[0]?.id === id;
-  // Only show purchase bar for video type â€” not PDF or link (they show content freely)
+  // Only show purchase bar for video type — not PDF or link (they show content freely)
   const showPurchaseBar = isLockedCourse && isIntroChapter && chapterData?.lessonType !== "pdf" && chapterData?.lessonType !== "link";
   const displayedResources = (isCodingCourse ? publishedSiblings : chapterGroupVideos).filter(
     (v) => chapterData?.lessonType === "pdf" ? v.lessonType === "pdf" : v.lessonType !== "pdf"
@@ -295,7 +296,7 @@ function Chapter() {
     {/* THE DIVIDER LINE */}
     <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
 
-      {/* Silent background XP session â€” no visible UI, auto-claims after min time */}
+      {/* Silent background XP session — no visible UI, auto-claims after min time */}
       {!dataLoading && !subjectLoading && chapterData && user?.uid && !isLockedCourse && (
         <SilentContentXp
           uid={user.uid}
@@ -327,7 +328,7 @@ function Chapter() {
                 {subjectLoading ? (
                   <div className="h-3 w-24 bg-muted animate-pulse rounded mx-auto" />
                 ) : (subjectData?.class && subjectData?.title 
-                  ? `${subjectData.class} Â· ${subjectData.title}`
+                  ? `${subjectData.class} · ${subjectData.title}`
                   : (subjectData?.title ?? "Loading..."))}
               </div>
             </>
@@ -374,7 +375,7 @@ function Chapter() {
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${markedComplete ? "bg-emerald-500 text-white" : "bg-primary text-white hover:bg-primary/95"}`}
               >
                 <CheckCircle className="h-4 w-4" />
-                {markedComplete ? "Completed âœ“" : "Mark as Complete"}
+                {markedComplete ? "Completed ✓" : "Mark as Complete"}
               </button>
             </div>
           </div>
@@ -464,7 +465,7 @@ function Chapter() {
                     params={{ id: prevChapter.id }}
                     className="rounded-full border border-border px-5 py-2.5 text-xs font-bold text-muted-foreground hover:bg-muted transition"
                   >
-                    â† {prevChapter.title}
+                    ← {prevChapter.title}
                   </Link>
                 ) : (
                   <div />
@@ -483,7 +484,7 @@ function Chapter() {
                       params={{ id: nextChapter.id }}
                       className="rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-white transition hover:scale-105"
                     >
-                      {nextChapter.title} â†’
+                      {nextChapter.title} →
                     </Link>
                   )
                 ) : (
@@ -508,7 +509,7 @@ function Chapter() {
             {/* TAB CONTENT */}
             <div className="pt-2">
 
-              {/* â”€â”€ OVERVIEW â”€â”€ */}
+              {/* — OVERVIEW — */}
               {tab === "Overview" && (
                 <div className="space-y-5">
                   {dataLoading ? (
@@ -528,7 +529,7 @@ function Chapter() {
                     </div>
                   ) : (
                     <>
-                      {/* Description â€” collapsible like YouTube */}
+                      {/* Description — collapsible like YouTube */}
                   <div>
                     <h2 className="text-base font-bold text-foreground">About this video</h2>
                     <div className="mt-2 relative overflow-hidden">
@@ -543,7 +544,7 @@ function Chapter() {
                           onClick={() => setDescExpanded((v) => !v)}
                           className="mt-1 text-xs font-bold text-foreground hover:text-primary transition"
                         >
-                          {descExpanded ? "Show less â–²" : "...more â–¼"}
+                          {descExpanded ? "Show less ▲" : "...more ▼"}
                         </button>
                       )}
                     </div>
@@ -684,7 +685,7 @@ function Chapter() {
                               </div>
                             ) : (
                               <div className="grid h-12 w-16 place-items-center rounded-md bg-primary-soft text-[10px] font-extrabold text-primary shrink-0">
-                                {nextChapter.duration ?? "â€”"}
+                                {nextChapter.duration ?? "-"}
                               </div>
                             )}
                             <div className="min-w-0">
@@ -707,7 +708,7 @@ function Chapter() {
                       )
                     ) : (
                       <div className="mt-2 rounded-2xl border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground text-center font-semibold">
-                        You've reached the last chapter in this subject ðŸŽ‰
+                        You've reached the last chapter in this subject 🎉
                       </div>
                     )}
                   </div>
@@ -719,7 +720,7 @@ function Chapter() {
                         params={{ id: prevChapter.id }}
                         className="rounded-full border border-border px-5 py-2.5 text-xs font-bold text-muted-foreground hover:bg-muted transition"
                       >
-                        â† {prevChapter.title}
+                        ← {prevChapter.title}
                       </Link>
                     ) : (
                       <div />
@@ -738,7 +739,7 @@ function Chapter() {
                           params={{ id: nextChapter.id }}
                           className="rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-white transition hover:scale-105"
                         >
-                          {nextChapter.title} â†’
+                          {nextChapter.title} →
                         </Link>
                       )
                     ) : (
@@ -750,15 +751,15 @@ function Chapter() {
             </div>
           )}
 
-              {/* â”€â”€ RESOURCES â”€â”€ */}
+              {/* — RESOURCES — */}
               {tab === "Resources" && (
                 <div className="mt-2">
                   <div className="text-[15px] font-extrabold text-slate-900 mb-4">
                     {subjectLoading ? (
                       <div className="h-5 w-40 bg-slate-100 animate-pulse rounded" />
                     ) : isCodingCourse ? "Course Chapters" : chapterData?.chapterId
-                      ? `Chapter ${chapterData.chapterId} â€” All Videos`
-                      : "Chapter Videos"}
+                      ? `Chapter ${chapterData.chapterId} - Resources`
+                      : "Chapter Resources"}
                   </div>
                   {subjectLoading ? (
                     <div className="space-y-4">
@@ -832,7 +833,7 @@ function Chapter() {
                                 </p>
                               </div>
                               <p className="truncate text-[13px] font-medium text-slate-500 mt-1">
-                                {v.lessonType === "pdf" ? "PDF Document" : v.lessonType === "link" ? "External Material" : (v.duration ?? "â€”")}
+                                {v.lessonType === "pdf" ? "PDF Document" : v.lessonType === "link" ? "External Material" : (v.duration ?? "-")}
                               </p>
                             </div>
 
@@ -852,7 +853,7 @@ function Chapter() {
                 </div>
               )}
 
-              {/* â”€â”€ NOTES â”€â”€ */}
+              {/* — NOTES — */}
               {tab === "Notes" && (
                 <div className="mt-2">
                   {isLockedCourse ? (
@@ -873,7 +874,7 @@ function Chapter() {
                           (isCodingCourse
                             ? [
                                 // Only include current chapter if it's a PDF type
-                                ...(chapterData?.resourcesNote && chapterData?.lessonType === "pdf" ? [chapterData] : []),
+                                ...((chapterData as any)?.resourcesNote && (chapterData as any)?.lessonType === "pdf" ? [chapterData] : []),
                                 // Only PDF type from siblings — NOT link/material
                                 ...displayedResources.filter(v => v.lessonType === "pdf" && v.resourcesNote),
                                 ...pdfLessonsInGroup
@@ -1078,7 +1079,7 @@ function Chapter() {
 
           {/* Bottom hint */}
           <div className="px-5 py-4 text-center">
-            <p className="text-white/40 text-[10px] font-semibold">Tap Ã— to go back</p>
+            <p className="text-white/40 text-[10px] font-semibold">Tap × to go back</p>
           </div>
         </div>
       )}
@@ -1120,7 +1121,7 @@ function Chapter() {
               </div>
             </Link>
           ) : chapterData?.subjectId ? (
-            // Last chapter â€” show "Chapter Completed" â†’ go to next chapter shell or subject
+            // Last chapter — show "Chapter Completed" → go to next chapter shell or subject
             <Link
               to={nextChapterShell ? "/chapter/$id" : "/subject/$id"}
               params={nextChapterShell ? { id: nextChapterShell.id } : { id: chapterData.subjectId }}
@@ -1134,7 +1135,7 @@ function Chapter() {
                   {nextChapterShell ? nextChapterShell.chapterName ?? nextChapterShell.title : subjectData?.title ?? "Back to Subject"}
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {nextChapterShell ? `Chapter ${nextChapterShell.chapterId ?? ""}` : "You've finished all chapters ðŸŽ‰"}
+                  {nextChapterShell ? `Chapter ${nextChapterShell.chapterId ?? ""}` : "You've finished all chapters 🎉"}
                 </p>
               </div>
               <div className="shrink-0 ml-4 grid h-12 w-12 place-items-center rounded-full bg-emerald-500 text-white shadow-md">

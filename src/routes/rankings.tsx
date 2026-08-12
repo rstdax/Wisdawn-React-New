@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Filter, Trophy, Sparkles, Award, ChevronDown, Loader2 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
@@ -26,6 +26,95 @@ const XPCoin = ({ className }: { className?: string }) => (
 type TabType = "All" | "School" | "Coding";
 const CATEGORY_MAP: Record<TabType, LeaderboardCategory> = { All: "all", School: "school", Coding: "coding" };
 
+function RankMedalBadge({ rank }: { rank: number }) {
+  if (rank === 1) {
+    return (
+      <div className="relative flex flex-col items-center justify-center h-10 w-9 shrink-0">
+        <svg viewBox="0 0 36 44" className="h-full w-full drop-shadow-sm" fill="none">
+          <path d="M11 2L18 13L10 13L5 2Z" fill="#3B82F6" />
+          <path d="M25 2L18 13L26 13L31 2Z" fill="#EF4444" />
+          <path d="M18 13L14 2H22Z" fill="#DC2626" />
+          <circle cx="18" cy="13" r="2" fill="#D97706" />
+          <circle cx="18" cy="27" r="13" fill="url(#goldGrad1)" stroke="#B45309" strokeWidth="1.2" />
+          <circle cx="18" cy="27" r="10" fill="url(#goldInnerGrad1)" stroke="#FEF3C7" strokeWidth="0.8" opacity="0.9" />
+          <text x="18" y="31.5" textAnchor="middle" fontSize="12" fontWeight="900" fill="#78350F" fontFamily="sans-serif">1</text>
+          <defs>
+            <radialGradient id="goldGrad1" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#FDE047" />
+              <stop offset="60%" stopColor="#EAB308" />
+              <stop offset="100%" stopColor="#CA8A04" />
+            </radialGradient>
+            <radialGradient id="goldInnerGrad1" cx="40%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#FEF08A" />
+              <stop offset="100%" stopColor="#D97706" />
+            </radialGradient>
+          </defs>
+        </svg>
+      </div>
+    );
+  }
+
+  if (rank === 2) {
+    return (
+      <div className="relative flex flex-col items-center justify-center h-10 w-9 shrink-0">
+        <svg viewBox="0 0 36 44" className="h-full w-full drop-shadow-sm" fill="none">
+          <path d="M11 2L18 13L10 13L5 2Z" fill="#3B82F6" />
+          <path d="M25 2L18 13L26 13L31 2Z" fill="#EF4444" />
+          <path d="M18 13L14 2H22Z" fill="#DC2626" />
+          <circle cx="18" cy="13" r="2" fill="#64748B" />
+          <circle cx="18" cy="27" r="13" fill="url(#silverGrad2)" stroke="#475569" strokeWidth="1.2" />
+          <circle cx="18" cy="27" r="10" fill="url(#silverInnerGrad2)" stroke="#FFFFFF" strokeWidth="0.8" opacity="0.9" />
+          <text x="18" y="31.5" textAnchor="middle" fontSize="12" fontWeight="900" fill="#334155" fontFamily="sans-serif">2</text>
+          <defs>
+            <radialGradient id="silverGrad2" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#F8FAFC" />
+              <stop offset="60%" stopColor="#CBD5E1" />
+              <stop offset="100%" stopColor="#64748B" />
+            </radialGradient>
+            <radialGradient id="silverInnerGrad2" cx="40%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#FFFFFF" />
+              <stop offset="100%" stopColor="#94A3B8" />
+            </radialGradient>
+          </defs>
+        </svg>
+      </div>
+    );
+  }
+
+  if (rank === 3) {
+    return (
+      <div className="relative flex flex-col items-center justify-center h-10 w-9 shrink-0">
+        <svg viewBox="0 0 36 44" className="h-full w-full drop-shadow-sm" fill="none">
+          <path d="M11 2L18 13L10 13L5 2Z" fill="#3B82F6" />
+          <path d="M25 2L18 13L26 13L31 2Z" fill="#EF4444" />
+          <path d="M18 13L14 2H22Z" fill="#DC2626" />
+          <circle cx="18" cy="13" r="2" fill="#78350F" />
+          <circle cx="18" cy="27" r="13" fill="url(#bronzeGrad3)" stroke="#78350F" strokeWidth="1.2" />
+          <circle cx="18" cy="27" r="10" fill="url(#bronzeInnerGrad3)" stroke="#FFEDD5" strokeWidth="0.8" opacity="0.9" />
+          <text x="18" y="31.5" textAnchor="middle" fontSize="12" fontWeight="900" fill="#451A03" fontFamily="sans-serif">3</text>
+          <defs>
+            <radialGradient id="bronzeGrad3" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#FDBA74" />
+              <stop offset="60%" stopColor="#D97706" />
+              <stop offset="100%" stopColor="#78350F" />
+            </radialGradient>
+            <radialGradient id="bronzeInnerGrad3" cx="40%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#FFEDD5" />
+              <stop offset="100%" stopColor="#B45309" />
+            </radialGradient>
+          </defs>
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-extrabold text-slate-500 text-[13px] border border-slate-200">
+      {rank}
+    </div>
+  );
+}
+
 function Rankings() {
   const { initials, displayName, profile, user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("All");
@@ -36,15 +125,13 @@ function Rankings() {
   const { data: xpData } = useXP(user?.uid);
   const { data: myRank } = useUserRank(user?.uid, category, location);
 
+  const currentUserEntry = entries.find((e) => e.uid === user?.uid);
+  const userRankNumber = currentUserEntry?.rank ?? myRank;
+
   const myXP =
     category === "school" ? (xpData?.school_xp ?? 0) :
     category === "coding" ? (xpData?.coding_xp ?? 0) :
     (xpData?.total_xp ?? profile?.stats?.xp ?? 0);
-
-  const medalStyle = (r: number) =>
-    r === 1 ? "bg-amber-400 text-white border-amber-500" :
-    r === 2 ? "bg-slate-300 text-white border-slate-400" :
-    "bg-orange-300 text-white border-orange-400";
 
   const xpByCategory = (e: typeof entries[0]) =>
     category === "school" ? e.school_xp :
@@ -70,7 +157,7 @@ function Rankings() {
         <div>
           <h1 className="text-[26px] font-extrabold text-slate-900 tracking-tight">Rankings</h1>
           <p className="text-[13px] font-medium text-slate-500 mt-0.5 flex items-center gap-1">
-            Assam State <ChevronDown className="h-3 w-3" />
+            ASOM State (All Assam) <ChevronDown className="h-3 w-3" />
           </p>
         </div>
         <button className="grid h-10 w-10 place-items-center rounded-full bg-slate-50 border border-slate-100 text-slate-600">
@@ -144,7 +231,6 @@ function Rankings() {
             ) : (
               <div className="flex flex-col divide-y divide-slate-100">
                 {entries.map((u) => {
-                  const isTop3 = u.rank <= 3;
                   const isMe = u.uid === user?.uid;
                   return (
                     <div
@@ -152,16 +238,8 @@ function Rankings() {
                       className={`grid grid-cols-12 gap-3 md:gap-4 items-center py-4 px-2 transition-colors ${isMe ? "bg-blue-50/50" : "hover:bg-slate-50/50"}`}
                     >
                       {/* Rank badge */}
-                      <div className="col-span-2 text-center flex justify-center">
-                        {isTop3 ? (
-                          <div className={`flex h-9 w-9 items-center justify-center rounded-full font-extrabold text-[14px] border-2 shadow-sm ${medalStyle(u.rank)}`}>
-                            {u.rank}
-                          </div>
-                        ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-extrabold text-slate-500 text-[13px] border border-slate-200">
-                            {u.rank}
-                          </div>
-                        )}
+                      <div className="col-span-2 text-center flex justify-center items-center">
+                        <RankMedalBadge rank={u.rank} />
                       </div>
 
                       {/* Name */}
@@ -191,11 +269,16 @@ function Rankings() {
                       </div>
 
                       {/* XP */}
-                      <div className="col-span-3 md:col-span-2 text-right flex items-center justify-end gap-1.5">
-                        <XPCoin className="h-3.5 w-3.5" />
-                        <p className="text-[15px] font-black text-slate-900">
-                          {xpByCategory(u).toLocaleString()}
-                        </p>
+                      <div className="col-span-3 md:col-span-2 text-right flex flex-col items-end justify-center">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <XPCoin className="h-4 w-4" />
+                          <p className="text-[15px] font-black text-slate-900">
+                            {xpByCategory(u).toLocaleString()}
+                          </p>
+                        </div>
+                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
+                          XP POINTS
+                        </span>
                       </div>
                     </div>
                   );
@@ -213,7 +296,7 @@ function Rankings() {
               <div className="flex flex-col items-center py-6 text-center">
                 <Wisby variant="cheer" className="h-32 w-32 drop-shadow-md" />
                 <h4 className="text-[20px] font-black text-slate-900 mt-3">
-                  {myRank ? `Rank #${myRank} in Assam` : "Unranked"}
+                  {userRankNumber ? `Rank #${userRankNumber} in Assam` : "Unranked"}
                 </h4>
                 <p className="text-[13px] font-medium text-slate-500 mt-1.5 px-4 leading-relaxed">
                   Keep learning to climb the leaderboard!
@@ -244,18 +327,24 @@ function Rankings() {
 
       {/* Mobile sticky current user bar */}
       <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom)+64px)] left-0 w-full z-10">
-        <div className="border-t border-primary/30 bg-gradient-to-r from-primary to-primary/80 px-5 py-3.5">
-          <div className="flex items-center gap-4">
-            <div className="w-8 text-center text-[18px] font-black text-white">
-              {myRank ? `#${myRank}` : ""}
+        <div className="border-t border-primary/30 bg-gradient-to-r from-primary to-primary/80 px-5 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 flex justify-center items-center shrink-0">
+              {userRankNumber && userRankNumber <= 3 ? (
+                <RankMedalBadge rank={userRankNumber} />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 font-black text-white text-[14px] border border-white/30 shadow-inner">
+                  {userRankNumber ? userRankNumber : "—"}
+                </div>
+              )}
             </div>
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-white text-[15px] font-extrabold text-primary shadow-md">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-[15px] font-extrabold text-primary shadow-md">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[15px] font-bold text-white">{displayName}</p>
               <p className="truncate text-[11px] font-medium text-blue-100">
-                {profile?.district ?? ""}
+                {profile?.district ?? "Assam"}
               </p>
             </div>
             <div className="text-right flex flex-col items-end">
@@ -263,7 +352,7 @@ function Rankings() {
                 <XPCoin className="h-4 w-4" />
                 <p className="text-[16px] font-black text-white">{myXP.toLocaleString()}</p>
               </div>
-              <p className="text-[9px] font-bold text-blue-200 uppercase tracking-widest mt-0.5">Points</p>
+              <p className="text-[9px] font-bold text-blue-200 uppercase tracking-widest mt-0.5">POINTS</p>
             </div>
           </div>
         </div>

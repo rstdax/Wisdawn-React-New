@@ -16,6 +16,7 @@ import {
   type Discussion, type LessonNavContext,
 } from "@/lib/admin";
 import { useAuth } from "@/hooks/use-auth";
+import { SilentContentXp } from "@/components/gamification/ContentXpTimer";
 
 export const Route = createFileRoute("/lesson/$chapterId/$lessonId")({
   head: () => ({ meta: [{ title: "Lesson — WisDawn" }] }),
@@ -135,6 +136,17 @@ function LessonPage() {
 
   return (
     <MobileFrame>
+      {/* Silent background XP session — no visible UI, auto-claims after min time */}
+      {!loading && lesson && user?.uid && (
+        <SilentContentXp
+          uid={user.uid}
+          contentId={lesson.id}
+          contentType={lesson.lessonType ?? "video"}
+          xpReward={(lesson as any).xp_reward}
+          minReadTimeSeconds={(lesson as any).min_read_time_seconds}
+        />
+      )}
+
       {/* MOBILE HEADER */}
       <header className="flex md:hidden items-center justify-between px-5 pt-2">
         <button onClick={() => router.history.back()} className="grid h-9 w-9 place-items-center rounded-full active:bg-muted">

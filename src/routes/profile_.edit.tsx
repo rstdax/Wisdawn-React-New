@@ -1,4 +1,4 @@
-﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -39,7 +39,7 @@ type EditForm = {
 };
 
 export const Route = createFileRoute("/profile_/edit")({
-  head: () => ({ meta: [{ title: "Edit Profile â€” WisDawn" }] }),
+  head: () => ({ meta: [{ title: "Edit Profile - WisDawn" }] }),
   component: EditProfile,
 });
 

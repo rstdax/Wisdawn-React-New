@@ -1,4 +1,4 @@
-﻿import { createFileRoute, useParams, useRouter, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, useParams, useRouter, Link, Navigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Play, Loader2, Clock, ChevronRight, ChevronDown, FileText, Paperclip, ArrowRight } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
@@ -7,9 +7,10 @@ import { getSubjects, getChaptersBySubject, type Subject, type Chapter } from "@
 
 import logoImg from "@/assets/jjj.png";
 import { useAuth } from "@/hooks/use-auth";
+import { useXP } from "@/hooks/use-xp";
 
 export const Route = createFileRoute("/subject/$id")({
-  head: () => ({ meta: [{ title: "Subject â€” WisDawn" }] }),
+  head: () => ({ meta: [{ title: "Subject - WisDawn" }] }),
   component: SubjectPage,
 });
 
@@ -47,7 +48,9 @@ function SubjectPage() {
   const { id } = useParams({ from: "/subject/$id" });
   const router = useRouter();
 
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const { data: userXP } = useXP(user?.uid);
+  const liveXP = userXP?.total_xp ?? (profile as any)?.total_xp ?? profile?.stats?.xp ?? 0;
 
   const [subject, setSubject] = useState<Subject | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -105,7 +108,7 @@ function SubjectPage() {
           </svg>
         </div>
         <span className="text-xl font-bold text-amber-500">
-          {profile?.stats?.xp ?? 0}
+          {liveXP.toLocaleString("en-IN")}
         </span>
       </div>
     </div>
@@ -137,7 +140,7 @@ function SubjectPage() {
           <div>
             <h1 className="text-2xl font-extrabold text-foreground">{subject?.title}</h1>
             <p className="text-sm text-muted-foreground">
-              {subject?.class} Â· {subject?.track === "school" ? "School Academy" : "Coding Bootcamp"}
+              {subject?.class} · {subject?.track === "school" ? "School Academy" : "Coding Bootcamp"}
             </p>
           </div>
         </div>
@@ -164,7 +167,7 @@ function SubjectPage() {
               return (
                 <div key={group.groupId} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                   
-                  {/* â”€â”€ CHAPTER GROUP HEADER â”€â”€ */}
+                  {/* ── CHAPTER GROUP HEADER ── */}
                   <div className="flex items-center justify-between pr-3 group/header hover:bg-slate-50 transition-colors duration-300">
                     <Link
                       to={group.videos[0] ? "/chapter/$id" : "/subject/$id"}
@@ -172,7 +175,7 @@ function SubjectPage() {
                       className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 px-4 py-4"
                     >
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 text-sm font-bold transition-colors duration-300 group-hover/header:bg-primary/10 group-hover/header:text-primary group-hover/header:border-primary/20">
-                        {group.groupId === 0 ? "â€”" : group.groupId}
+                        {group.groupId === 0 ? "—" : group.groupId}
                       </div>
                       <div className="text-left min-w-0 flex-1">
                         <p className="text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover/header:text-primary truncate">
@@ -196,7 +199,7 @@ function SubjectPage() {
                     </button>
                   </div>
 
-                  {/* â”€â”€ VIDEOS / RESOURCES LIST â”€â”€ */}
+                  {/* ── VIDEOS / RESOURCES LIST ── */}
                   {isExpanded && (
                     <div className="border-t border-slate-100 px-4 bg-white">
                       <div className="flex flex-col divide-y divide-slate-100">
@@ -249,16 +252,12 @@ function SubjectPage() {
                                   ) : chapter.lessonType === "link" ? (
                                      <p className="text-[13px] font-medium text-slate-500 truncate">External Material</p>
                                   ) : (
-                                    <>
-                                      <Clock className="h-3.5 w-3.5 shrink-0" />
-                                      <p className="text-[11px] font-semibold truncate">{chapter.duration || "Self-paced"}</p>
-                                      {chapter.difficulty && (
-                                        <>
-                                          <span className="mx-1 opacity-50 shrink-0">â€¢</span>
-                                          <p className="text-[11px] font-semibold truncate">{chapter.difficulty}</p>
-                                        </>
-                                      )}
-                                    </>
+                                    chapter.duration ? (
+                                      <>
+                                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                                        <p className="text-[11px] font-semibold truncate">{chapter.duration}</p>
+                                      </>
+                                    ) : null
                                   )}
                                 </div>
                               </div>

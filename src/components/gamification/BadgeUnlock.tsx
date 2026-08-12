@@ -20,6 +20,11 @@ export function BadgeUnlock({ badgeId, show, onComplete }: Props) {
   useEffect(() => {
     if (show && badge) {
       setVisible(true);
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate([100, 50, 100, 50, 200]);
+        } catch {}
+      }
       const timer = setTimeout(() => {
         setVisible(false);
         onComplete?.();

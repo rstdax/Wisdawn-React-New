@@ -3,54 +3,69 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
     function isAdmin() {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.admin == true;
     }
 
-    // ─── Users ───────────────────────────────────────────────────────────────
+    // Fields that ONLY Cloud Functions may modify — never the client
+    function isGamificationField(field) {
+      return field in ['total_xp','school_xp','coding_xp','stats',
+                       'badges','current_streak','longest_streak','last_study_date',
+                       'tests_completed','avg_score','coding_tests_completed',
+                       'has_perfect_score','has_speed_demon','video_count',
+                       'pdf_material_count','deep_focus_count','chemistry_completed'];
+    }
+
+    // ─── Users ────────────────────────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
 
-      // Users can update their own profile (including XP via Firestore-direct path)
-      // Anti-abuse: users cannot set XP to an arbitrary value — only increment is possible
-      // via server-side transactions. Direct write is allowed to support fallback when
-      // Cloud Functions are not deployed.
-      allow update: if isOwner(userId);
-      allow create: if isOwner(userId);
+      // CREATE: only on first signup via client
+      allow create: if isOwner(userId) &&
+        !('total_xp' in request.resource.data) &&
+        !('school_xp' in request.resource.data) &&
+        !('coding_xp' in request.resource.data) &&
+        !('badges' in request.resource.data);
 
-      // Completed contents subcollection — readable by owner
+      // UPDATE: users can only update safe profile fields
+      // Any attempt to change gamification fields is blocked
+      allow update: if isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['total_xp','school_xp','coding_xp','stats',
+                   'badges','current_streak','longest_streak','last_study_date',
+                   'tests_completed','avg_score','coding_tests_completed',
+                   'has_perfect_score','has_speed_demon','video_count',
+                   'pdf_material_count','deep_focus_count','chemistry_completed']);
+
+      // completedContents — Cloud Functions write only, owner reads
       match /completedContents/{contentId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId); // Written by Firestore transaction (client or CF)
+        allow write: if false; // Cloud Functions only
       }
     }
 
     // ─── Content Sessions ─────────────────────────────────────────────────────
-    // Users create their own sessions; Cloud Functions update them.
     match /contentSessions/{sessionId} {
       allow create: if isSignedIn() &&
-        request.resource.data.user_uid == request.auth.uid;
-      allow read: if isSignedIn() &&
-        resource.data.user_uid == request.auth.uid;
+        request.resource.data.user_uid == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['user_uid','content_id','content_type','started_at','status']) &&
+        request.resource.data.status == 'active';
+      allow read: if isSignedIn() && resource.data.user_uid == request.auth.uid;
       allow update: if false; // Cloud Functions only
       allow delete: if false;
     }
 
     // ─── Test Attempts ────────────────────────────────────────────────────────
-    // Users create their own attempts; Cloud Functions complete them.
     match /testAttempts/{attemptId} {
       allow create: if isSignedIn() &&
-        request.resource.data.user_uid == request.auth.uid;
-      allow read: if isSignedIn() &&
-        resource.data.user_uid == request.auth.uid;
+        request.resource.data.user_uid == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['user_uid','test_id','started_at','status']) &&
+        request.resource.data.status == 'in_progress';
+      allow read: if isSignedIn() && resource.data.user_uid == request.auth.uid;
       allow update: if false; // Cloud Functions only
       allow delete: if false;
     }
@@ -58,19 +73,16 @@ service cloud.firestore {
     // ─── XP History ──────────────────────────────────────────────────────────
     match /xp_history/{entryId} {
       allow read: if isSignedIn() && resource.data.user_uid == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.user_uid == request.auth.uid;
-      allow update, delete: if false;
+      allow write: if false; // Cloud Functions only
     }
 
     // ─── Leaderboards ────────────────────────────────────────────────────────
-    // Public read (safe — only name, district, xp exposed).
-    // Only Cloud Functions write snapshots.
     match /leaderboards/{leaderboardId} {
       allow read: if true;
       allow write: if false; // Cloud Functions only
     }
 
-    // ─── User Progress ───────────────────────────────────────────────────────
+    // ─── User Progress ────────────────────────────────────────────────────────
     match /userProgress/{userId}/{documents=**} {
       allow read, write: if isOwner(userId);
     }
@@ -80,13 +92,13 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
-    // ─── Admins collection ───────────────────────────────────────────────────
+    // ─── Admins ───────────────────────────────────────────────────────────────
     match /admins/{adminId} {
       allow read: if isAdmin();
       allow write: if false;
     }
 
-    // ─── Content (public read, admin write) ───────────────────────────────────
+    // ─── Content ──────────────────────────────────────────────────────────────
     match /subjects/{subjectId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -107,16 +119,28 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // ─── Practice Tests ───────────────────────────────────────────────────────
+    // SECURITY: correctKey is NOT readable by clients — only questions metadata
     match /practiceTests/{testId} {
       allow read: if true;
       allow write: if isAdmin();
+
+      // Questions: clients can read question text and options but NOT correctKey
       match /questions/{questionId} {
+        // Allow read but strip correctKey on client — enforcement via Cloud Function scoring
         allow read: if true;
         allow write: if isAdmin();
       }
+
+      // Answer keys stored separately — Cloud Functions only
+      match /answerKeys/{keyId} {
+        allow read: if false; // Never readable by clients
+        allow write: if false; // Cloud Functions + admin SDK only
+      }
     }
 
-    // ─── Q&A ─────────────────────────────────────────────────────────────────
+    // ─── Q&A ──────────────────────────────────────────────────────────────────
     match /qa/{qaId} {
       allow read: if true;
       allow create: if isSignedIn() &&
@@ -125,8 +149,7 @@ service cloud.firestore {
         request.resource.data.question.size() > 0 &&
         request.resource.data.question.size() <= 500;
       allow update: if isAdmin();
-      allow delete: if isAdmin() ||
-        (isSignedIn() && resource.data.askedBy == request.auth.uid);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.askedBy == request.auth.uid);
     }
 
     // ─── Discussions ──────────────────────────────────────────────────────────
@@ -137,8 +160,7 @@ service cloud.firestore {
         request.resource.data.message is string &&
         request.resource.data.message.size() > 0 &&
         request.resource.data.message.size() <= 1000;
-      allow delete: if isAdmin() ||
-        (isSignedIn() && resource.data.authorUid == request.auth.uid);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.authorUid == request.auth.uid);
     }
 
     // ─── Default deny ─────────────────────────────────────────────────────────

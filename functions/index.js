@@ -140,14 +140,16 @@ exports.claimContentXP = onCall({ region: "asia-south1" }, async (request) => {
   if (!session_id || !content_id) throw new HttpsError("invalid-argument", "Missing session_id or content_id.");
 
   const sessionRef = db.doc(`contentSessions/${session_id}`);
-  const contentRef = db.doc(`chapters/${content_id}`);
+  const chapterRef = db.doc(`chapters/${content_id}`);
+  const lessonRef  = db.doc(`lessons/${content_id}`);
   const userRef    = db.doc(`users/${uid}`);
   const completionRef = db.doc(`users/${uid}/completedContents/${content_id}`);
 
   return db.runTransaction(async (tx) => {
-    const [sessionSnap, contentSnap, userSnap, completionSnap] = await Promise.all([
+    const [sessionSnap, chapterSnap, lessonSnap, userSnap, completionSnap] = await Promise.all([
       tx.get(sessionRef),
-      tx.get(contentRef),
+      tx.get(chapterRef),
+      tx.get(lessonRef),
       tx.get(userRef),
       tx.get(completionRef),
     ]);
@@ -165,17 +167,21 @@ exports.claimContentXP = onCall({ region: "asia-south1" }, async (request) => {
       return { success: false, xp_earned: 0, message: "XP already claimed." };
     }
 
-    // Validate content
-    if (!contentSnap.exists()) throw new HttpsError("not-found", "Content not found.");
-    const content = contentSnap.data();
-    const lessonType = content.lessonType || "video";
+    // Validate content from chapter or lesson doc or fallback to session data
+    const content = chapterSnap.exists() ? chapterSnap.data() : (lessonSnap.exists() ? lessonSnap.data() : {});
+    const lessonType = content.lessonType || content.type || session.content_type || "video";
     const defaults = CONTENT_DEFAULTS[lessonType] || CONTENT_DEFAULTS.video;
     const xpReward = typeof content.xp_reward === "number" ? content.xp_reward : defaults.xp_reward;
     const minTime  = typeof content.min_read_time_seconds === "number" ? content.min_read_time_seconds : defaults.min_read_time_seconds;
 
     // Verify elapsed time using server-side started_at
     const startedAt = session.started_at?.toMillis ? session.started_at.toMillis() : Date.now();
-    const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+    const nowTs = Date.now();
+    // Reject future timestamps (anti-cheat)
+    if (startedAt > nowTs + 30000) {
+      throw new HttpsError("failed-precondition", "Invalid session start time.");
+    }
+    const elapsedSeconds = Math.floor((nowTs - startedAt) / 1000);
     if (elapsedSeconds < minTime) {
       throw new HttpsError("failed-precondition", `Minimum time not reached. Need ${minTime}s, got ${elapsedSeconds}s.`);
     }
@@ -185,7 +191,6 @@ exports.claimContentXP = onCall({ region: "asia-south1" }, async (request) => {
     const category = subjectSnap?.data()?.track === "coding" ? "coding" : "school";
     const xpField = category === "coding" ? "coding_xp" : "school_xp";
 
-    const nowTs = Date.now();
     const userData = userSnap.data() || {};
 
     // Streak
@@ -300,32 +305,39 @@ exports.submitMcqTest = onCall({ region: "asia-south1" }, async (request) => {
     if (!testSnap.exists()) throw new HttpsError("not-found", "Test not found.");
     const test = testSnap.data();
 
-    // Load questions (correct answers stored server-side)
+    // Load questions — Cloud Function reads correctKey server-side from admin SDK
+    // Client never receives correctKey (Firestore rules block answerKeys subcollection)
     const qSnaps = await db.collection(`practiceTests/${attempt.test_id}/questions`).get();
     const questions = qSnaps.docs.map((d) => d.data());
     const totalQuestions = questions.length;
     if (totalQuestions === 0) throw new HttpsError("failed-precondition", "Test has no questions.");
 
-    // Score
+    // Score using server-side correctKey values
     let correctCount = 0;
     for (const q of questions) {
       const studentAnswer = answers[q.id];
-      if (studentAnswer === q.correctKey) correctCount++;
+      if (studentAnswer && studentAnswer === q.correctKey) correctCount++;
     }
     const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
 
-    // Time
+    // Time — server-side only
     const startedAt = attempt.started_at?.toMillis ? attempt.started_at.toMillis() : Date.now();
     const nowTs = Date.now();
     const actualTimeSecs = Math.floor((nowTs - startedAt) / 1000);
     const allowedTimeSecs = test.allowed_time_seconds || (test.durationMinutes || 30) * 60;
-    const baseTestXP = test.base_test_xp || 100;
 
-    // XP calculation
-    const baseXP = Math.round(baseTestXP * correctCount / totalQuestions);
-    const accuracyBonus = scorePercentage === 100 ? 50 : 0;
-    const speedBonus = (scorePercentage > 90 && actualTimeSecs < allowedTimeSecs / 2) ? 20 : 0;
-    const finalXP = baseXP + accuracyBonus + speedBonus;
+    // Validate: reject future start times (anti-cheat)
+    if (startedAt > nowTs + 30000) {
+      throw new HttpsError("failed-precondition", "Invalid attempt start time.");
+    }
+
+    const baseTestXP = test.base_test_xp || 1;
+
+    // XP = XP_per_question × correct answers
+    const finalXP = baseTestXP * correctCount;
+    const baseXP = finalXP;
+    const accuracyBonus = 0;
+    const speedBonus = 0;
 
     const category = test.category || (test.tag === "Coding" ? "coding" : "school");
     const xpField = category === "coding" ? "coding_xp" : "school_xp";
