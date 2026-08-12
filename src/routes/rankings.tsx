@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Filter, Trophy, Sparkles, Award, ChevronDown, Loader2 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { Wisby } from "@/components/wisby";
@@ -23,13 +23,57 @@ const XPCoin = ({ className }: { className?: string }) => (
   </div>
 );
 
+// Animated Cones Component (Pointing Upwards for the sticky bottom bar)
+function AnimatedZigZag() {
+  const CONE_COUNT = 12; // Number of triangles across the screen
+  const COLORS = [
+    "text-purple-300/90",
+    "text-emerald-300/90",
+    "text-amber-300/90",
+    "text-cyan-300/90"
+  ];
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    // Ticks every 120ms to drive the sequential animation
+    const timer = setInterval(() => setTick((t) => t + 1), 120);
+    return () => clearInterval(timer);
+  }, []);
+
+  const cycleLength = CONE_COUNT * 2 + 8; // Total ticks for one full show/hide cycle
+  const currentCycle = Math.floor(tick / cycleLength);
+  const phaseTick = tick % cycleLength;
+  const currentColor = COLORS[currentCycle % COLORS.length];
+
+  return (
+    // Positioned at bottom-full to sit directly on top of the sticky bar pointing up
+    <div className="absolute bottom-full left-0 w-full flex z-0 pointer-events-none drop-shadow-sm h-[18px]">
+      {Array.from({ length: CONE_COUNT }).map((_, i) => {
+        // Math to make them emerge left-to-right, pause, then hide left-to-right
+        const isShown = phaseTick >= i && phaseTick < (CONE_COUNT + 4 + i);
+        return (
+          <div 
+            key={i} 
+            className={`flex-1 transition-transform duration-300 ease-out origin-bottom ${currentColor} ${isShown ? "scale-y-100" : "scale-y-0"}`}
+          >
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full block">
+              {/* Flipped polygon: Point at top (50,0), Flat on bottom (100,100 to 0,100) */}
+              <polygon points="50,0 100,100 0,100" fill="currentColor" />
+            </svg>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 type TabType = "All" | "School" | "Coding";
 const CATEGORY_MAP: Record<TabType, LeaderboardCategory> = { All: "all", School: "school", Coding: "coding" };
 
 function RankMedalBadge({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
-      <div className="relative flex flex-col items-center justify-center h-10 w-9 shrink-0">
+      <div className="relative flex flex-col items-center justify-center h-9 w-8 shrink-0">
         <svg viewBox="0 0 36 44" className="h-full w-full drop-shadow-sm" fill="none">
           <path d="M11 2L18 13L10 13L5 2Z" fill="#3B82F6" />
           <path d="M25 2L18 13L26 13L31 2Z" fill="#EF4444" />
@@ -56,7 +100,7 @@ function RankMedalBadge({ rank }: { rank: number }) {
 
   if (rank === 2) {
     return (
-      <div className="relative flex flex-col items-center justify-center h-10 w-9 shrink-0">
+      <div className="relative flex flex-col items-center justify-center h-9 w-8 shrink-0">
         <svg viewBox="0 0 36 44" className="h-full w-full drop-shadow-sm" fill="none">
           <path d="M11 2L18 13L10 13L5 2Z" fill="#3B82F6" />
           <path d="M25 2L18 13L26 13L31 2Z" fill="#EF4444" />
@@ -83,7 +127,7 @@ function RankMedalBadge({ rank }: { rank: number }) {
 
   if (rank === 3) {
     return (
-      <div className="relative flex flex-col items-center justify-center h-10 w-9 shrink-0">
+      <div className="relative flex flex-col items-center justify-center h-9 w-8 shrink-0">
         <svg viewBox="0 0 36 44" className="h-full w-full drop-shadow-sm" fill="none">
           <path d="M11 2L18 13L10 13L5 2Z" fill="#3B82F6" />
           <path d="M25 2L18 13L26 13L31 2Z" fill="#EF4444" />
@@ -109,7 +153,7 @@ function RankMedalBadge({ rank }: { rank: number }) {
   }
 
   return (
-    <div className="flex h-8 w-8 items-center justify-center font-bold text-slate-400 text-[15px]">
+    <div className="flex h-7 w-7 items-center justify-center font-bold text-slate-400 text-sm">
       {rank}
     </div>
   );
@@ -140,34 +184,42 @@ function Rankings() {
 
   return (
     <MobileFrame>
-      {/* Branding header */}
-      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-3 bg-white sticky top-0 z-20">
+      {/* WISDAWN BRANDING & POINTS HEADER (Matching home.tsx) */}
+      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2 sticky top-0 bg-background z-20">
+        {/* Left Side: Logo and Name */}
         <div className="flex items-center gap-2">
           <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
-          <span className="text-2xl font-bold text-blue-600 tracking-tight">Wisdawn</span>
+          <span className="text-2xl font-bold text-primary">Wisdawn</span>
         </div>
-        <div id="xp-header-pill" className="flex items-center gap-2 rounded-full bg-slate-50 border border-slate-100 px-3 py-1.5 shadow-sm">
-          <XPCoin className="h-5 w-5" />
-          <span className="text-[15px] font-bold text-slate-800">{myXP.toLocaleString()}</span>
+
+        {/* Right Side: Coin Pill */}
+        <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+          <XPCoin className="h-7 w-7" />
+          <span className="text-xl font-bold text-amber-500">
+            {myXP.toLocaleString("en-IN")}
+          </span>
         </div>
       </div>
 
+      {/* THE DIVIDER LINE */}
+      <hr className="block md:hidden border-t border-border/60 mx-5 mb-2 sticky top-[60px] z-20" />
+
       {/* Page title */}
-      <header className="flex md:hidden items-center justify-between px-5 pt-4 pb-4">
+      <header className="flex md:hidden items-center justify-between px-5 pt-2 pb-3">
         <div>
-          <h1 className="text-[32px] font-bold text-slate-900 tracking-tight leading-tight">Rankings</h1>
-          <p className="text-[14px] text-slate-500 mt-1 flex items-center gap-1">
-            ASOM State (All Assam) <ChevronDown className="h-4 w-4" />
+          <h1 className="text-[22px] font-extrabold text-slate-900 tracking-tight">Rankings</h1>
+          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+            All Assam State Ranks <ChevronDown className="h-3.5 w-3.5" />
           </p>
         </div>
-        <button className="grid h-11 w-11 place-items-center rounded-full bg-transparent border border-slate-200 text-slate-500">
-          <Filter className="h-5 w-5" />
+        <button className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 border border-slate-100 text-slate-700 shadow-sm transition hover:bg-slate-100">
+          <Filter className="h-4 w-4" />
         </button>
       </header>
 
       {/* Tab switcher */}
       <div className="px-5 pb-2 md:hidden">
-        <div className="relative rounded-full bg-slate-50 p-1 flex border border-slate-100">
+        <div className="relative rounded-full bg-slate-100 p-1 flex shadow-inner overflow-hidden">
           <div
             className="absolute inset-y-1 rounded-full shadow-sm transition-all duration-300 bg-blue-600"
             style={{
@@ -180,7 +232,7 @@ function Rankings() {
             <button
               key={t}
               onClick={() => setActiveTab(t)}
-              className={`relative z-10 flex-1 rounded-full py-2.5 text-[14px] font-semibold transition-colors duration-300 truncate px-1 ${activeTab === t ? "text-white" : "text-slate-500"}`}
+              className={`relative z-10 flex-1 rounded-full py-2 text-xs font-bold transition-colors duration-300 truncate px-1 ${activeTab === t ? "text-white" : "text-slate-500 hover:text-slate-700"}`}
             >
               {t}
             </button>
@@ -188,21 +240,22 @@ function Rankings() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-28 pt-2">
+      {/* Increased padding-bottom here so the list doesn't get hidden behind the sticky bar */}
+      <div className="flex-1 overflow-y-auto pb-32 pt-2">
         {/* Desktop header */}
-        <div className="hidden md:flex justify-between items-center mb-8 px-5 md:px-0">
+        <div className="hidden md:flex justify-between items-center mb-6 px-5 md:px-0">
           <div>
-            <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
               <Trophy className="h-6 w-6 text-yellow-500 fill-yellow-500" /> Leaderboard
             </h1>
-            <p className="text-[13px] text-slate-500 font-medium mt-0.5">Assam State Rankings</p>
+            <p className="text-sm text-slate-500 font-medium mt-0.5">Assam State Rankings</p>
           </div>
           <div className="flex gap-2">
             {(["All", "School", "Coding"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
-                className={`rounded-full px-5 py-2 text-[13px] font-bold border shadow-sm transition ${activeTab === t ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                className={`rounded-full px-5 py-2 text-xs font-bold border shadow-sm transition ${activeTab === t ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
               >
                 {t}
               </button>
@@ -225,7 +278,7 @@ function Rankings() {
                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
               </div>
             ) : entries.length === 0 ? (
-              <div className="mx-5 md:mx-0 rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
+              <div className="mx-5 md:mx-0 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-xs text-slate-500 font-medium">
                 No rankings yet. Start learning to appear here!
               </div>
             ) : (
@@ -235,7 +288,7 @@ function Rankings() {
                   return (
                     <div
                       key={u.uid}
-                      className={`flex items-center gap-4 py-4 px-5 transition-colors border-b border-slate-50 ${isMe ? "bg-blue-50/50" : "bg-white hover:bg-slate-50/50"}`}
+                      className={`flex items-center gap-3 py-3 px-5 transition-colors border-b border-slate-50 ${isMe ? "bg-blue-50/50" : "bg-white hover:bg-slate-50/50"}`}
                     >
                       {/* Rank badge */}
                       <div className="w-8 flex justify-center items-center shrink-0">
@@ -243,7 +296,7 @@ function Rankings() {
                       </div>
 
                       {/* Avatar */}
-                      <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full font-bold text-[16px] ${
+                      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full font-bold text-sm ${
                         u.rank === 1 ? "bg-amber-100 text-amber-600" :
                         u.rank === 2 ? "bg-slate-100 text-slate-500" :
                         u.rank === 3 ? "bg-orange-100 text-orange-600" :
@@ -254,28 +307,28 @@ function Rankings() {
 
                       {/* Name & District */}
                       <div className="flex-1 min-w-0">
-                        <p className="truncate text-[16px] font-bold text-slate-900">
+                        <p className="truncate text-sm font-bold text-slate-900">
                           {u.name}{isMe ? " (You)" : ""}
                         </p>
-                        <p className="truncate text-[13px] text-slate-500 mt-0.5">
+                        <p className="truncate text-[11px] text-slate-500 mt-0.5">
                           {u.district}
                         </p>
                       </div>
 
-                      {/* District (desktop only extra column, hidden on mobile logic handled above) */}
-                      <div className="hidden md:block col-span-2 text-[13px] font-medium text-slate-500">
+                      {/* District (desktop only extra column) */}
+                      <div className="hidden md:block col-span-2 text-xs font-medium text-slate-500">
                         {u.district}
                       </div>
 
                       {/* XP */}
                       <div className="text-right flex flex-col items-end justify-center shrink-0">
-                        <div className="flex items-center gap-1.5">
-                          <XPCoin className="h-4 w-4" />
-                          <p className="text-[16px] font-bold text-slate-900">
+                        <div className="flex items-center gap-1">
+                          <XPCoin className="h-3.5 w-3.5" />
+                          <p className="text-[15px] font-bold text-slate-900">
                             {xpByCategory(u).toLocaleString()}
                           </p>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                           XP POINTS
                         </span>
                       </div>
@@ -288,35 +341,35 @@ function Rankings() {
 
           {/* Desktop sidebar */}
           <div className="hidden lg:block lg:col-span-1 space-y-6">
-            <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-[15px] font-extrabold text-slate-900 flex items-center gap-2">
-                <Award className="h-5 w-5 text-purple-600" /> Your Rank Stats
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Award className="h-4 w-4 text-purple-600" /> Your Rank Stats
               </h3>
-              <div className="flex flex-col items-center py-6 text-center">
-                <Wisby variant="cheer" className="h-32 w-32 drop-shadow-md" />
-                <h4 className="text-[20px] font-black text-slate-900 mt-3">
+              <div className="flex flex-col items-center py-5 text-center">
+                <Wisby variant="cheer" className="h-28 w-28 drop-shadow-md" />
+                <h4 className="text-lg font-black text-slate-900 mt-3">
                   {userRankNumber ? `Rank #${userRankNumber} in Assam` : "Unranked"}
                 </h4>
-                <p className="text-[13px] font-medium text-slate-500 mt-1.5 px-4 leading-relaxed">
+                <p className="text-xs font-medium text-slate-500 mt-1 px-4 leading-relaxed">
                   Keep learning to climb the leaderboard!
                 </p>
               </div>
-              <div className="space-y-4 border-t border-slate-100 pt-5">
+              <div className="space-y-4 border-t border-slate-100 pt-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-semibold text-slate-500">Your XP</span>
+                  <span className="text-xs font-semibold text-slate-500">Your XP</span>
                   <div className="flex items-center gap-1.5">
                     <XPCoin className="h-4 w-4" />
-                    <span className="text-[15px] text-slate-900 font-black">{myXP.toLocaleString()}</span>
+                    <span className="text-sm text-slate-900 font-bold">{myXP.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-6 shadow-sm">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-blue-600 uppercase tracking-widest">
-                <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500" /> Leaderboard
+            <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-5 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-blue-600 uppercase tracking-widest">
+                <Sparkles className="h-3 w-3 text-amber-500 fill-amber-500" /> Leaderboard
               </span>
-              <h4 className="text-[15px] font-bold text-slate-900 mt-3">Updated every 10 min</h4>
-              <p className="text-[13px] font-medium text-slate-500 mt-1.5 leading-relaxed">
+              <h4 className="text-sm font-bold text-slate-900 mt-2">Updated every 10 min</h4>
+              <p className="text-xs font-medium text-slate-500 mt-1 leading-relaxed">
                 Complete lessons to climb higher!
               </p>
             </div>
@@ -325,33 +378,38 @@ function Rankings() {
       </div>
 
       {/* Mobile sticky current user bar */}
-      <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom)+56px)] left-0 w-full z-10">
-        <div className="bg-blue-600 px-5 py-4">
-          <div className="flex items-center gap-4">
+      <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom)+64px)] left-0 w-full z-10">
+        <div className="relative bg-blue-600 px-5 py-3 shadow-lg">
+          
+          {/* Zig-Zag Animation pointing up */}
+          <AnimatedZigZag />
+
+          {/* Actual content overlayed to be above the cones if needed */}
+          <div className="relative z-10 flex items-center gap-3">
             <div className="w-8 flex justify-center items-center shrink-0">
               {userRankNumber && userRankNumber <= 3 ? (
                 <RankMedalBadge rank={userRankNumber} />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center font-bold text-white text-[16px]">
+                <div className="flex h-7 w-7 items-center justify-center font-bold text-white text-sm">
                   {userRankNumber ? userRankNumber : "—"}
                 </div>
               )}
             </div>
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-[16px] font-bold text-blue-600 shadow-sm">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-blue-600 shadow-sm">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[16px] font-bold text-white">{displayName}</p>
-              <p className="truncate text-[13px] text-blue-100 mt-0.5">
+              <p className="truncate text-sm font-bold text-white">{displayName}</p>
+              <p className="truncate text-xs text-blue-100 mt-0.5">
                 {profile?.district ?? "Assam"}
               </p>
             </div>
             <div className="text-right flex flex-col items-end shrink-0">
-              <div className="flex items-center gap-1.5">
-                <XPCoin className="h-4 w-4" />
-                <p className="text-[16px] font-bold text-white">{myXP.toLocaleString()}</p>
+              <div className="flex items-center gap-1">
+                <XPCoin className="h-3.5 w-3.5" />
+                <p className="text-[15px] font-bold text-white">{myXP.toLocaleString()}</p>
               </div>
-              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest mt-1">POINTS</p>
+              <p className="text-[9px] font-bold text-blue-200 uppercase tracking-widest mt-0.5">POINTS</p>
             </div>
           </div>
         </div>
