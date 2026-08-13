@@ -25,13 +25,16 @@ const XPCoin = ({ className }: { className?: string }) => (
 );
 
 // Animated Cones Component (Pointing Upwards for the sticky bottom bar)
+// Animated Cones Component (Pointing Upwards for the sticky bottom bar)
 function AnimatedZigZag() {
   const CONE_COUNT = 10;
+  
+  // Changed the opacity from /90 to /20 so it is barely noticeable
   const COLORS = [
-    "text-purple-300/90",
-    "text-emerald-300/90",
-    "text-amber-300/90",
-    "text-cyan-300/90"
+    "text-purple-300/20",
+    "text-emerald-300/20",
+    "text-amber-300/20",
+    "text-cyan-300/20"
   ];
   const [tick, setTick] = useState(0);
 
