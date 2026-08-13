@@ -293,7 +293,7 @@ exports.submitMcqTest = onCall({ region: "asia-south1" }, async (request) => {
   return db.runTransaction(async (tx) => {
     const [attemptSnap, userSnap] = await Promise.all([tx.get(attemptRef), tx.get(userRef)]);
 
-    if (!attemptSnap.exists()) throw new HttpsError("not-found", "Attempt not found.");
+    if (!attemptSnap.exists) throw new HttpsError("not-found", "Attempt not found.");
     const attempt = attemptSnap.data();
     if (attempt.user_uid !== uid) throw new HttpsError("permission-denied", "Not your attempt.");
     if (attempt.status === "completed") {
@@ -302,7 +302,7 @@ exports.submitMcqTest = onCall({ region: "asia-south1" }, async (request) => {
 
     // Load test
     const testSnap = await db.doc(`practiceTests/${attempt.test_id}`).get();
-    if (!testSnap.exists()) throw new HttpsError("not-found", "Test not found.");
+    if (!testSnap.exists) throw new HttpsError("not-found", "Test not found.");
     const test = testSnap.data();
 
     // Load questions — Cloud Function reads correctKey server-side from admin SDK
