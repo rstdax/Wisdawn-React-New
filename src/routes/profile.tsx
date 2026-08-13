@@ -18,6 +18,22 @@ import { useXP } from "@/hooks/use-xp";
 import wisbyAvatar from "../assets/jjj.jpeg";
 
 import logoImg from "@/assets/jjj.png";
+import logoCodingImg from "@/assets/logocoding.png";
+
+// Add these right here:
+const ANIMAL_FACES = [
+  "🐶", "🐱", "🐭", "🐹", "🐰", 
+  "🦊", "🐻", "🐼", "🐨", "🐯",
+  "🦁", "🐮", "🐷", "🐸", "🐵", 
+  "🦉", "🐔", "🐧", "🐦", "🐤"
+];
+
+const AVATARS = ANIMAL_FACES.map(
+  (emoji) =>
+    `data:image/svg+xml,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".92em" font-size="85" x="50%" text-anchor="middle">${emoji}</text></svg>`
+    )}`
+);
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — WisDawn" }] }),
@@ -75,6 +91,8 @@ function Profile() {
   const [name, setName] = useState("");
   const [showMore, setShowMore] = useState(false);
 
+  const savedTrack = typeof window !== "undefined" ? localStorage.getItem("wisdawn_track") : "school";
+
   // Sync name with loaded profile — only update when profile actually loads
   useEffect(() => {
     if (!loading && displayName && displayName !== "Learner") {
@@ -93,29 +111,39 @@ function Profile() {
 
   return (
     <MobileFrame>
-      {/* WISDAWN BRANDING & POINTS HEADER */}
-      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-3 bg-white border-b border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] sticky top-0 z-20">
-        <div className="flex items-center gap-2">
-          <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
-          <span className="text-2xl font-extrabold text-primary tracking-tight">Wisdawn</span>
-        </div>
-
-        <div id="xp-header-pill" className="flex items-center gap-2 rounded-full bg-slate-50 border border-slate-100 px-3 py-1 shadow-sm">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 24 24" 
-              fill="currentColor" 
-              className="h-3.5 w-3.5 text-amber-700 opacity-90"
-            >
-              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <span className="text-[15px] font-black text-slate-800">
-            {liveXP.toLocaleString("en-IN")}
-          </span>
-        </div>
+        {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
+    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
+      {/* Left Side: Logo and Name */}
+      <div className="flex items-center gap-2">
+        <img 
+          src={savedTrack === "coding" ? logoCodingImg : logoImg} 
+          alt="Wisdawn Logo" 
+          className="h-8 w-8 object-contain" 
+        />
+        <span className="text-2xl font-bold text-primary">Wisdawn</span>
       </div>
+
+      {/* Right Side: Coin Pill (No image file needed) */}
+      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+        {/* Custom CSS Coin with Star SVG */}
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="currentColor" 
+            className="h-4 w-4 text-amber-700 opacity-90"
+          >
+            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <span className="text-xl font-bold text-amber-500">
+          {liveXP.toLocaleString("en-IN")}
+        </span>
+      </div>
+    </div>
+
+    {/* THE DIVIDER LINE */}
+    <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
 
       {/* MOBILE HEADER TITLE */}
       <div className="px-5 pt-6 pb-2 md:hidden bg-white">
@@ -146,20 +174,20 @@ function Profile() {
             <div className="relative z-10 pb-6">
               <div className="flex items-start gap-4">
                 <img 
-                  src={wisbyAvatar} 
+                  src={(profile as any)?.avatar || AVATARS[0]} 
                   alt="Profile Avatar" 
-                  className="h-16 w-16 shrink-0 rounded-full object-contain border border-slate-200 bg-white shadow-sm p-1" 
+                  className="h-16 w-16 shrink-0 rounded-full object-cover border border-slate-200 bg-white shadow-sm p-1" 
                 />
                 <div className="min-w-0 flex-1 pt-1">
                   <p className="truncate text-[18px] font-extrabold text-slate-900 leading-none">{name || "Learner"}</p>
                   <p className="truncate text-[13px] font-medium text-slate-500 mt-1">{displayEmail || "Loading..."}</p>
-                  <span className="mt-2.5 inline-block rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-extrabold tracking-widest uppercase text-blue-700">
+                  <span className="mt-2.5 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold tracking-widest uppercase text-primary">
                     {profile?.track || "Active Learner"}
                   </span>
                 </div>
                 <button
                   onClick={() => navigate({ to: "/profile/edit" })}
-                  className="rounded-full bg-white px-4 py-2 text-[11px] font-extrabold text-slate-600 border border-slate-200 shadow-sm transition hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 shrink-0"
+                  className="rounded-full bg-white px-4 py-2 text-[11px] font-extrabold text-slate-600 border border-slate-200 shadow-sm transition hover:bg-slate-50 hover:text-primary hover:border-primary/30 shrink-0"
                 >
                   Edit
                 </button>
@@ -186,8 +214,8 @@ function Profile() {
                 <Stat 
                   label="Rank" 
                   value={profile?.stats?.rank ? `#${profile.stats.rank}` : "—"} 
-                  icon={<Trophy className="h-4 w-4 text-blue-600" />}
-                  iconBg="bg-blue-100 border border-blue-200"
+                  icon={<Trophy className="h-4 w-4 text-primary" />}
+                  iconBg="bg-primary/10 border border-primary/20"
                 />
               </div>
             </div>
@@ -259,23 +287,23 @@ function Item({
       onClick={onClick}
       className={`flex w-full items-center gap-4 px-5 py-4 text-left transition-colors duration-300 group ${
         active
-          ? "bg-blue-50/50"
+          ? "bg-primary/5"
           : "bg-white hover:bg-slate-50"
       }`}
     >
       <span
         className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border transition-colors duration-300 ${
           active 
-            ? "bg-blue-100 border-blue-200 text-blue-600" 
-            : "bg-slate-50 border-slate-100 text-slate-400 group-hover:bg-blue-50 group-hover:border-blue-100 group-hover:text-blue-500"
+            ? "bg-primary/10 border-primary/20 text-primary" 
+            : "bg-slate-50 border-slate-100 text-slate-400 group-hover:bg-primary/10 group-hover:border-primary/20 group-hover:text-primary"
         }`}
       >
         {icon}
       </span>
-      <span className={`flex-1 text-[15px] transition-colors duration-300 ${active ? "font-bold text-blue-700" : "font-bold text-slate-800 group-hover:text-blue-600"}`}>
+      <span className={`flex-1 text-[15px] transition-colors duration-300 ${active ? "font-bold text-primary" : "font-bold text-slate-800 group-hover:text-primary"}`}>
         {label}
       </span>
-      <ChevronRight className={`h-5 w-5 transition-colors duration-300 ${active ? "text-blue-500" : "text-slate-300 group-hover:text-blue-400"}`} />
+      <ChevronRight className={`h-5 w-5 transition-colors duration-300 ${active ? "text-primary" : "text-slate-300 group-hover:text-primary"}`} />
     </button>
   );
 }

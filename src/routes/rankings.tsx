@@ -9,6 +9,7 @@ import { useXP } from "@/hooks/use-xp";
 import type { LeaderboardCategory } from "@/lib/leaderboard";
 
 import logoImg from "@/assets/jjj.png";
+import logoCodingImg from "@/assets/logocoding.png";
 
 export const Route = createFileRoute("/rankings")({
   head: () => ({ meta: [{ title: "Rankings - WisDawn" }] }),
@@ -24,41 +25,41 @@ const XPCoin = ({ className }: { className?: string }) => (
 );
 
 // Animated Cones Component (Pointing Upwards for the sticky bottom bar)
+// Animated Cones Component (Pointing Upwards for the sticky bottom bar)
 function AnimatedZigZag() {
-  const CONE_COUNT = 12; // Number of triangles across the screen
+  const CONE_COUNT = 10; // Matches the rounded cones across the card[cite: 4]
   const COLORS = [
     "text-purple-300/90",
     "text-emerald-300/90",
     "text-amber-300/90",
     "text-cyan-300/90"
-  ];
+  ]; // Kept from rankings so they stay visible on the blue bar[cite: 3]
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    // Ticks every 120ms to drive the sequential animation
-    const timer = setInterval(() => setTick((t) => t + 1), 120);
+    // Ticks rapidly to drive the smooth wave animation[cite: 4]
+    const timer = setInterval(() => setTick((t) => t + 1), 100);
     return () => clearInterval(timer);
   }, []);
 
-  const cycleLength = CONE_COUNT * 2 + 8; // Total ticks for one full show/hide cycle
+  const cycleLength = CONE_COUNT * 2 + 5; // Ticks for one full show/hide wave cycle[cite: 4]
   const currentCycle = Math.floor(tick / cycleLength);
   const phaseTick = tick % cycleLength;
   const currentColor = COLORS[currentCycle % COLORS.length];
 
   return (
-    // Positioned at bottom-full to sit directly on top of the sticky bar pointing up
-    <div className="absolute bottom-full left-0 w-full flex z-0 pointer-events-none drop-shadow-sm h-[18px]">
+    // Height bumped to 30px and added items-end to match profile page proportions exactly[cite: 4]
+    <div className="absolute bottom-full left-0 w-full flex items-end z-0 pointer-events-none drop-shadow-sm h-[30px]">
       {Array.from({ length: CONE_COUNT }).map((_, i) => {
-        // Math to make them emerge left-to-right, pause, then hide left-to-right
-        const isShown = phaseTick >= i && phaseTick < (CONE_COUNT + 4 + i);
+        const isShown = phaseTick >= i && phaseTick < (CONE_COUNT + 2 + i);
         return (
           <div 
             key={i} 
             className={`flex-1 transition-transform duration-300 ease-out origin-bottom ${currentColor} ${isShown ? "scale-y-100" : "scale-y-0"}`}
           >
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full block">
-              {/* Flipped polygon: Point at top (50,0), Flat on bottom (100,100 to 0,100) */}
-              <polygon points="50,0 100,100 0,100" fill="currentColor" />
+              {/* Exact semicircle path from the profile page[cite: 4] */}
+              <path d="M0,100 Q50,0 100,100 Z" fill="currentColor" />
             </svg>
           </div>
         );
@@ -169,6 +170,11 @@ function Rankings() {
   const { data: xpData } = useXP(user?.uid);
   const { data: myRank } = useUserRank(user?.uid, category, location);
 
+  const savedTrack = typeof window !== "undefined" ? localStorage.getItem("wisdawn_track") : "school";
+  const showCodingLogo = activeTab === "Coding" || (activeTab === "All" && savedTrack === "coding");
+
+  const liveXP = xpData?.total_xp ?? profile?.stats?.xp ?? 0;
+
   const currentUserEntry = entries.find((e) => e.uid === user?.uid);
   const userRankNumber = currentUserEntry?.rank ?? myRank;
 
@@ -184,25 +190,39 @@ function Rankings() {
 
   return (
     <MobileFrame>
-      {/* WISDAWN BRANDING & POINTS HEADER (Matching home.tsx) */}
-      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2 sticky top-0 bg-background z-20">
-        {/* Left Side: Logo and Name */}
-        <div className="flex items-center gap-2">
-          <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
-          <span className="text-2xl font-bold text-primary">Wisdawn</span>
-        </div>
-
-        {/* Right Side: Coin Pill */}
-        <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
-          <XPCoin className="h-7 w-7" />
-          <span className="text-xl font-bold text-amber-500">
-            {myXP.toLocaleString("en-IN")}
-          </span>
-        </div>
+        {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
+    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
+      {/* Left Side: Logo and Name */}
+      <div className="flex items-center gap-2">
+        <img 
+          src={showCodingLogo ? logoCodingImg : logoImg} 
+          alt="Wisdawn Logo" 
+          className="h-8 w-8 object-contain" 
+        />
+        <span className="text-2xl font-bold text-primary">Wisdawn</span>
       </div>
 
-      {/* THE DIVIDER LINE */}
-      <hr className="block md:hidden border-t border-border/60 mx-5 mb-2 sticky top-[60px] z-20" />
+      {/* Right Side: Coin Pill (No image file needed) */}
+      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+        {/* Custom CSS Coin with Star SVG */}
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="currentColor" 
+            className="h-4 w-4 text-amber-700 opacity-90"
+          >
+            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <span className="text-xl font-bold text-amber-500">
+          {liveXP.toLocaleString("en-IN")}
+        </span>
+      </div>
+    </div>
+
+    {/* THE DIVIDER LINE */}
+    <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
 
       {/* Page title */}
       <header className="flex md:hidden items-center justify-between px-5 pt-2 pb-3">
@@ -221,7 +241,7 @@ function Rankings() {
       <div className="px-5 pb-2 md:hidden">
         <div className="relative rounded-full bg-slate-100 p-1 flex shadow-inner overflow-hidden">
           <div
-            className="absolute inset-y-1 rounded-full shadow-sm transition-all duration-300 bg-blue-600"
+            className="absolute inset-y-1 rounded-full shadow-sm transition-all duration-300 bg-primary"
             style={{
               width: "calc(33.33% - 4px)",
               left: activeTab === "All" ? "4px" : activeTab === "School" ? "calc(33.33% + 2px)" : "calc(66.66%)",
@@ -255,7 +275,7 @@ function Rankings() {
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
-                className={`rounded-full px-5 py-2 text-xs font-bold border shadow-sm transition ${activeTab === t ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                className={`rounded-full px-5 py-2 text-xs font-bold border shadow-sm transition ${activeTab === t ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
               >
                 {t}
               </button>
@@ -275,7 +295,7 @@ function Rankings() {
 
             {isLoading ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : entries.length === 0 ? (
               <div className="mx-5 md:mx-0 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-xs text-slate-500 font-medium">
@@ -288,7 +308,7 @@ function Rankings() {
                   return (
                     <div
                       key={u.uid}
-                      className={`flex items-center gap-3 py-3 px-5 transition-colors border-b border-slate-50 ${isMe ? "bg-blue-50/50" : "bg-white hover:bg-slate-50/50"}`}
+                      className={`flex items-center gap-3 py-3 px-5 transition-colors border-b border-slate-50 ${isMe ? "bg-primary/10" : "bg-white hover:bg-slate-50/50"}`}
                     >
                       {/* Rank badge */}
                       <div className="w-8 flex justify-center items-center shrink-0">
@@ -296,13 +316,18 @@ function Rankings() {
                       </div>
 
                       {/* Avatar */}
-                      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full font-bold text-sm ${
+                      {/* Avatar */}
+                      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full font-bold text-sm overflow-hidden ${
                         u.rank === 1 ? "bg-amber-100 text-amber-600" :
                         u.rank === 2 ? "bg-slate-100 text-slate-500" :
                         u.rank === 3 ? "bg-orange-100 text-orange-600" :
-                        "bg-blue-50 text-blue-600"
+                        "bg-primary/10 text-primary"
                       }`}>
-                        {u.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
+                        {(u as any).avatar ? (
+                          <img src={(u as any).avatar} alt={u.name} className="h-full w-full object-cover" />
+                        ) : (
+                          u.name.split(" ").map((p: string) => p[0]).join("").toUpperCase().slice(0, 2)
+                        )}
                       </div>
 
                       {/* Name & District */}
@@ -365,7 +390,7 @@ function Rankings() {
               </div>
             </div>
             <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-5 shadow-sm">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-blue-600 uppercase tracking-widest">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-primary uppercase tracking-widest">
                 <Sparkles className="h-3 w-3 text-amber-500 fill-amber-500" /> Leaderboard
               </span>
               <h4 className="text-sm font-bold text-slate-900 mt-2">Updated every 10 min</h4>
@@ -379,7 +404,7 @@ function Rankings() {
 
       {/* Mobile sticky current user bar */}
       <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom)+64px)] left-0 w-full z-10">
-        <div className="relative bg-blue-600 px-5 py-3 shadow-lg">
+        <div className="relative bg-primary px-5 py-3 shadow-lg">
           
           {/* Zig-Zag Animation pointing up */}
           <AnimatedZigZag />
@@ -395,12 +420,16 @@ function Rankings() {
                 </div>
               )}
             </div>
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-blue-600 shadow-sm">
-              {initials}
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-primary shadow-sm overflow-hidden">
+              {(profile as any)?.avatar ? (
+                <img src={(profile as any).avatar} alt={displayName} className="h-full w-full object-cover p-0.5 rounded-full" />
+              ) : (
+                initials
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-white">{displayName}</p>
-              <p className="truncate text-xs text-blue-100 mt-0.5">
+              <p className="truncate text-xs text-white/80 mt-0.5">
                 {profile?.district ?? "Assam"}
               </p>
             </div>
@@ -409,7 +438,7 @@ function Rankings() {
                 <XPCoin className="h-3.5 w-3.5" />
                 <p className="text-[15px] font-bold text-white">{myXP.toLocaleString()}</p>
               </div>
-              <p className="text-[9px] font-bold text-blue-200 uppercase tracking-widest mt-0.5">POINTS</p>
+              <p className="text-[9px] font-bold text-white/60 uppercase tracking-widest mt-0.5">POINTS</p>
             </div>
           </div>
         </div>

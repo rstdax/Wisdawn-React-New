@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ArrowLeft,
   Calendar as CalendarIcon,
@@ -8,7 +8,6 @@ import {
   MapPin,
   Sparkles,
   ShieldCheck,
-  Pencil,
   Bookmark,
   Mail
 } from "lucide-react";
@@ -16,7 +15,6 @@ import { MobileFrame } from "@/components/mobile-frame";
 import { refreshUserProfile, useAuth } from "@/hooks/use-auth";
 import { saveOnboardingData } from "@/lib/auth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import wisbyAvatar from "@/assets/jjj.jpeg";
 
 const ASSAM_DISTRICTS = [
   "Bajali", "Baksa", "Barpeta", "Biswanath", "Bongaigaon", "Cachar",
@@ -28,6 +26,22 @@ const ASSAM_DISTRICTS = [
   "Tamulpur", "Tinsukia", "Udalguri", "West Karbi Anglong",
 ];
 
+// 20 predefined animal and bird face avatars
+const ANIMAL_FACES = [
+  "🐶", "🐱", "🐭", "🐹", "🐰", 
+  "🦊", "🐻", "🐼", "🐨", "🐯",
+  "🦁", "🐮", "🐷", "🐸", "🐵", 
+  "🦉", "🐔", "🐧", "🐦", "🐤"
+];
+
+// Convert the emojis into valid SVG image URLs so they work perfectly inside the <img src="..." />
+const AVATARS = ANIMAL_FACES.map(
+  (emoji) =>
+    `data:image/svg+xml,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".92em" font-size="85" x="50%" text-anchor="middle">${emoji}</text></svg>`
+    )}`
+);
+
 type EditForm = {
   name: string;
   guardian: string;
@@ -36,6 +50,7 @@ type EditForm = {
   district: string;
   state: string;
   track: string;
+  avatar?: string;
 };
 
 export const Route = createFileRoute("/profile_/edit")({
@@ -46,6 +61,10 @@ export const Route = createFileRoute("/profile_/edit")({
 function EditProfile() {
   const navigate = useNavigate();
   const { user, profile, displayName, displayEmail, loading } = useAuth();
+  
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+  
   const [form, setForm] = useState<EditForm>({
     name: "",
     guardian: "",
@@ -59,6 +78,9 @@ function EditProfile() {
 
   useEffect(() => {
     if (loading) return;
+    
+    const userAvatar = (profile as any)?.avatar || AVATARS[0];
+    
     setForm({
       name: profile?.name || displayName || "",
       guardian: profile?.guardian || "",
@@ -68,17 +90,61 @@ function EditProfile() {
       state: profile?.state || "Assam",
       track: profile?.track || "School Academy",
     });
+    
+    setSelectedAvatar(userAvatar);
+
+    // Center the slider on the user's saved avatar on load
+    setTimeout(() => {
+      if (!sliderRef.current) return;
+      const index = AVATARS.indexOf(userAvatar);
+      if (index !== -1) {
+        const container = sliderRef.current;
+        const child = container.children[index] as HTMLElement;
+        if (child) {
+          container.scrollLeft = child.offsetLeft - container.clientWidth / 2 + child.clientWidth / 2;
+        }
+      }
+    }, 100);
   }, [displayName, loading, profile]);
 
   const updateField = <Field extends keyof EditForm>(field: Field, value: EditForm[Field]) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const handleScroll = () => {
+    if (!sliderRef.current) return;
+    const container = sliderRef.current;
+    
+    // Calculate the center point of the visible scroll area
+    const center = container.scrollLeft + container.clientWidth / 2;
+    
+    let closestIndex = 0;
+    let minDistance = Infinity;
+    
+    // Find which avatar is closest to the center
+    Array.from(container.children).forEach((child, index) => {
+      const childEl = child as HTMLElement;
+      const childCenter = childEl.offsetLeft + childEl.clientWidth / 2;
+      const distance = Math.abs(center - childCenter);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = index;
+      }
+    });
+    
+    const newAvatar = AVATARS[closestIndex];
+    if (newAvatar !== selectedAvatar) {
+      setSelectedAvatar(newAvatar);
+    }
+  };
+
   const saveProfile = async () => {
     if (!user) return;
     setSaving(true);
     try {
-      await saveOnboardingData(user.uid, form);
+      // Save both the form data and the selected avatar
+      await saveOnboardingData(user.uid, { ...form, avatar: selectedAvatar } as any);
       await refreshUserProfile();
       navigate({ to: "/profile" });
     } finally {
@@ -86,9 +152,7 @@ function EditProfile() {
     }
   };
 
-  const wdnId = user?.uid ? `WDN-${user.uid.slice(0, 6).toUpperCase()}` : "WDN-102938";
-
-  // Dynamic theme based on selected track: Blue for School Academy, Purple for Coding Bootcamp
+  // Dynamic theme based on selected track
   const isCoding = form.track === "Coding Bootcamp";
 
   const theme = isCoding
@@ -105,20 +169,22 @@ function EditProfile() {
       bannerBorder: "border-[#F3E8FF]",
       bannerIconBorder: "border-[#E9D5FF]",
       bannerTitle: "text-[#5B21B6]",
+      ringBorder: "border-[#7C3AED]"
     }
     : {
-      primaryText: "text-primary",
-      primaryBg: "bg-primary",
-      primaryHoverBg: "hover:bg-primary/90",
-      accentBg: "bg-primary/10",
+      primaryText: "text-blue-600",
+      primaryBg: "bg-blue-600",
+      primaryHoverBg: "hover:bg-blue-700",
+      accentBg: "bg-blue-50",
       accentBorder: "border-blue-100",
-      avatarBg: "bg-primary/10/70",
-      focusBorder: "focus:border-primary",
+      avatarBg: "bg-blue-50",
+      focusBorder: "focus:border-blue-600",
       focusRing: "focus:ring-blue-600",
-      bannerBg: "bg-primary/10/70",
+      bannerBg: "bg-blue-50/50",
       bannerBorder: "border-blue-100",
       bannerIconBorder: "border-blue-200",
       bannerTitle: "text-blue-950",
+      ringBorder: "border-blue-600"
     };
 
   return (
@@ -140,26 +206,40 @@ function EditProfile() {
             </div>
           </div>
 
-          {/* User Avatar Card */}
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-2xs flex flex-col items-center text-center mb-4">
-            <div className="relative inline-block">
-              <div className={`h-20 w-20 rounded-full ${theme.avatarBg} p-1 flex items-center justify-center overflow-hidden transition-colors duration-300`}>
-                <img
-                  src={wisbyAvatar}
-                  alt="User Avatar"
-                  className="h-full w-full rounded-full object-cover"
-                />
-              </div>
-              <button
-                type="button"
-                className={`absolute bottom-0 right-0 grid h-6 w-6 place-items-center rounded-full ${theme.primaryBg} text-white shadow-md border-2 border-white transition-colors duration-300 ${theme.primaryHoverBg} cursor-pointer`}
-                aria-label="Edit avatar"
+          {/* User Avatar Slider Card */}
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-2xs flex flex-col items-center text-center mb-4 overflow-hidden relative">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Slide to select avatar</p>
+            
+            <div className="relative w-full max-w-[320px] h-20 flex items-center justify-center">
+              {/* Center Ring Indicator */}
+              <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-20 w-20 rounded-full border-[3px] ${theme.ringBorder} z-10 pointer-events-none transition-colors duration-300 drop-shadow-sm`} />
+              
+              {/* Scrollable Avatar Track */}
+              <div 
+                ref={sliderRef}
+                onScroll={handleScroll}
+                className="flex gap-4 overflow-x-auto snap-x snap-mandatory w-full h-full items-center px-[calc(50%-2rem)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               >
-                <Pencil className="h-3 w-3 stroke-[2.5]" />
-              </button>
+                {AVATARS.map((avatar, i) => {
+                  const isSelected = selectedAvatar === avatar;
+                  return (
+                    <div key={i} className="shrink-0 h-16 w-16 snap-center flex items-center justify-center">
+                      <img 
+                        src={avatar} 
+                        alt={`Avatar option ${i+1}`}
+                        className={`rounded-full object-cover transition-all duration-300 ${theme.avatarBg} ${
+                          isSelected 
+                            ? "h-16 w-16 opacity-100 shadow-md p-1" 
+                            : "h-12 w-12 opacity-40 grayscale-[40%] p-1"
+                        }`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <h2 className="mt-3 text-base sm:text-lg font-bold text-slate-900">
+            <h2 className="mt-5 text-base sm:text-lg font-bold text-slate-900">
               {form.name || displayName || "Rohan Ranjan Das"}
             </h2>
 

@@ -16,6 +16,7 @@ import { useXP } from "@/hooks/use-xp";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import logoImg from "@/assets/jjj.png";
+import logoCodingImg from "@/assets/logocoding.png";
 
 export const Route = createFileRoute("/learn")({
   head: () => ({ meta: [{ title: "Learn — WisDawn" }] }),
@@ -150,7 +151,11 @@ function Learn() {
     <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
       {/* Left Side: Logo and Name */}
       <div className="flex items-center gap-2">
-        <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
+        <img 
+          src={track === "coding" ? logoCodingImg : logoImg} 
+          alt="Wisdawn Logo" 
+          className="h-8 w-8 object-contain" 
+        />
         <span className="text-2xl font-bold text-primary">Wisdawn</span>
       </div>
 
@@ -273,7 +278,11 @@ function Learn() {
     <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
       {/* Left Side: Logo and Name */}
       <div className="flex items-center gap-2">
-        <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
+        <img 
+          src={track === "coding" ? logoCodingImg : logoImg} 
+          alt="Wisdawn Logo" 
+          className="h-8 w-8 object-contain" 
+        />
         <span className="text-2xl font-bold text-primary">Wisdawn</span>
       </div>
 
