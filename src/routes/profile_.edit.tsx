@@ -245,7 +245,12 @@ function EditProfile() {
 
             <div className={`mt-1.5 inline-flex items-center gap-1.5 rounded-lg ${theme.accentBg} px-2.5 py-0.5 text-[11px] font-semibold ${theme.primaryText} border ${theme.accentBorder} transition-colors duration-300`}>
               <Mail className="h-3 w-3 stroke-[2.2]" />
-              <span>{user?.email || displayEmail || "user@gmail.com"}</span>
+              {/* Fixed Email/Phone Loading Logic Here */}
+              <span>
+                {loading 
+                  ? "Loading..." 
+                  : (displayEmail || (profile as any)?.phoneNumber || (user as any)?.phoneNumber || "Phone User")}
+              </span>
             </div>
           </div>
 

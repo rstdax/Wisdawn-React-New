@@ -15,12 +15,13 @@ import { BottomNav } from "@/components/bottom-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { signOutUser } from "@/lib/auth";
 import { useXP } from "@/hooks/use-xp";
-import wisbyAvatar from "../assets/jjj.jpeg";
+import { useLeaderboard, useUserRank } from "@/hooks/use-leaderboard";
+import type { LeaderboardCategory } from "@/lib/leaderboard";
 
+import wisbyAvatar from "../assets/jjj.jpeg";
 import logoImg from "@/assets/jjj.png";
 import logoCodingImg from "@/assets/logocoding.png";
 
-// Add these right here:
 const ANIMAL_FACES = [
   "🐶", "🐱", "🐭", "🐹", "🐰", 
   "🦊", "🐻", "🐼", "🐨", "🐯",
@@ -40,9 +41,17 @@ export const Route = createFileRoute("/profile")({
   component: Profile,
 });
 
-// NEW: Animated Cones/Scallops Component for Profile Card Background
+const XPCoin = ({ className }: { className?: string }) => (
+  <div className={`flex items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400 ${className}`}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-full w-full p-0.5 text-amber-700 opacity-90">
+      <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+    </svg>
+  </div>
+);
+
+// Animated Cones/Scallops Component for Profile Card Background
 function AnimatedZigZag() {
-  const CONE_COUNT = 10; // Number of rounded cones across the card
+  const CONE_COUNT = 10;
   const COLORS = [
     "text-blue-500/10",
     "text-purple-500/10",
@@ -52,12 +61,11 @@ function AnimatedZigZag() {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    // Ticks rapidly to drive the smooth wave animation
     const timer = setInterval(() => setTick((t) => t + 1), 100);
     return () => clearInterval(timer);
   }, []);
 
-  const cycleLength = CONE_COUNT * 2 + 5; // Ticks for one full show/hide wave cycle
+  const cycleLength = CONE_COUNT * 2 + 5;
   const currentCycle = Math.floor(tick / cycleLength);
   const phaseTick = tick % cycleLength;
   const currentColor = COLORS[currentCycle % COLORS.length];
@@ -65,7 +73,6 @@ function AnimatedZigZag() {
   return (
     <div className="absolute bottom-0 left-0 w-full flex items-end z-0 pointer-events-none h-[30px]">
       {Array.from({ length: CONE_COUNT }).map((_, i) => {
-        // Math to make them emerge left-to-right, hold, then hide left-to-right
         const isShown = phaseTick >= i && phaseTick < (CONE_COUNT + 2 + i);
         return (
           <div 
@@ -85,15 +92,25 @@ function AnimatedZigZag() {
 function Profile() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { displayName, displayEmail, profile, loading, user } = useAuth();
+  const { initials, displayName, displayEmail, profile, loading, user } = useAuth();
+  
+  const savedTrack = typeof window !== "undefined" ? localStorage.getItem("wisdawn_track") : "school";
+  const category: LeaderboardCategory = savedTrack === "coding" ? "coding" : "school";
+  
+  // Fetch live entries exactly like the rankings page
+  const { data: entries = [] } = useLeaderboard(category, "assam");
   const { data: xpData } = useXP(user?.uid);
+  const { data: myRank } = useUserRank(user?.uid, category, "assam");
+  
   const liveXP = xpData?.total_xp ?? profile?.stats?.xp ?? 0;
+  
+  // Calculate rank dynamically with fallbacks (using || so it overrides 0)
+  const currentUserEntry = entries.find((e) => e.uid === user?.uid);
+  const userRankNumber = currentUserEntry?.rank || myRank || profile?.stats?.rank;
+  
   const [name, setName] = useState("");
   const [showMore, setShowMore] = useState(false);
 
-  const savedTrack = typeof window !== "undefined" ? localStorage.getItem("wisdawn_track") : "school";
-
-  // Sync name with loaded profile — only update when profile actually loads
   useEffect(() => {
     if (!loading && displayName && displayName !== "Learner") {
       setName(displayName);
@@ -111,49 +128,32 @@ function Profile() {
 
   return (
     <MobileFrame>
-        {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
-    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
-      {/* Left Side: Logo and Name */}
-      <div className="flex items-center gap-2">
-        <img 
-          src={savedTrack === "coding" ? logoCodingImg : logoImg} 
-          alt="Wisdawn Logo" 
-          className="h-8 w-8 object-contain" 
-        />
-        <span className="text-2xl font-bold text-primary">Wisdawn</span>
-      </div>
-
-      {/* Right Side: Coin Pill (No image file needed) */}
-      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
-        {/* Custom CSS Coin with Star SVG */}
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            viewBox="0 0 24 24" 
-            fill="currentColor" 
-            className="h-4 w-4 text-amber-700 opacity-90"
-          >
-            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-          </svg>
+      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <img 
+            src={savedTrack === "coding" ? logoCodingImg : logoImg} 
+            alt="Wisdawn Logo" 
+            className="h-8 w-8 object-contain" 
+          />
+          <span className="text-2xl font-bold text-primary">Wisdawn</span>
         </div>
-        <span className="text-xl font-bold text-amber-500">
-          {liveXP.toLocaleString("en-IN")}
-        </span>
+
+        <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+          <XPCoin className="h-7 w-7" />
+          <span className="text-xl font-bold text-amber-500">
+            {liveXP.toLocaleString("en-IN")}
+          </span>
+        </div>
       </div>
-    </div>
 
-    {/* THE DIVIDER LINE */}
-    <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
+      <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
 
-      {/* MOBILE HEADER TITLE */}
       <div className="px-5 pt-6 pb-2 md:hidden bg-white">
         <h1 className="text-[26px] font-extrabold text-slate-900 tracking-tight">Profile</h1>
         <p className="text-[13px] font-medium text-slate-500 mt-0.5">Manage your settings and support</p>
       </div>
 
-      {/* RESPONSIVE LAYOUT BODY */}
       <div className="flex-1 overflow-y-auto md:overflow-visible pb-10 px-5 md:px-0 pt-4 bg-white">
-        {/* DESKTOP HEADER */}
         <div className="hidden md:block mb-8 pt-6 px-5 md:px-0">
           <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
             Profile
@@ -164,9 +164,7 @@ function Profile() {
         </div>
 
         <div className="max-w-xl mx-auto space-y-6">
-          {/* USER CARD WITH ANIMATED WAVES */}
           <div className="relative rounded-[24px] bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border border-blue-100 shadow-sm overflow-hidden p-5 pb-0">
-            {/* Animated Background */}
             <div className="absolute inset-0 z-0">
               <AnimatedZigZag />
             </div>
@@ -180,7 +178,13 @@ function Profile() {
                 />
                 <div className="min-w-0 flex-1 pt-1">
                   <p className="truncate text-[18px] font-extrabold text-slate-900 leading-none">{name || "Learner"}</p>
-                  <p className="truncate text-[13px] font-medium text-slate-500 mt-1">{displayEmail || "Loading..."}</p>
+                  
+                  <p className="truncate text-[13px] font-medium text-slate-500 mt-1">
+                    {loading 
+                      ? "Loading..." 
+                      : (displayEmail || (profile as any)?.phoneNumber || (user as any)?.phoneNumber || "Phone User")}
+                  </p>
+                  
                   <span className="mt-2.5 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold tracking-widest uppercase text-primary">
                     {profile?.track || "Active Learner"}
                   </span>
@@ -193,7 +197,6 @@ function Profile() {
                 </button>
               </div>
 
-              {/* Profile Stats Grid with Icons */}
               <div className="mt-6 grid grid-cols-3 gap-3">
                 <Stat 
                   label="Badges" 
@@ -204,16 +207,12 @@ function Profile() {
                 <Stat 
                   label="XP Points" 
                   value={liveXP.toLocaleString("en-IN")} 
-                  icon={
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-amber-700 opacity-90">
-                      <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                    </svg>
-                  }
+                  icon={<XPCoin className="h-4 w-4" />}
                   iconBg="bg-gradient-to-br from-yellow-300 to-amber-500 border border-yellow-400"
                 />
                 <Stat 
                   label="Rank" 
-                  value={profile?.stats?.rank ? `#${profile.stats.rank}` : "—"} 
+                  value={userRankNumber ? `#${userRankNumber}` : "—"} 
                   icon={<Trophy className="h-4 w-4 text-primary" />}
                   iconBg="bg-primary/10 border border-primary/20"
                 />
@@ -221,7 +220,6 @@ function Profile() {
             </div>
           </div>
 
-          {/* SELECTION ITEMS LIST */}
           <div className="flex flex-col divide-y divide-slate-100 rounded-[24px] border border-slate-200 bg-white shadow-sm overflow-hidden">
             <Item
               icon={<HelpCircle className="h-4 w-4" />}
@@ -254,7 +252,6 @@ function Profile() {
           </div>
         </div>
       </div>
-      <BottomNav />
     </MobileFrame>
   );
 }

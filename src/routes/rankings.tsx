@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Filter, Trophy, Sparkles, Award, ChevronDown, Loader2 } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { Wisby } from "@/components/wisby";
@@ -25,30 +25,27 @@ const XPCoin = ({ className }: { className?: string }) => (
 );
 
 // Animated Cones Component (Pointing Upwards for the sticky bottom bar)
-// Animated Cones Component (Pointing Upwards for the sticky bottom bar)
 function AnimatedZigZag() {
-  const CONE_COUNT = 10; // Matches the rounded cones across the card[cite: 4]
+  const CONE_COUNT = 10;
   const COLORS = [
     "text-purple-300/90",
     "text-emerald-300/90",
     "text-amber-300/90",
     "text-cyan-300/90"
-  ]; // Kept from rankings so they stay visible on the blue bar[cite: 3]
+  ];
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    // Ticks rapidly to drive the smooth wave animation[cite: 4]
     const timer = setInterval(() => setTick((t) => t + 1), 100);
     return () => clearInterval(timer);
   }, []);
 
-  const cycleLength = CONE_COUNT * 2 + 5; // Ticks for one full show/hide wave cycle[cite: 4]
+  const cycleLength = CONE_COUNT * 2 + 5;
   const currentCycle = Math.floor(tick / cycleLength);
   const phaseTick = tick % cycleLength;
   const currentColor = COLORS[currentCycle % COLORS.length];
 
   return (
-    // Height bumped to 30px and added items-end to match profile page proportions exactly[cite: 4]
     <div className="absolute bottom-full left-0 w-full flex items-end z-0 pointer-events-none drop-shadow-sm h-[30px]">
       {Array.from({ length: CONE_COUNT }).map((_, i) => {
         const isShown = phaseTick >= i && phaseTick < (CONE_COUNT + 2 + i);
@@ -58,7 +55,6 @@ function AnimatedZigZag() {
             className={`flex-1 transition-transform duration-300 ease-out origin-bottom ${currentColor} ${isShown ? "scale-y-100" : "scale-y-0"}`}
           >
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full block">
-              {/* Exact semicircle path from the profile page[cite: 4] */}
               <path d="M0,100 Q50,0 100,100 Z" fill="currentColor" />
             </svg>
           </div>
@@ -163,6 +159,9 @@ function RankMedalBadge({ rank }: { rank: number }) {
 function Rankings() {
   const { initials, displayName, profile, user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("All");
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
   const location = "assam";
   const category = CATEGORY_MAP[activeTab];
 
@@ -188,43 +187,60 @@ function Rankings() {
     category === "coding" ? e.coding_xp :
     e.total_xp;
 
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      const currentScrollY = target.scrollTop !== undefined ? target.scrollTop : window.scrollY;
+
+      if (currentScrollY === undefined) return;
+
+      if (currentScrollY > lastScrollY.current + 5 && currentScrollY > 50) {
+        setIsNavVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 5) {
+        setIsNavVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll, { capture: true });
+    };
+  }, []);
+
   return (
     <MobileFrame>
-        {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
-    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
-      {/* Left Side: Logo and Name */}
-      <div className="flex items-center gap-2">
-        <img 
-          src={showCodingLogo ? logoCodingImg : logoImg} 
-          alt="Wisdawn Logo" 
-          className="h-8 w-8 object-contain" 
-        />
-        <span className="text-2xl font-bold text-primary">Wisdawn</span>
-      </div>
-
-      {/* Right Side: Coin Pill (No image file needed) */}
-      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
-        {/* Custom CSS Coin with Star SVG */}
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            viewBox="0 0 24 24" 
-            fill="currentColor" 
-            className="h-4 w-4 text-amber-700 opacity-90"
-          >
-            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-          </svg>
+      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <img 
+            src={showCodingLogo ? logoCodingImg : logoImg} 
+            alt="Wisdawn Logo" 
+            className="h-8 w-8 object-contain" 
+          />
+          <span className="text-2xl font-bold text-primary">Wisdawn</span>
         </div>
-        <span className="text-xl font-bold text-amber-500">
-          {liveXP.toLocaleString("en-IN")}
-        </span>
+
+        <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 24 24" 
+              fill="currentColor" 
+              className="h-4 w-4 text-amber-700 opacity-90"
+            >
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <span className="text-xl font-bold text-amber-500">
+            {liveXP.toLocaleString("en-IN")}
+          </span>
+        </div>
       </div>
-    </div>
 
-    {/* THE DIVIDER LINE */}
-    <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
+      <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
 
-      {/* Page title */}
       <header className="flex md:hidden items-center justify-between px-5 pt-2 pb-3">
         <div>
           <h1 className="text-[22px] font-extrabold text-slate-900 tracking-tight">Rankings</h1>
@@ -232,12 +248,9 @@ function Rankings() {
             All Assam State Ranks <ChevronDown className="h-3.5 w-3.5" />
           </p>
         </div>
-        <button className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 border border-slate-100 text-slate-700 shadow-sm transition hover:bg-slate-100">
-          <Filter className="h-4 w-4" />
-        </button>
+        
       </header>
 
-      {/* Tab switcher */}
       <div className="px-5 pb-2 md:hidden">
         <div className="relative rounded-full bg-slate-100 p-1 flex shadow-inner overflow-hidden">
           <div
@@ -260,9 +273,7 @@ function Rankings() {
         </div>
       </div>
 
-      {/* Increased padding-bottom here so the list doesn't get hidden behind the sticky bar */}
-      <div className="flex-1 overflow-y-auto pb-32 pt-2">
-        {/* Desktop header */}
+      <div className="flex-1 overflow-y-auto pb-40 pt-2">
         <div className="hidden md:flex justify-between items-center mb-6 px-5 md:px-0">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
@@ -285,7 +296,6 @@ function Rankings() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-0 md:px-0">
           <div className="lg:col-span-2">
-            {/* Desktop table header */}
             <div className="hidden md:grid grid-cols-12 gap-3 px-6 py-3 text-[11px] font-bold text-slate-400 tracking-widest uppercase border-b border-slate-200/60 mb-2">
               <div className="col-span-2 text-center">Rank</div>
               <div className="col-span-6">Student</div>
@@ -306,7 +316,6 @@ function Rankings() {
                 {entries.map((u) => {
                   const isMe = u.uid === user?.uid;
                   
-                  // NEW: Use the local profile avatar if it's you, otherwise check the database for other users
                   const rowAvatar = isMe ? (profile as any)?.avatar : (u as any)?.avatar;
 
                   return (
@@ -314,12 +323,10 @@ function Rankings() {
                       key={u.uid}
                       className={`flex items-center gap-3 py-3 px-5 transition-colors border-b border-slate-50 ${isMe ? "bg-primary/10" : "bg-white hover:bg-slate-50/50"}`}
                     >
-                      {/* Rank badge */}
                       <div className="w-8 flex justify-center items-center shrink-0">
                         <RankMedalBadge rank={u.rank} />
                       </div>
 
-                      {/* Avatar */}
                       <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full font-bold text-sm overflow-hidden ${
                         u.rank === 1 ? "bg-amber-100 text-amber-600" :
                         u.rank === 2 ? "bg-slate-100 text-slate-500" :
@@ -333,7 +340,6 @@ function Rankings() {
                         )}
                       </div>
 
-                      {/* Name & District */}
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-bold text-slate-900">
                           {u.name}{isMe ? " (You)" : ""}
@@ -343,12 +349,10 @@ function Rankings() {
                         </p>
                       </div>
 
-                      {/* District (desktop only extra column) */}
                       <div className="hidden md:block col-span-2 text-xs font-medium text-slate-500">
                         {u.district}
                       </div>
 
-                      {/* XP */}
                       <div className="text-right flex flex-col items-end justify-center shrink-0">
                         <div className="flex items-center gap-1">
                           <XPCoin className="h-3.5 w-3.5" />
@@ -367,7 +371,6 @@ function Rankings() {
             )}
           </div>
 
-          {/* Desktop sidebar */}
           <div className="hidden lg:block lg:col-span-1 space-y-6">
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -406,13 +409,17 @@ function Rankings() {
       </div>
 
       {/* Mobile sticky current user bar */}
-      <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom)+64px)] left-0 w-full z-10">
+      <div 
+        className={`md:hidden fixed left-0 w-full z-10 transition-all duration-300 ease-in-out ${
+          isNavVisible 
+            ? "bottom-[calc(env(safe-area-inset-bottom)+72px)]" 
+            : "bottom-[env(safe-area-inset-bottom)]"
+        }`}
+      >
         <div className="relative bg-primary px-5 py-3 shadow-lg">
           
-          {/* Zig-Zag Animation pointing up */}
           <AnimatedZigZag />
 
-          {/* Actual content overlayed to be above the cones if needed */}
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-8 flex justify-center items-center shrink-0">
               {userRankNumber && userRankNumber <= 3 ? (

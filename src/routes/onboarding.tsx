@@ -1,44 +1,86 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { getCurrentUser, saveOnboardingData, signInWithGoogle } from "@/lib/auth";
+import { saveOnboardingData } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
-  ArrowRight,
-  Atom,
   Calendar as CalendarIcon,
   Code2,
   MapPin,
   User as UserIcon,
   Users,
-  Shield,
-  Mail,
-  Lock,
   GraduationCap,
-  Lightbulb,
-  CheckCircle,
+  Atom,
+  Check,
+  CheckCircle2,
+  Sparkles,
+  PartyPopper,
 } from "lucide-react";
 import { format } from "date-fns";
 import { MobileFrame } from "@/components/mobile-frame";
 import { Wisby } from "@/components/wisby";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Get started — WisDawn" }] }),
+  head: () => ({ meta: [{ title: "Get started — Wisdawn" }] }),
   component: Onboarding,
 });
 
+/* -------------------------------------------------------------------------- */
+/* DATA                                                                       */
+/* -------------------------------------------------------------------------- */
+
 const ASSAM_DISTRICTS = [
-  "Bajali", "Baksa", "Barpeta", "Biswanath", "Bongaigaon", "Cachar",
-  "Charaideo", "Chirang", "Darrang", "Dhemaji", "Dhubri", "Dibrugarh",
-  "Dima Hasao", "Goalpara", "Golaghat", "Hailakandi", "Hojai", "Jorhat",
-  "Kamrup", "Kamrup Metropolitan (Guwahati)", "Karbi Anglong", "Karimganj",
-  "Kokrajhar", "Lakhimpur", "Majuli", "Morigaon (Marigaon)", "Nagaon",
-  "Nalbari", "Sivasagar", "Sonitpur", "South Salmara–Mankachar",
-  "Tamulpur", "Tinsukia", "Udalguri", "West Karbi Anglong",
+  "Bajali",
+  "Baksa",
+  "Barpeta",
+  "Biswanath",
+  "Bongaigaon",
+  "Cachar",
+  "Charaideo",
+  "Chirang",
+  "Darrang",
+  "Dhemaji",
+  "Dhubri",
+  "Dibrugarh",
+  "Dima Hasao",
+  "Goalpara",
+  "Golaghat",
+  "Hailakandi",
+  "Hojai",
+  "Jorhat",
+  "Kamrup",
+  "Kamrup Metropolitan (Guwahati)",
+  "Karbi Anglong",
+  "Karimganj",
+  "Kokrajhar",
+  "Lakhimpur",
+  "Majuli",
+  "Morigaon (Marigaon)",
+  "Nagaon",
+  "Nalbari",
+  "Sivasagar",
+  "Sonitpur",
+  "South Salmara–Mankachar",
+  "Tamulpur",
+  "Tinsukia",
+  "Udalguri",
+  "West Karbi Anglong",
 ];
 
 type Data = {
@@ -52,48 +94,103 @@ type Data = {
   email: string;
 };
 
-const desktopTips = [
-  {
-    text: "Thousands of students are already learning, growing, and achieving their goals.",
-    icon: <Lightbulb className="h-5 w-5 text-yellow-500 fill-yellow-100 shrink-0" />,
+const TOTAL_STEPS = 9;
+
+const spring = {
+  type: "spring" as const,
+  stiffness: 420,
+  damping: 30,
+  mass: 0.7,
+};
+
+const pageVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 70 : -70,
+    opacity: 0,
+    scale: 0.97,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    scale: 1,
   },
-  {
-    text: "We'll personalize your learning experience to help you grow faster.",
-    icon: <GraduationCap className="h-5 w-5 text-primary shrink-0" />,
-  },
-  {
-    text: "Your guardian helps keep your learning on track.",
-    icon: <Users className="h-5 w-5 text-primary shrink-0" />,
-  },
-  {
-    text: "Class 9 & 10 students get curriculum-aligned learning materials.",
-    icon: <span className="text-base shrink-0">📘</span>,
-  },
-  {
-    text: "Pick between School Academics or Coding Bootcamps to begin.",
-    icon: <Code2 className="h-5 w-5 text-primary shrink-0" />,
-  },
-  {
-    text: "Personalization helps us customize the speed of lessons.",
-    icon: <span className="text-base shrink-0">🎂</span>,
-  },
-  {
-    text: "Compare your progress with students in your district and state.",
-    icon: <MapPin className="h-5 w-5 text-primary shrink-0" />,
-  },
-  {
-    text: "Double check your details before starting your learning.",
-    icon: <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0" />,
-  },
-  {
-    text: "You are ready to access your personalized learning dashboard!",
-    icon: <span className="text-base shrink-0">🎉</span>,
-  },
-];
+  exit: (direction: number) => ({
+    x: direction > 0 ? -70 : 70,
+    opacity: 0,
+    scale: 0.97,
+  }),
+};
+
+/* -------------------------------------------------------------------------- */
+/* AUDIO + HAPTICS                                                            */
+/* -------------------------------------------------------------------------- */
+
+const playTone = (
+  frequency: number,
+  type: OscillatorType = "sine",
+  duration = 0.1,
+  volume = 0.035,
+) => {
+  if (typeof window === "undefined") return;
+
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as Window & typeof globalThis & {
+      webkitAudioContext?: new () => AudioContext;
+    }).webkitAudioContext;
+
+  if (!AudioContextClass) return;
+
+  try {
+    const ctx = new AudioContextClass();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      ctx.currentTime + duration,
+    );
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + duration);
+  } catch {
+    // Audio is an enhancement; never let it break onboarding.
+  }
+};
+
+const playTap = () => playTone(620, "sine", 0.07, 0.025);
+const playSelect = () => playTone(760, "sine", 0.09, 0.03);
+
+const playSuccess = () => {
+  playTone(523.25, "sine", 0.1, 0.045);
+  setTimeout(() => playTone(659.25, "sine", 0.1, 0.045), 90);
+  setTimeout(() => playTone(783.99, "sine", 0.24, 0.045), 180);
+};
+
+const vibrate = (pattern: number | number[] = 30) => {
+  if (typeof window !== "undefined" && navigator.vibrate) {
+    navigator.vibrate(pattern);
+  }
+};
+
+/* -------------------------------------------------------------------------- */
+/* MAIN                                                                        */
+/* -------------------------------------------------------------------------- */
 
 function Onboarding() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const [d, setD] = useState<Data>({
     name: "",
     guardian: "",
@@ -104,921 +201,1193 @@ function Onboarding() {
     state: "",
     email: "",
   });
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const total = 9;
 
-  const next = () => setStep((s) => Math.min(total, s + 1));
-  const back = () => (step === 0 ? navigate({ to: "/" }) : setStep(step - 1));
-
-  // Desktop step 0: Google login then proceed to step 1
-  const handleGoogleLogin = async () => {
-    setGoogleLoading(true);
+  const update = <K extends keyof Data>(key: K, value: Data[K]) => {
+    setD((current) => ({ ...current, [key]: value }));
     setError("");
-    try {
-      await signInWithGoogle();
-      // Popup succeeds — move to next onboarding step
-      setStep(1);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
-      setError(message);
-    } finally {
-      setGoogleLoading(false);
-    }
   };
 
-  const validateStep = () => {
+  const goForward = () => {
+    playTap();
+    vibrate(30);
+    setDirection(1);
+    setStep((current) => Math.min(TOTAL_STEPS - 1, current + 1));
+  };
+
+  const goBack = () => {
+    playTap();
+    vibrate(18);
+
+    if (step === 0) {
+      navigate({ to: "/" });
+      return;
+    }
+
+    setDirection(-1);
+    setStep((current) => Math.max(0, current - 1));
+  };
+
+  const validate = () => {
     switch (step) {
-      case 0:
-        return "";
       case 1:
-        return d.name.trim().length >= 2 ? "" : "Please enter your full name to continue.";
+        return d.name.trim().length >= 2
+          ? ""
+          : "Tell Wispy your name first.";
       case 2:
-        return d.guardian.trim().length >= 2 ? "" : "Please add your guardian's name.";
+        return d.guardian.trim().length >= 2
+          ? ""
+          : "Please add your guardian's name.";
       case 3:
-        return d.cls ? "" : "Please choose your class.";
+        return d.cls ? "" : "Pick your current class.";
       case 4:
-        return d.track ? "" : "Please pick a learning path.";
+        return d.track ? "" : "Choose a learning path.";
       case 5:
-        return d.dob ? "" : "Please enter your date of birth.";
+        return d.dob ? "" : "Choose your date of birth.";
       case 6:
-        return d.district.trim() && d.state.trim() ? "" : "Please share your district and state.";
+        return d.district && d.state
+          ? ""
+          : "Choose your district and state.";
       default:
         return "";
     }
   };
 
-  const handleNext = async () => {
-    const message = validateStep();
+  const finish = async () => {
+    playSuccess();
+    vibrate([50, 40, 80]);
+
+    if (user) {
+      setSaving(true);
+
+      try {
+        await saveOnboardingData(user.uid, {
+          name: d.name,
+          guardian: d.guardian,
+          cls: d.cls,
+          track: d.track,
+          dob: d.dob,
+          district: d.district,
+          state: d.state,
+        });
+      } catch (err) {
+        console.error("Failed to save onboarding data:", err);
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    // Keep this enabled in production.
+    navigate({ to: "/home", replace: true });
+  };
+
+  const handleContinue = async () => {
+    const message = validate();
+
     if (message) {
       setError(message);
+      vibrate([18, 35, 18]);
       return;
     }
+
     setError("");
 
-    // Final step — save to Firebase then go to dashboard
-    if (step === total - 1) {
-      const user = getCurrentUser();
-      if (user) {
-        setSaving(true);
-        try {
-          await saveOnboardingData(user.uid, {
-            name: d.name,
-            guardian: d.guardian,
-            cls: d.cls,
-            track: d.track,
-            dob: d.dob,
-            district: d.district,
-            state: d.state,
-          });
-        } catch (err) {
-          console.error("Failed to save onboarding data:", err);
-        } finally {
-          setSaving(false);
-        }
-      }
-      navigate({ to: "/home" });
+    if (step === TOTAL_STEPS - 1) {
+      await finish();
       return;
     }
 
-    if (step === 7) {
-      setStep(8);
-      return;
-    }
-    next();
+    goForward();
   };
 
   return (
     <MobileFrame>
-      {/* ========================================================================= */}
-      {/* DESKTOP SPLIT-SCREEN ONBOARDING LAYOUT (md and up) */}
-      {/* ========================================================================= */}
-      <div className="hidden md:flex min-h-screen w-full bg-background font-sans">
-        {/* Left Side: Branding & Testimonials */}
-        <div className="w-[40%] bg-[linear-gradient(180deg,rgba(117,95,255,0.08),rgba(255,255,255,0.92))] border-r border-border p-10 flex flex-col justify-between">
-          {/* Top Logo */}
-          <div>
-            <Wisby variant="logo" className="w-32" />
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-              Learn Today, Lead Tomorrow
-            </p>
+      <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white text-slate-950">
+        {/* ---------------------------------------------------------------- */}
+        {/* TOP BAR                                                          */}
+        {/* ---------------------------------------------------------------- */}
+
+        <header className="relative z-30 flex items-center gap-3 px-5 pb-2 pt-5">
+          <motion.button
+            whileTap={{ scale: 0.82 }}
+            onClick={goBack}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-5 w-5 stroke-[2.7]" />
+          </motion.button>
+
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              animate={{
+                width: `${((step + 1) / TOTAL_STEPS) * 100}%`,
+              }}
+              transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            />
           </div>
 
-          {/* Center Mascot Image */}
-          <div className="flex flex-col items-center my-6">
-            <h2 className="text-2xl font-extrabold text-foreground text-center mb-4 leading-tight">
-              Welcome to WisDawn!
-            </h2>
-            <p className="text-xs text-muted-foreground text-center max-w-xs -mt-2 mb-6">
-              Your smart learning companion for School, Coding &amp; Beyond.
-            </p>
-            <Wisby variant={step === 8 ? "cheer" : "thumbs"} className="w-56" />
-          </div>
+          <span className="min-w-[36px] text-right text-[11px] font-extrabold text-slate-400">
+            {step + 1}/{TOTAL_STEPS}
+          </span>
+        </header>
 
-          {/* Bottom Tip Badge & Carousel indicator */}
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm flex gap-3 items-start">
-              {desktopTips[step].icon}
-              <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
-                {desktopTips[step].text}
-              </p>
-            </div>
+        {/* ---------------------------------------------------------------- */}
+        {/* CONTENT                                                           */}
+        {/* ---------------------------------------------------------------- */}
 
-            {/* Carousel step dots */}
-            <div className="flex gap-1.5 justify-center py-1">
-              {Array.from({ length: total }).map((_, i) => (
-                <span
-                  key={i}
-                  className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
-                    i === step ? "bg-primary w-4" : "bg-muted"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Step Active Input Card */}
-        <div className="flex-1 flex flex-col justify-center items-center p-12 bg-slate-50/30 relative">
-          {/* Top Login Redirect */}
-          <div className="absolute top-8 right-12 flex items-center gap-2 text-xs font-semibold">
-            <span className="text-muted-foreground">Already have an account?</span>
-            <Link to="/" className="text-primary hover:underline">
-              Log in
-            </Link>
-          </div>
-
-          {/* Center Form Card */}
-          <div className="w-full max-w-[460px] bg-card border border-border rounded-3xl p-8 shadow-xs flex flex-col min-h-[480px]">
-            {/* Card Back button & Progress */}
-            <div className="flex justify-between items-center mb-6">
-              {step > 0 ? (
-                <button
-                  onClick={back}
-                  className="grid h-8 w-8 place-items-center rounded-full hover:bg-muted text-muted-foreground transition"
-                  aria-label="Back"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-              ) : (
-                <div className="w-8" />
-              )}
-
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                  Step {step + 1} of {total}
-                </span>
-                {/* Segmented Line Progress */}
-                <div className="flex gap-1 mt-1.5 w-32 justify-end">
-                  {Array.from({ length: total }).map((_, i) => (
-                    <span
-                      key={i}
-                      className={`h-1 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Step specific UI for Desktop */}
-            <div className="flex-1 flex flex-col">
+        <main className="relative min-h-0 flex-1 overflow-hidden">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              variants={pageVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={spring}
+              className="absolute inset-0 overflow-y-auto px-6 pb-32 pt-5"
+            >
               {step === 0 && (
-                <div className="space-y-5 flex-1 flex flex-col">
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      Hi there! I'm Wispy 🦉
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      I'll guide you on your learning journey.
-                    </p>
-                  </div>
-
-                  {/* Badge */}
-                  <div className="rounded-2xl bg-primary-soft/50 border border-primary/5 p-4 flex gap-3 items-center">
-                    <Shield className="h-5 w-5 text-primary shrink-0" />
-                    <div className="flex-1 text-[11px] text-muted-foreground leading-snug">
-                      <strong>We'll set up a few things</strong> to personalize your experience.
-                    </div>
-                  </div>
-
-                  {/* Buttons */}
-                  <button
-                    onClick={handleGoogleLogin}
-                    disabled={googleLoading}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:scale-[1.01] transition disabled:opacity-70"
-                  >
-                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-primary">
-                      G
-                    </span>
-                    {googleLoading ? "Signing in…" : "Continue with Google"}
-                  </button>
-
-                  <div className="relative text-center my-1 text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-                    <span className="bg-card px-2 relative z-10">or continue with email</span>
-                    <hr className="absolute top-1.5 left-0 w-full border-border/60" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                      Email Address
-                    </label>
-                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="email"
-                        placeholder="Enter your email address"
-                        value={d.email}
-                        onChange={(e) => setD({ ...d, email: e.target.value })}
-                        className="flex-1 bg-transparent placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <WelcomeStep onStart={goForward} />
               )}
 
               {step === 1 && (
-                <div className="space-y-5 flex-1 flex flex-col">
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      What's your <span className="text-primary">full name?</span>
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Let's start with the basics.
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                      Full Name
-                    </label>
-                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                      <UserIcon className="h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={d.name}
-                        onChange={(e) => {
-                          setD({ ...d, name: e.target.value });
-                          if (error) setError("");
-                        }}
-                        className="flex-1 bg-transparent placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <NameStep
+                  value={d.name}
+                  onChange={(value) => update("name", value)}
+                />
               )}
 
               {step === 2 && (
-                <div className="space-y-5 flex-1 flex flex-col">
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      Who is your <span className="text-primary">guardian?</span>
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-1">We'll need their name.</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                      Guardian's Name
-                    </label>
-                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Enter guardian's name"
-                        value={d.guardian}
-                        onChange={(e) => {
-                          setD({ ...d, guardian: e.target.value });
-                          if (error) setError("");
-                        }}
-                        className="flex-1 bg-transparent placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <GuardianStep
+                  value={d.guardian}
+                  onChange={(value) => update("guardian", value)}
+                />
               )}
 
               {step === 3 && (
-                <div className="space-y-5 flex-1 flex flex-col">
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      Which <span className="text-primary">class are you in?</span>
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-1">Choose your current class.</p>
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    {(["Class 9", "Class 10"] as const).map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => {
-                          setD({ ...d, cls: c });
-                          if (error) setError("");
-                        }}
-                        className={`flex w-full items-center gap-4 rounded-2xl border bg-muted/10 px-5 py-4 text-left transition ${
-                          d.cls === c
-                            ? "border-primary bg-primary-soft/50 ring-2 ring-primary/10"
-                            : "border-border hover:bg-muted/50"
-                        }`}
-                      >
-                        <span className="grid h-10 w-10 place-items-center rounded-xl bg-card border border-border shadow-xs text-lg">
-                          📘
-                        </span>
-                        <span className="font-bold text-sm text-foreground">{c}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <ClassStep
+                  value={d.cls}
+                  onChange={(value) => {
+                    playSelect();
+                    vibrate(28);
+                    update("cls", value);
+                  }}
+                />
               )}
 
               {step === 4 && (
-                <div className="space-y-5 flex-1 flex flex-col">
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      What would you like <span className="text-primary">to learn?</span>
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      You can choose one for now.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    <button
-                      onClick={() => {
-                        setD({ ...d, track: "School Academy" });
-                        if (error) setError("");
-                      }}
-                      className={`flex w-full items-center gap-4 rounded-2xl border bg-muted/10 px-5 py-4 text-left transition ${
-                        d.track === "School Academy"
-                          ? "border-primary bg-primary-soft/50 ring-2 ring-primary/10"
-                          : "border-border hover:bg-muted/50"
-                      }`}
-                    >
-                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-card border border-border shadow-xs text-primary">
-                        <Atom className="h-5 w-5" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="font-bold text-sm text-foreground">School Academy</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Physics, Chemistry, Biology &amp; more
-                        </p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setD({ ...d, track: "Coding Bootcamp" });
-                        if (error) setError("");
-                      }}
-                      className={`flex w-full items-center gap-4 rounded-2xl border bg-muted/10 px-5 py-4 text-left transition ${
-                        d.track === "Coding Bootcamp"
-                          ? "border-primary bg-primary-soft/50 ring-2 ring-primary/10"
-                          : "border-border hover:bg-muted/50"
-                      }`}
-                    >
-                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-card border border-border shadow-xs text-primary">
-                        <Code2 className="h-5 w-5" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="font-bold text-sm text-foreground">Coding Bootcamp</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Learn coding step by step
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
+                <TrackStep
+                  value={d.track}
+                  onChange={(value) => {
+                    playSelect();
+                    vibrate(28);
+                    update("track", value);
+                  }}
+                />
               )}
 
               {step === 5 && (
-                <div className="space-y-5 flex-1 flex flex-col">
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      When were you <span className="text-primary">born?</span>
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      This helps us personalize your experience.
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                      Date of Birth
-                    </label>
-                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={"ghost"}
-                            className={cn(
-                              "w-full justify-start text-left font-semibold h-11 px-4 hover:bg-transparent rounded-2xl",
-                              !d.dob && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-3 h-4 w-4" />
-                            {d.dob ? format(new Date(d.dob), "PPP") : <span>Select date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={d.dob ? new Date(d.dob) : undefined}
-                            onSelect={(date) => { setD({ ...d, dob: date ? format(date, "yyyy-MM-dd") : "" }); if (error) setError(""); }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </div>
+                <DobStep
+                  value={d.dob}
+                  onChange={(value) => {
+                    playSelect();
+                    vibrate(28);
+                    update("dob", value);
+                  }}
+                />
               )}
 
               {step === 6 && (
-                <div className="space-y-5 flex-1 flex flex-col">
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      Where do you <span className="text-primary">live?</span>
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-1">Tell us your location.</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                        District
-                      </label>
-                      <div className="rounded-2xl border border-border bg-muted/20 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                        <Select value={d.district || undefined} onValueChange={(val) => { setD({ ...d, district: val }); if (error) setError(""); }}>
-                          <SelectTrigger className="w-full h-11 px-4 bg-transparent border-0 focus:ring-0 focus:ring-offset-0">
-                            <div className="flex items-center gap-3">
-                              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <SelectValue placeholder="Select District" />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ASSAM_DISTRICTS.map((dist) => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                        State
-                      </label>
-                      <div className="rounded-2xl border border-border bg-muted/20 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition">
-                        <Select value={d.state || undefined} onValueChange={(val) => { setD({ ...d, state: val }); if (error) setError(""); }}>
-                          <SelectTrigger className="w-full h-11 px-4 bg-transparent border-0 focus:ring-0 focus:ring-offset-0">
-                            <div className="flex items-center gap-3">
-                              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <SelectValue placeholder="Select State" />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Assam">Assam</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <LocationStep
+                  district={d.district}
+                  state={d.state}
+                  onDistrictChange={(value) => {
+                    playSelect();
+                    vibrate(25);
+                    update("district", value);
+                  }}
+                  onStateChange={(value) => {
+                    playSelect();
+                    vibrate(25);
+                    update("state", value);
+                  }}
+                />
               )}
 
               {step === 7 && (
-                <div className="space-y-4 flex-1 flex flex-col">
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      Review your <span className="text-primary">details</span>
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Please check if everything looks right.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2.5 rounded-2xl border border-border bg-muted/20 p-4 text-xs font-semibold text-muted-foreground">
-                    <Row label="Full Name" value={d.name || "—"} />
-                    <Row label="Guardian" value={d.guardian || "—"} />
-                    <Row label="Class" value={d.cls || "—"} />
-                    <Row label="Course Type" value={d.track || "—"} />
-                    <Row label="Date of Birth" value={d.dob || "—"} />
-                    <Row
-                      label="Location"
-                      value={[d.district, d.state].filter(Boolean).join(", ") || "—"}
-                    />
-                  </div>
-                </div>
+                <ReviewStep
+                  data={d}
+                  onEdit={(target) => {
+                    playTap();
+                    vibrate(20);
+                    setDirection(-1);
+                    setStep(target);
+                  }}
+                />
               )}
 
               {step === 8 && (
-                <div className="space-y-5 flex-1 flex flex-col justify-center text-center">
-                  <div className="flex justify-center mb-2">
-                    <Wisby variant="cheer" className="w-48" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-extrabold text-foreground">
-                      All set, {d.name || "friend"}! 🎉
-                    </h1>
-                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                      Your learning journey starts now. Ready to explore amazing lessons?
-                    </p>
-                  </div>
-                </div>
+                <SuccessStep name={d.name} />
               )}
-            </div>
+            </motion.div>
+          </AnimatePresence>
+        </main>
 
-            {/* Error & Action buttons */}
-            <div className="mt-6 pt-4 border-t border-border/60">
-              {error && <p className="text-xs text-destructive font-semibold mb-3">{error}</p>}
+        {/* ---------------------------------------------------------------- */}
+        {/* BOTTOM CTA                                                       */}
+        {/* ---------------------------------------------------------------- */}
 
-              <div className="flex gap-3">
-                {step === 7 && (
-                  <button
-                    onClick={() => setStep(1)}
-                    className="flex-1 rounded-2xl border border-border bg-card py-3 text-xs font-bold text-muted-foreground hover:bg-muted/50 transition"
-                  >
-                    Edit
-                  </button>
-                )}
-
-                <button
-                  onClick={handleNext}
-                  disabled={saving}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-xs font-bold text-white shadow-md shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : step === total - 1 ? "Go to Dashboard" : step === 7 ? "Finish ✓" : "Continue"}
-                  {step !== 7 && step !== total - 1 && <ArrowRight className="h-4 w-4" />}
-                </button>
-              </div>
-
-              {/* Security footer text */}
-              <div className="flex justify-center items-center gap-1.5 text-[9px] text-muted-foreground mt-4 font-bold uppercase tracking-wider">
-                <Lock className="h-3 w-3" />
-                <span>Your information is safe with us.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* MOBILE ONBOARDING LAYOUT (less than md) */}
-      {/* ========================================================================= */}
-      <div className="md:hidden flex flex-1 flex-col">
-        <header className="flex items-center px-5 pt-2">
-          <button
-            onClick={back}
-            className="grid h-9 w-9 place-items-center rounded-full text-foreground active:bg-muted"
-            aria-label="Back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-        </header>
-        <div className="flex flex-1 flex-col px-6 pb-6">
-          {step === 0 && (
-            <StepWrap>
-              <h1 className="text-3xl font-extrabold leading-tight">
-                <span className="text-primary">Hi there!</span>
-                <br /> I&apos;m <span className="text-primary">Wisby</span> 🦉
-              </h1>
-              <p className="mt-3 text-sm text-muted-foreground">
-                I&apos;ll guide you on your learning journey.
-              </p>
-              <MascotArea
-                variant="thumbs"
-                bubble={"We'll set up a few things to personalize your experience."}
-              />
-            </StepWrap>
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-white via-white to-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-10">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-3 text-center text-[13px] font-bold text-red-500"
+            >
+              {error}
+            </motion.div>
           )}
-          {step === 1 && (
-            <StepWrap>
-              <Title bold="full name?">What&apos;s your</Title>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Let&apos;s start with the basics.
-              </p>
-              <Field
-                icon={<UserIcon className="h-4 w-4" />}
-                placeholder="Enter your full name"
-                value={d.name}
-                onChange={(v) => {
-                  setD({ ...d, name: v });
-                  if (error) setError("");
+
+          {step === 0 ? (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={goForward}
+              className="h-[54px] w-full rounded-2xl bg-primary text-[16px] font-extrabold text-white shadow-[0_7px_18px_rgba(59,102,245,0.22)]"
+            >
+              Let's go! <span className="ml-1">→</span>
+            </motion.button>
+          ) : step === 7 ? (
+            <div className="flex gap-3">
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  playTap();
+                  vibrate(20);
+                  setDirection(-1);
+                  setStep(1);
                 }}
-              />
-              <MascotArea />
-            </StepWrap>
-          )}
-          {step === 2 && (
-            <StepWrap>
-              <Title bold="guardian?">Who is your</Title>
-              <p className="mt-2 text-sm text-muted-foreground">We&apos;ll need their name.</p>
-              <Field
-                icon={<Users className="h-4 w-4" />}
-                placeholder="Enter guardian's name"
-                value={d.guardian}
-                onChange={(v) => {
-                  setD({ ...d, guardian: v });
-                  if (error) setError("");
-                }}
-              />
-              <MascotArea bubble={"They'll be part of your learning journey too."} />
-            </StepWrap>
-          )}
-          {step === 3 && (
-            <StepWrap>
-              <Title bold="class are you in?">Which</Title>
-              <p className="mt-2 text-sm text-muted-foreground">Choose your current class.</p>
-              <div className="mt-6 space-y-3">
-                {(["Class 9", "Class 10"] as const).map((c) => (
-                  <Choice
-                    key={c}
-                    active={d.cls === c}
-                    onClick={() => {
-                      setD({ ...d, cls: c });
-                      if (error) setError("");
-                    }}
-                    icon={<span className="text-lg">📘</span>}
-                    title={c}
-                  />
-                ))}
-              </div>
-              <MascotArea bubble={"Great! We have content just for your class."} />
-            </StepWrap>
-          )}
-          {step === 4 && (
-            <StepWrap>
-              <Title bold="to learn?">What would you like</Title>
-              <p className="mt-2 text-sm text-muted-foreground">You can choose one for now.</p>
-              <div className="mt-6 space-y-3">
-                <Choice
-                  active={d.track === "School Academy"}
-                  onClick={() => {
-                    setD({ ...d, track: "School Academy" });
-                    if (error) setError("");
-                  }}
-                  icon={<Atom className="h-5 w-5 text-primary" />}
-                  title="School Academy"
-                  sub="Physics, Chemistry, Biology & more"
-                />
-                <Choice
-                  active={d.track === "Coding Bootcamp"}
-                  onClick={() => {
-                    setD({ ...d, track: "Coding Bootcamp" });
-                    if (error) setError("");
-                  }}
-                  icon={<Code2 className="h-5 w-5 text-primary" />}
-                  title="Coding Bootcamp"
-                  sub="Learn coding step by step"
-                />
-              </div>
-              <MascotArea bubble={"No worries! You can explore more later."} />
-            </StepWrap>
-          )}
-          {step === 5 && (
-            <StepWrap>
-              <Title bold="born?">When were you</Title>
-              <p className="mt-2 text-sm text-muted-foreground">
-                This helps us personalize your experience.
-              </p>
-              <div className="mt-5 rounded-2xl border border-border bg-card">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"ghost"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal h-[52px] px-4 hover:bg-transparent rounded-2xl",
-                        !d.dob && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-3 h-4 w-4 text-muted-foreground" />
-                      {d.dob ? format(new Date(d.dob), "PPP") : <span>Select your date of birth</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={d.dob ? new Date(d.dob) : undefined}
-                      onSelect={(date) => { setD({ ...d, dob: date ? format(date, "yyyy-MM-dd") : "" }); if (error) setError(""); }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <MascotArea bubble={"Happy early birthday! 🎂"} />
-            </StepWrap>
-          )}
-          {step === 6 && (
-            <StepWrap>
-              <Title bold="live?">Where do you</Title>
-              <p className="mt-2 text-sm text-muted-foreground">Tell us your location.</p>
-              <div className="mt-5 rounded-2xl border border-border bg-muted/20">
-                <Select value={d.district || undefined} onValueChange={(val) => { setD({ ...d, district: val }); if (error) setError(""); }}>
-                  <SelectTrigger className="w-full h-[52px] px-4 bg-transparent border-0 focus:ring-0 focus:ring-offset-0">
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <SelectValue placeholder="Select District" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ASSAM_DISTRICTS.map((dist) => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="mt-3 rounded-2xl border border-border bg-muted/20">
-                <Select value={d.state || undefined} onValueChange={(val) => { setD({ ...d, state: val }); if (error) setError(""); }}>
-                  <SelectTrigger className="w-full h-[52px] px-4 bg-transparent border-0 focus:ring-0 focus:ring-offset-0">
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <SelectValue placeholder="Select State" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Assam">Assam</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <MascotArea bubble={"So we can show you the best content near you."} />
-            </StepWrap>
-          )}
-          {step === 7 && (
-            <StepWrap>
-              <h1 className="text-3xl font-extrabold">
-                Review your <span className="text-primary">details</span>
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Please check if everything looks right.
-              </p>
-              <div className="mt-5 space-y-3 rounded-2xl border border-border bg-card p-4 text-sm">
-                <Row label="Full Name" value={d.name || "—"} />
-                <Row label="Guardian" value={d.guardian || "—"} />
-                <Row label="Class" value={d.cls || "—"} />
-                <Row label="Course Type" value={d.track || "—"} />
-                <Row label="Date of Birth" value={d.dob || "—"} />
-                <Row
-                  label="Location"
-                  value={[d.district, d.state].filter(Boolean).join(", ") || "—"}
-                />
-              </div>
-              <MascotArea bubble={"Looks perfect! You're all set to start learning."} />
-            </StepWrap>
-          )}
-          {step === 8 && (
-            <StepWrap>
-              <div className="mt-8 text-center">
-                <Wisby variant="cheer" className="mx-auto w-56" />
-                <h1 className="mt-2 text-2xl font-extrabold">All set, {d.name || "friend"}! 🎉</h1>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Your learning journey starts now.
-                </p>
-                <div className="mt-8 rounded-2xl border border-border bg-card px-5 py-4 text-sm">
-                  Ready to explore amazing lessons?
-                </div>
-              </div>
-            </StepWrap>
-          )}
-
-          <div className="mt-auto pt-6">
-            <Progress step={step} total={total} />
-            {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
-            <div className="mt-5 flex gap-3">
-              {step === 7 && (
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex-1 rounded-2xl border border-border bg-card py-3.5 text-sm font-semibold"
-                >
-                  Edit
-                </button>
-              )}
-              <button
-                onClick={handleNext}
-                disabled={saving}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 active:scale-[0.99] disabled:opacity-50"
+                className="h-[54px] flex-1 rounded-2xl border-2 border-slate-100 bg-white text-[15px] font-extrabold text-primary"
               >
-                {saving ? "Saving..." : step === total - 1 ? "Go to Dashboard" : step === 7 ? "Finish ✓" : "Next"}
-                {step !== 7 && step !== total - 1 && <ArrowRight className="h-4 w-4" />}
-              </button>
+                Edit
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={handleContinue}
+                disabled={saving}
+                className="h-[54px] flex-[1.5] rounded-2xl bg-primary text-[16px] font-extrabold text-white shadow-[0_7px_18px_rgba(59,102,245,0.22)] disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Finish! 🎉"}
+              </motion.button>
             </div>
-          </div>
+          ) : step === 8 ? (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate({ to: "/home", replace: true })}
+              className="h-[54px] w-full rounded-2xl bg-primary text-[16px] font-extrabold text-white shadow-[0_7px_18px_rgba(59,102,245,0.22)]"
+            >
+              Start learning →
+            </motion.button>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleContinue}
+              className="h-[54px] w-full rounded-2xl bg-primary text-[16px] font-extrabold text-white shadow-[0_7px_18px_rgba(59,102,245,0.22)]"
+            >
+              Continue <span className="ml-1">→</span>
+            </motion.button>
+          )}
         </div>
       </div>
     </MobileFrame>
   );
 }
 
-function StepWrap({ children }: { children: ReactNode }) {
-  return <div className="flex flex-1 flex-col">{children}</div>;
-}
-function Title({ children, bold }: { children: ReactNode; bold: string }) {
+/* -------------------------------------------------------------------------- */
+/* WELCOME                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function WelcomeStep({ onStart }: { onStart: () => void }) {
   return (
-    <h1 className="text-3xl font-extrabold leading-tight">
-      {children} <span className="text-primary">{bold}</span>
-    </h1>
+    <section className="flex min-h-full flex-col items-center text-center">
+      <div className="w-full pt-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...spring, delay: 0.05 }}
+        >
+          <p className="text-[13px] font-extrabold uppercase tracking-[0.16em] text-primary">
+            Welcome to Wisdawn
+          </p>
+
+          <h1 className="mt-3 text-[36px] font-black leading-[1.04] tracking-[-0.04em] text-slate-950">
+            Learning should
+            <br />
+            feel <span className="text-primary">fun.</span>
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-[290px] text-[15px] font-medium leading-relaxed text-slate-500">
+            Meet Wispy. Your little learning buddy is ready to help you get
+            started.
+          </p>
+        </motion.div>
+      </div>
+
+      <div className="relative flex min-h-0 flex-1 items-center justify-center py-5">
+        <FloatingDots />
+
+        <motion.div
+          initial={{ y: 45, opacity: 0, scale: 0.88 }}
+          animate={{ y: [10, -8, 10], opacity: 1, scale: 1 }}
+          transition={{
+            opacity: { duration: 0.45 },
+            scale: { ...spring, delay: 0.05 },
+            y: { duration: 3.2, repeat: Infinity, ease: "easeInOut" },
+          }}
+          className="relative z-10 w-[235px]"
+        >
+          <Wisby
+            variant="thumbs"
+            className="w-full object-contain drop-shadow-xl"
+          />
+
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ ...spring, delay: 0.45 }}
+            className="absolute -right-2 top-5 grid h-12 w-12 place-items-center rounded-full bg-white shadow-[0_8px_28px_rgba(0,0,0,0.10)]"
+          >
+            <Sparkles className="h-5 w-5 text-primary" />
+          </motion.div>
+        </motion.div>
+      </div>
+
+      <button
+        onClick={onStart}
+        className="sr-only"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+    </section>
   );
 }
-function Field({
+
+/* -------------------------------------------------------------------------- */
+/* NAME / GUARDIAN                                                            */
+/* -------------------------------------------------------------------------- */
+
+function NameStep({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <QuestionLayout
+      eyebrow="Let's get to know you"
+      title={
+        <>
+          What's your
+          <br />
+          <span className="text-primary">name?</span>
+        </>
+      }
+      subtitle="Wispy needs a name to call you."
+      mascot="thumbs"
+    >
+      <InputBubble
+        icon={<UserIcon className="h-5 w-5" />}
+        placeholder="Your full name"
+        value={value}
+        onChange={onChange}
+        autoFocus
+      />
+    </QuestionLayout>
+  );
+}
+
+function GuardianStep({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <QuestionLayout
+      eyebrow="One more thing"
+      title={
+        <>
+          Who is your
+          <br />
+          <span className="text-primary">guardian?</span>
+        </>
+      }
+      subtitle="We'll keep this information safe and use it for your learning profile."
+      mascot="thumbs"
+    >
+      <InputBubble
+        icon={<Users className="h-5 w-5" />}
+        placeholder="Guardian's name"
+        value={value}
+        onChange={onChange}
+        autoFocus
+      />
+    </QuestionLayout>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* CLASS                                                                      */
+/* -------------------------------------------------------------------------- */
+
+function ClassStep({
+  value,
+  onChange,
+}: {
+  value: Data["cls"];
+  onChange: (value: "Class 9" | "Class 10") => void;
+}) {
+  return (
+    <QuestionLayout
+      eyebrow="Your learning level"
+      title={
+        <>
+          Which class
+          <br />
+          are you in?
+        </>
+      }
+      subtitle="We'll personalize your learning path around this."
+      mascot="thumbs"
+    >
+      <div className="mt-7 space-y-3">
+        <ChoiceCard
+          selected={value === "Class 9"}
+          icon={<span className="text-[26px]">📘</span>}
+          title="Class 9"
+          description="I'm studying in Class 9"
+          onClick={() => onChange("Class 9")}
+        />
+
+        <ChoiceCard
+          selected={value === "Class 10"}
+          icon={<span className="text-[26px]">🎓</span>}
+          title="Class 10"
+          description="I'm studying in Class 10"
+          onClick={() => onChange("Class 10")}
+        />
+      </div>
+
+      <ReactionBubble>
+        {value
+          ? "Nice! Wispy knows what to prepare for you. ✨"
+          : "Pick one and let's keep going!"}
+      </ReactionBubble>
+    </QuestionLayout>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* TRACK                                                                      */
+/* -------------------------------------------------------------------------- */
+
+function TrackStep({
+  value,
+  onChange,
+}: {
+  value: Data["track"];
+  onChange: (value: "School Academy" | "Coding Bootcamp") => void;
+}) {
+  return (
+    <QuestionLayout
+      eyebrow="Choose your adventure"
+      title={
+        <>
+          What do you want
+          <br />
+          <span className="text-primary">to learn?</span>
+        </>
+      }
+      subtitle="You can explore everything else later."
+      mascot="thumbs"
+    >
+      <div className="mt-7 space-y-3">
+        <ChoiceCard
+          selected={value === "School Academy"}
+          icon={<Atom className="h-7 w-7 text-emerald-500" />}
+          title="School Academy"
+          description="Subjects, concepts & exam prep"
+          onClick={() => onChange("School Academy")}
+        />
+
+        <ChoiceCard
+          selected={value === "Coding Bootcamp"}
+          icon={<Code2 className="h-7 w-7 text-violet-500" />}
+          title="Coding Bootcamp"
+          description="Build websites and learn to code"
+          onClick={() => onChange("Coding Bootcamp")}
+        />
+      </div>
+
+      <ReactionBubble>
+        {value
+          ? "Great choice! This is going to be fun. 🚀"
+          : "There is no wrong choice here!"}
+      </ReactionBubble>
+    </QuestionLayout>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* DOB                                                                        */
+/* -------------------------------------------------------------------------- */
+
+function DobStep({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <QuestionLayout
+      eyebrow="Personalize your journey"
+      title={
+        <>
+          When were
+          <br />
+          <span className="text-primary">you born?</span>
+        </>
+      }
+      subtitle="This helps us tailor your experience."
+      mascot="thumbs"
+    >
+      <div className="relative mt-20">
+        <motion.div
+          initial={{ y: 15, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ ...spring, delay: 0.1 }}
+          className="absolute -top-20 left-1/2 z-0 -translate-x-1/2"
+        >
+          <Wisby
+            variant="thumbs"
+            className="w-[105px] object-contain drop-shadow-md"
+          />
+        </motion.div>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              className={cn(
+                "relative z-10 h-[62px] w-full justify-start rounded-2xl border-2 bg-white px-5 text-left shadow-[0_8px_30px_rgba(0,0,0,0.05)] hover:bg-white",
+                value
+                  ? "border-primary/30 text-slate-950"
+                  : "border-slate-100 text-slate-400",
+              )}
+            >
+              <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
+              <span className="font-bold">
+                {value
+                  ? format(new Date(value), "MMMM d, yyyy")
+                  : "Select your date of birth"}
+              </span>
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent
+            className="w-auto rounded-2xl border-slate-100 p-0 shadow-xl"
+            align="center"
+          >
+            <Calendar
+              mode="single"
+              selected={value ? new Date(value) : undefined}
+              onSelect={(date) => {
+                onChange(date ? format(date, "yyyy-MM-dd") : "");
+              }}
+              initialFocus
+              captionLayout="dropdown"
+              fromYear={1990}
+              toYear={new Date().getFullYear()}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <ReactionBubble>
+        {value
+          ? "Perfect! One little detail done. 🎯"
+          : "Don't worry, this takes just one tap."}
+      </ReactionBubble>
+    </QuestionLayout>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* LOCATION                                                                   */
+/* -------------------------------------------------------------------------- */
+
+function LocationStep({
+  district,
+  state,
+  onDistrictChange,
+  onStateChange,
+}: {
+  district: string;
+  state: string;
+  onDistrictChange: (value: string) => void;
+  onStateChange: (value: string) => void;
+}) {
+  return (
+    <QuestionLayout
+      eyebrow="Almost there"
+      title={
+        <>
+          Where do
+          <br />
+          you <span className="text-primary">live?</span>
+        </>
+      }
+      subtitle="This helps us understand our Wisdawn community."
+      mascot="thumbs"
+    >
+      <div className="mt-7 space-y-3">
+        <LocationSelect
+          icon={<MapPin className="h-5 w-5" />}
+          placeholder="Select your district"
+          value={district}
+          onValueChange={onDistrictChange}
+        >
+          {ASSAM_DISTRICTS.map((districtName) => (
+            <SelectItem
+              key={districtName}
+              value={districtName}
+              className="py-3 font-bold"
+            >
+              {districtName}
+            </SelectItem>
+          ))}
+        </LocationSelect>
+
+        <LocationSelect
+          icon={<MapPin className="h-5 w-5" />}
+          placeholder="Select your state"
+          value={state}
+          onValueChange={onStateChange}
+        >
+          <SelectItem value="Assam" className="py-3 font-bold">
+            Assam
+          </SelectItem>
+        </LocationSelect>
+      </div>
+
+      <ReactionBubble>
+        {district && state
+          ? `Awesome! ${district}, ${state}. 📍`
+          : "Wherever you are, Wispy is coming with you."}
+      </ReactionBubble>
+    </QuestionLayout>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* REVIEW                                                                     */
+/* -------------------------------------------------------------------------- */
+
+function ReviewStep({
+  data,
+  onEdit,
+}: {
+  data: Data;
+  onEdit: (step: number) => void;
+}) {
+  return (
+    <section>
+      <div className="text-center">
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={spring}
+          className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-primary/10"
+        >
+          <CheckCircle2 className="h-7 w-7 text-primary" />
+        </motion.div>
+
+        <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-primary">
+          One last check
+        </p>
+
+        <h1 className="mt-3 text-[32px] font-black leading-tight tracking-[-0.035em]">
+          Ready to meet
+          <br />
+          your <span className="text-primary">new routine?</span>
+        </h1>
+
+        <p className="mx-auto mt-3 max-w-[300px] text-[14px] font-medium leading-relaxed text-slate-500">
+          Make sure everything looks right. You can edit anything before
+          starting.
+        </p>
+      </div>
+
+      <div className="mt-7 space-y-2">
+        <ReviewRow
+          icon={<UserIcon className="h-4 w-4" />}
+          label="Name"
+          value={data.name || "—"}
+          onClick={() => onEdit(1)}
+        />
+
+        <ReviewRow
+          icon={<Users className="h-4 w-4" />}
+          label="Guardian"
+          value={data.guardian || "—"}
+          onClick={() => onEdit(2)}
+        />
+
+        <ReviewRow
+          icon={<GraduationCap className="h-4 w-4" />}
+          label="Class"
+          value={data.cls || "—"}
+          onClick={() => onEdit(3)}
+        />
+
+        <ReviewRow
+          icon={<Atom className="h-4 w-4" />}
+          label="Learning path"
+          value={data.track || "—"}
+          onClick={() => onEdit(4)}
+        />
+
+        <ReviewRow
+          icon={<CalendarIcon className="h-4 w-4" />}
+          label="Date of birth"
+          value={
+            data.dob ? format(new Date(data.dob), "MMM d, yyyy") : "—"
+          }
+          onClick={() => onEdit(5)}
+        />
+
+        <ReviewRow
+          icon={<MapPin className="h-4 w-4" />}
+          label="Location"
+          value={[data.district, data.state].filter(Boolean).join(", ") || "—"}
+          onClick={() => onEdit(6)}
+        />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="mt-5 flex items-center gap-3 rounded-2xl bg-primary/5 p-4"
+      >
+        <Wisby
+          variant="thumbs"
+          className="w-[62px] shrink-0 object-contain"
+        />
+        <div>
+          <p className="text-[13px] font-extrabold text-slate-900">
+            Looks perfect!
+          </p>
+          <p className="mt-0.5 text-[12px] font-medium leading-snug text-slate-500">
+            Wispy is ready. Are you?
+          </p>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* SUCCESS                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function SuccessStep({ name }: { name: string }) {
+  const firstName = name.trim().split(/\s+/)[0] || "friend";
+
+  return (
+    <section className="flex min-h-full flex-col items-center justify-center text-center">
+      <CelebrationParticles />
+
+      <motion.div
+        initial={{ scale: 0.55, opacity: 0, y: 25 }}
+        animate={{ scale: 1, opacity: 1, y: [0, -10, 0] }}
+        transition={{
+          opacity: { duration: 0.35 },
+          scale: { ...spring },
+          y: {
+            delay: 0.35,
+            duration: 1.8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        }}
+        className="relative z-10 w-[245px]"
+      >
+        <Wisby
+          variant="cheer"
+          className="w-full object-contain drop-shadow-xl"
+        />
+
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ ...spring, delay: 0.65 }}
+          className="absolute -left-1 top-3 grid h-12 w-12 place-items-center rounded-full bg-white shadow-[0_8px_28px_rgba(0,0,0,0.10)]"
+        >
+          <PartyPopper className="h-5 w-5 text-primary" />
+        </motion.div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45, ...spring }}
+      >
+        <p className="mt-7 text-[12px] font-extrabold uppercase tracking-[0.18em] text-primary">
+          You're all set!
+        </p>
+
+        <h1 className="mt-2 text-[34px] font-black tracking-[-0.04em]">
+          Let's do this,
+          <br />
+          <span className="text-primary">{firstName}! 🎉</span>
+        </h1>
+
+        <p className="mx-auto mt-3 max-w-[285px] text-[15px] font-medium leading-relaxed text-slate-500">
+          Your Wisdawn journey starts now. Wispy will be right there with you.
+        </p>
+      </motion.div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* SHARED COMPONENTS                                                          */
+/* -------------------------------------------------------------------------- */
+
+function QuestionLayout({
+  eyebrow,
+  title,
+  subtitle,
+  mascot,
+  children,
+}: {
+  eyebrow: string;
+  title: ReactNode;
+  subtitle: string;
+  mascot: "thumbs" | "cheer";
+  children: ReactNode;
+}) {
+  return (
+    <section className="flex min-h-full flex-col">
+      <div>
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-[12px] font-extrabold uppercase tracking-[0.15em] text-primary"
+        >
+          {eyebrow}
+        </motion.p>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mt-3 text-[34px] font-black leading-[1.08] tracking-[-0.04em] text-slate-950"
+        >
+          {title}
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mt-3 max-w-[320px] text-[14px] font-medium leading-relaxed text-slate-500"
+        >
+          {subtitle}
+        </motion.p>
+      </div>
+
+      <div className="flex-1">{children}</div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, ...spring }}
+        className="mt-auto flex items-end justify-end pt-8"
+      >
+        <Wisby
+          variant={mascot}
+          className="w-[104px] object-contain drop-shadow-md"
+        />
+      </motion.div>
+    </section>
+  );
+}
+
+function InputBubble({
   icon,
   placeholder,
   value,
   onChange,
-  type = "text",
+  autoFocus,
 }: {
-  icon?: ReactNode;
+  icon: ReactNode;
   placeholder: string;
   value: string;
-  onChange: (v: string) => void;
-  type?: string;
+  onChange: (value: string) => void;
+  autoFocus?: boolean;
 }) {
   return (
-    <div className="mt-5 flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-      {icon && <span className="text-muted-foreground">{icon}</span>}
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
-      />
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 18, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ ...spring, delay: 0.12 }}
+      className="relative mt-16"
+    >
+      <div className="absolute -top-16 left-1/2 -translate-x-1/2">
+        <Wisby
+          variant="thumbs"
+          className="w-[105px] object-contain drop-shadow-md"
+        />
+      </div>
+
+      <label className="relative z-10 flex min-h-[64px] items-center gap-3 rounded-2xl border-2 border-slate-100 bg-white px-5 shadow-[0_10px_35px_rgba(0,0,0,0.055)] transition-all focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/10">
+        <span className="text-primary">{icon}</span>
+
+        <input
+          autoFocus={autoFocus}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="min-w-0 flex-1 bg-transparent text-[16px] font-bold text-slate-900 outline-none placeholder:text-slate-400 placeholder:font-medium"
+        />
+      </label>
+    </motion.div>
   );
 }
-function Choice({
-  active,
-  onClick,
+
+function ChoiceCard({
+  selected,
   icon,
   title,
-  sub,
+  description,
+  onClick,
 }: {
-  active: boolean;
-  onClick: () => void;
+  selected: boolean;
   icon: ReactNode;
   title: string;
-  sub?: string;
+  description: string;
+  onClick: () => void;
 }) {
   return (
-    <button
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.975 }}
+      animate={{
+        scale: selected ? 1.01 : 1,
+      }}
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-2xl border bg-card px-4 py-3.5 text-left transition ${
-        active ? "border-primary ring-2 ring-primary/20" : "border-border"
-      }`}
+      className={cn(
+        "relative flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all",
+        selected
+          ? "border-primary bg-primary/[0.045] shadow-[0_8px_28px_rgba(59,102,245,0.10)]"
+          : "border-slate-100 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.035)]",
+      )}
     >
-      <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft">{icon}</span>
-      <div className="min-w-0">
-        <div className="font-semibold text-sm">{title}</div>
-        {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
+      <motion.div
+        animate={{
+          scale: selected ? [1, 1.12, 1] : 1,
+          rotate: selected ? [0, -4, 4, 0] : 0,
+        }}
+        transition={{ duration: 0.35 }}
+        className={cn(
+          "grid h-12 w-12 shrink-0 place-items-center rounded-xl",
+          selected ? "bg-white" : "bg-slate-50",
+        )}
+      >
+        {icon}
+      </motion.div>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-[16px] font-extrabold text-slate-900">{title}</p>
+        <p className="mt-0.5 text-[12px] font-medium text-slate-500">
+          {description}
+        </p>
       </div>
-    </button>
+
+      <motion.div
+        initial={false}
+        animate={{
+          scale: selected ? 1 : 0.88,
+          opacity: selected ? 1 : 0.35,
+        }}
+      >
+        {selected ? (
+          <div className="grid h-7 w-7 place-items-center rounded-full bg-primary text-white">
+            <Check className="h-4 w-4 stroke-[3]" />
+          </div>
+        ) : (
+          <div className="h-7 w-7 rounded-full border-2 border-slate-200" />
+        )}
+      </motion.div>
+    </motion.button>
   );
 }
-function Bubble({ children, small }: { children: ReactNode; small?: boolean }) {
+
+function LocationSelect({
+  icon,
+  placeholder,
+  value,
+  onValueChange,
+  children,
+}: {
+  icon: ReactNode;
+  placeholder: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  children: ReactNode;
+}) {
   return (
-    <div
-      className={`mt-6 inline-block max-w-[80%] rounded-2xl rounded-bl-sm border border-border bg-card px-4 py-2.5 ${
-        small ? "text-xs" : "text-sm"
-      } text-muted-foreground shadow-sm`}
+    <div className="rounded-2xl border-2 border-slate-100 bg-white shadow-[0_6px_24px_rgba(0,0,0,0.035)]">
+      <Select value={value || undefined} onValueChange={onValueChange}>
+        <SelectTrigger className="h-[62px] border-0 bg-transparent px-5 font-bold shadow-none focus:ring-0">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="text-primary">{icon}</span>
+            <SelectValue placeholder={placeholder} />
+          </div>
+        </SelectTrigger>
+
+        <SelectContent className="max-h-[300px] rounded-2xl border-slate-100 shadow-xl">
+          {children}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function ReactionBubble({ children }: { children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 0.25, ...spring }}
+      className="mt-6 rounded-2xl rounded-br-md bg-slate-50 px-4 py-3 text-[12px] font-bold leading-snug text-slate-600"
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
-function MascotArea({
-  variant = "thumbs" as "thumbs" | "cheer",
-  bubble,
-  small,
+
+function ReviewRow({
+  icon,
+  label,
+  value,
+  onClick,
 }: {
-  variant?: "thumbs" | "cheer";
-  bubble?: string;
-  small?: boolean;
+  icon: ReactNode;
+  label: string;
+  value: string;
+  onClick: () => void;
 }) {
   return (
-    <div className="mt-2 flex flex-1 items-end justify-center pb-2">
-      <div className="flex items-end gap-4">
-        <Wisby variant={variant} className="w-56" />
-        {bubble && (
-          <div className="mb-6 max-w-xs">
-            <Bubble small={small}>{bubble}</Bubble>
-          </div>
-        )}
-      </div>
-    </div>
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.985 }}
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 text-left shadow-[0_4px_18px_rgba(0,0,0,0.025)]"
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/5 text-primary">
+        {icon}
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+          {label}
+        </span>
+        <span className="mt-0.5 block truncate text-[13px] font-extrabold text-slate-900">
+          {value}
+        </span>
+      </span>
+
+      <span className="text-[11px] font-extrabold text-primary">Edit</span>
+    </motion.button>
   );
 }
-function Row({ label, value }: { label: string; value: string }) {
+
+function FloatingDots() {
   return (
-    <div className="flex items-center justify-between gap-3 text-foreground/80">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-bold">{value}</span>
-    </div>
+    <>
+      <motion.span
+        animate={{ y: [0, -8, 0], rotate: [0, 8, 0] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-[12%] top-[20%] h-3 w-3 rounded-full bg-primary/15"
+      />
+      <motion.span
+        animate={{ y: [0, 9, 0], rotate: [0, -8, 0] }}
+        transition={{
+          duration: 2.8,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 0.2,
+        }}
+        className="absolute right-[13%] top-[27%] h-5 w-5 rounded-full bg-primary/10"
+      />
+      <motion.span
+        animate={{ y: [0, -7, 0] }}
+        transition={{
+          duration: 2.1,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 0.4,
+        }}
+        className="absolute bottom-[22%] left-[17%] h-4 w-4 rounded-full bg-primary/10"
+      />
+    </>
   );
 }
-function Progress({ step, total }: { step: number; total: number }) {
+
+function CelebrationParticles() {
+  const particles = [
+    { left: "8%", top: "18%", delay: 0 },
+    { left: "21%", top: "9%", delay: 0.12 },
+    { left: "77%", top: "12%", delay: 0.22 },
+    { left: "90%", top: "27%", delay: 0.08 },
+    { left: "12%", top: "55%", delay: 0.18 },
+    { left: "85%", top: "58%", delay: 0.3 },
+  ];
+
   return (
-    <div className="flex gap-1.5">
-      {Array.from({ length: total }).map((_, i) => (
-        <span
-          key={i}
-          className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`}
-        />
+    <>
+      {particles.map((particle, index) => (
+        <motion.span
+          key={index}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{
+            opacity: [0, 1, 0],
+            scale: [0.4, 1, 0.7],
+            y: [0, -18, 5],
+            rotate: [0, 80, 160],
+          }}
+          transition={{
+            duration: 1.8,
+            delay: particle.delay,
+            repeat: Infinity,
+            repeatDelay: 0.8,
+          }}
+          className="absolute z-0 text-primary"
+          style={{
+            left: particle.left,
+            top: particle.top,
+          }}
+        >
+          {index % 2 === 0 ? "✦" : "•"}
+        </motion.span>
       ))}
-    </div>
+    </>
   );
 }

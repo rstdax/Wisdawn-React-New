@@ -391,7 +391,7 @@ function Tests() {
           </div>
         </div>
       </div>
-      <BottomNav />
+      
     </MobileFrame>
   );
 }
