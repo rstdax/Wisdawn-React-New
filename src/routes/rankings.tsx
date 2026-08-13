@@ -305,6 +305,10 @@ function Rankings() {
               <div className="flex flex-col">
                 {entries.map((u) => {
                   const isMe = u.uid === user?.uid;
+                  
+                  // NEW: Use the local profile avatar if it's you, otherwise check the database for other users
+                  const rowAvatar = isMe ? (profile as any)?.avatar : (u as any)?.avatar;
+
                   return (
                     <div
                       key={u.uid}
@@ -316,15 +320,14 @@ function Rankings() {
                       </div>
 
                       {/* Avatar */}
-                      {/* Avatar */}
                       <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full font-bold text-sm overflow-hidden ${
                         u.rank === 1 ? "bg-amber-100 text-amber-600" :
                         u.rank === 2 ? "bg-slate-100 text-slate-500" :
                         u.rank === 3 ? "bg-orange-100 text-orange-600" :
                         "bg-primary/10 text-primary"
                       }`}>
-                        {(u as any).avatar ? (
-                          <img src={(u as any).avatar} alt={u.name} className="h-full w-full object-cover" />
+                        {rowAvatar ? (
+                          <img src={rowAvatar} alt={u.name} className="h-full w-full object-cover p-0.5 rounded-full" />
                         ) : (
                           u.name.split(" ").map((p: string) => p[0]).join("").toUpperCase().slice(0, 2)
                         )}
