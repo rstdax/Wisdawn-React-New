@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WispyRouteImport } from './routes/wispy'
 import { Route as TestsRouteImport } from './routes/tests'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as RankingsbackupRouteImport } from './routes/rankings backup'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -42,6 +43,11 @@ const TestsRoute = TestsRouteImport.update({
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingsbackupRoute = RankingsbackupRouteImport.update({
+  id: '/rankings backup',
+  path: '/rankings backup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RankingsRoute = RankingsRouteImport.update({
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
+  '/rankings backup': typeof RankingsbackupRoute
   '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
   '/wispy': typeof WispyRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
+  '/rankings backup': typeof RankingsbackupRoute
   '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
   '/wispy': typeof WispyRoute
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/rankings': typeof RankingsRoute
+  '/rankings backup': typeof RankingsbackupRoute
   '/support': typeof SupportRoute
   '/tests': typeof TestsRoute
   '/wispy': typeof WispyRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/rankings'
+    | '/rankings backup'
     | '/support'
     | '/tests'
     | '/wispy'
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/rankings'
+    | '/rankings backup'
     | '/support'
     | '/tests'
     | '/wispy'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/rankings'
+    | '/rankings backup'
     | '/support'
     | '/tests'
     | '/wispy'
@@ -267,6 +279,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   RankingsRoute: typeof RankingsRoute
+  RankingsbackupRoute: typeof RankingsbackupRoute
   SupportRoute: typeof SupportRoute
   TestsRoute: typeof TestsRoute
   WispyRoute: typeof WispyRoute
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rankings backup': {
+      id: '/rankings backup'
+      path: '/rankings backup'
+      fullPath: '/rankings backup'
+      preLoaderRoute: typeof RankingsbackupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rankings': {
@@ -427,6 +447,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   RankingsRoute: RankingsRoute,
+  RankingsbackupRoute: RankingsbackupRoute,
   SupportRoute: SupportRoute,
   TestsRoute: TestsRoute,
   WispyRoute: WispyRoute,

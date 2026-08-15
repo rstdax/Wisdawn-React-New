@@ -89,10 +89,10 @@ async function checkAndAwardBadges(tx, userRef, userData, extraFlags = {}) {
   }
 
   if (newBadges.length > 0) {
-    tx.set(userRef, {
+    tx.update(userRef, {
       badges: Array.from(currentBadges),
       "stats.badges": Array.from(currentBadges).length,
-    }, { merge: true });
+    });
   }
 
   return { newBadges, totalBonusXP };
@@ -122,12 +122,11 @@ async function updateStreak(tx, userRef, userData, nowTs) {
 
   const newLongest = Math.max(userData.longest_streak || 0, newStreak);
 
-  // Use set with merge so it works even if fields don't exist yet
-  tx.set(userRef, {
+  tx.update(userRef, {
     current_streak: newStreak,
     longest_streak: newLongest,
     last_study_date: todayStr,
-  }, { merge: true });
+  });
 
   return newStreak;
 }
