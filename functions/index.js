@@ -156,7 +156,7 @@ exports.claimContentXP = onCall({ region: "asia-south1" }, async (request) => {
     ]);
 
     // Validate session
-    if (!sessionSnap.exists()) throw new HttpsError("not-found", "Session not found.");
+    if (!sessionSnap.exists) throw new HttpsError("not-found", "Session not found.");
     const session = sessionSnap.data();
     if (session.user_uid !== uid) throw new HttpsError("permission-denied", "Session does not belong to user.");
     if (session.status === "claimed") {
@@ -164,12 +164,12 @@ exports.claimContentXP = onCall({ region: "asia-south1" }, async (request) => {
     }
 
     // Check duplicate completion
-    if (completionSnap.exists()) {
+    if (completionSnap.exists) {
       return { success: false, xp_earned: 0, message: "XP already claimed." };
     }
 
     // Validate content from chapter or lesson doc or fallback to session data
-    const content = chapterSnap.exists() ? chapterSnap.data() : (lessonSnap.exists() ? lessonSnap.data() : {});
+    const content = chapterSnap.exists ? chapterSnap.data() : (lessonSnap.exists ? lessonSnap.data() : {});
     const lessonType = content.lessonType || content.type || session.content_type || "video";
     const defaults = CONTENT_DEFAULTS[lessonType] || CONTENT_DEFAULTS.video;
     const xpReward = typeof content.xp_reward === "number" ? content.xp_reward : defaults.xp_reward;
