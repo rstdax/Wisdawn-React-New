@@ -59,17 +59,22 @@ function SubjectPage() {
 
   useEffect(() => {
     setLoading(true);
-    getSubjects().then(async (subs) => {
-      const sub = subs.find((s) => s.id === id) ?? null;
-      setSubject(sub);
-      if (sub) {
-        const chs = await getChaptersBySubject(sub.id);
-        const published = chs.filter((c) => c.published);
-        setChapters(published);
-        // Start with all groups collapsed
-        setExpandedGroups(new Set());
-      }
-    }).finally(() => setLoading(false));
+    getSubjects()
+      .then(async (subs) => {
+        const sub = subs.find((s) => s.id === id) ?? null;
+        setSubject(sub);
+        if (sub) {
+          const chs = await getChaptersBySubject(sub.id);
+          const published = chs.filter((c) => c.published);
+          setChapters(published);
+          // Start with all groups collapsed
+          setExpandedGroups(new Set());
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load subject data:", error);
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
   const groups = groupChapters(chapters);
@@ -85,36 +90,31 @@ function SubjectPage() {
 
   return (
     <MobileFrame>
-
-      {/* NEW: WISDAWN BRANDING & POINTS HEADER */}
-    <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
-      {/* Left Side: Logo and Name */}
-      <div className="flex items-center gap-2">
-        <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
-        <span className="text-2xl font-bold text-primary">Wisdawn</span>
-      </div>
-
-      {/* Right Side: Coin Pill (No image file needed) */}
-      <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
-        {/* Custom CSS Coin with Star SVG */}
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            viewBox="0 0 24 24" 
-            fill="currentColor" 
-            className="h-4 w-4 text-amber-700 opacity-90"
-          >
-            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-          </svg>
+      {/* WISDAWN BRANDING & POINTS HEADER */}
+      <div className="flex md:hidden items-center justify-between px-5 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <img src={logoImg} alt="Wisdawn Logo" className="h-8 w-8 object-contain" />
+          <span className="text-2xl font-bold text-primary">Wisdawn</span>
         </div>
-        <span className="text-xl font-bold text-amber-500">
-          {liveXP.toLocaleString("en-IN")}
-        </span>
-      </div>
-    </div>
 
-    {/* THE DIVIDER LINE */}
-    <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
+        <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-sm border border-yellow-400">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 24 24" 
+              fill="currentColor" 
+              className="h-4 w-4 text-amber-700 opacity-90"
+            >
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <span className="text-xl font-bold text-amber-500">
+            {liveXP.toLocaleString("en-IN")}
+          </span>
+        </div>
+      </div>
+
+      <hr className="block md:hidden border-t border-border/60 mx-5 mb-2" />
 
       {/* MOBILE HEADER */}
       <header className="flex md:hidden items-center gap-3 px-5 pt-2 pb-1">
@@ -157,35 +157,56 @@ function SubjectPage() {
           </div>
         ) : subject?.track === "coding" ? (
           (() => {
-            const firstChapter = chapters.sort((a, b) => (a.videoOrder ?? a.order ?? 0) - (b.videoOrder ?? b.order ?? 0))[0];
+            // Fix: Create a shallow copy before sorting to prevent state mutation during render
+            const sortedChapters = [...chapters].sort((a, b) => (a.videoOrder ?? 0) - (b.videoOrder ?? 0));
+            const firstChapter = sortedChapters[0];
             return <Navigate to="/chapter/$id" params={{ id: firstChapter.id }} replace />;
           })()
         ) : (
           <div className="space-y-4 mt-3">
             {groups.map((group) => {
               const isExpanded = expandedGroups.has(group.groupId);
+              const firstVideo = group.videos[0];
+
               return (
                 <div key={group.groupId} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                   
                   {/* ── CHAPTER GROUP HEADER ── */}
                   <div className="flex items-center justify-between pr-3 group/header hover:bg-slate-50 transition-colors duration-300">
-                    <Link
-                      to={group.videos[0] ? "/chapter/$id" : "/subject/$id"}
-                      params={{ id: group.videos[0]?.id || id }}
-                      className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 px-4 py-4"
-                    >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 text-sm font-bold transition-colors duration-300 group-hover/header:bg-primary/10 group-hover/header:text-primary group-hover/header:border-primary/20">
-                        {group.groupId === 0 ? "—" : group.groupId}
+                    {/* Fix: Safely branch the Link vs static div to prevent TanStack Router param mismatch */}
+                    {firstVideo ? (
+                      <Link
+                        to="/chapter/$id"
+                        params={{ id: firstVideo.id }}
+                        className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 px-4 py-4"
+                      >
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 text-sm font-bold transition-colors duration-300 group-hover/header:bg-primary/10 group-hover/header:text-primary group-hover/header:border-primary/20">
+                          {group.groupId === 0 ? "—" : group.groupId}
+                        </div>
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover/header:text-primary truncate">
+                            {group.label}
+                          </p>
+                          <p className="text-[12px] font-medium text-slate-500 mt-0.5 truncate">
+                            {group.videos.length} resource{group.videos.length !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 px-4 py-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 text-sm font-bold">
+                          {group.groupId === 0 ? "—" : group.groupId}
+                        </div>
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="text-[15px] font-bold text-slate-800 truncate">
+                            {group.label}
+                          </p>
+                          <p className="text-[12px] font-medium text-slate-500 mt-0.5 truncate">
+                            0 resources
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-left min-w-0 flex-1">
-                        <p className="text-[15px] font-bold text-slate-800 transition-colors duration-300 group-hover/header:text-primary truncate">
-                          {group.label}
-                        </p>
-                        <p className="text-[12px] font-medium text-slate-500 mt-0.5 truncate">
-                          {group.videos.length} resource{group.videos.length !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    </Link>
+                    )}
                     
                     <button
                       onClick={(e) => {
@@ -262,7 +283,7 @@ function SubjectPage() {
                                 </div>
                               </div>
 
-                              {/* 3. Right Action Button (Added shrink-0 so it never gets squished) */}
+                              {/* 3. Right Action Button */}
                               <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white border shadow-sm transition-all duration-300 ${theme.border} ${theme.text} ${theme.hoverMain} group-hover:text-white group-hover:scale-105`}>
                                 {chapter.lessonType === "pdf" || chapter.lessonType === "link" ? (
                                   <ArrowRight className="h-4 w-4" />
@@ -282,7 +303,6 @@ function SubjectPage() {
           </div>
         )}
       </div>
-      
     </MobileFrame>
   );
 }
