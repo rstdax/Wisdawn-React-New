@@ -41,9 +41,24 @@ function AuthPage() {
     }
   }, [user, profile, authLoading, navigate]);
 
+  // FIXED: Only initialize Recaptcha AFTER auth is done loading and the DOM is rendered
   useEffect(() => {
-    setupRecaptcha("recaptcha-container");
-  }, []);
+    if (!authLoading && !user) {
+      // A small timeout ensures the DOM has finished painting the #recaptcha-container div
+      const timer = setTimeout(() => {
+        try {
+          const result = setupRecaptcha("recaptcha-container");
+          // Safely catch any unhandled promise rejections from Firebase
+          if (result && typeof (result as any).catch === "function") {
+            (result as any).catch((err: any) => console.error("Recaptcha setup error:", err));
+          }
+        } catch (err) {
+          console.error("Recaptcha init error:", err);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, user]);
 
   const handleGoogleAuth = async () => {
     setLoading(true);
@@ -115,8 +130,6 @@ function AuthPage() {
         className="absolute top-0 left-0 right-0 h-[65vh] z-0 bg-cover bg-top bg-no-repeat pointer-events-none"
         style={{ backgroundImage: `url(${signPageBg})` }}
       />
-
-      
 
       {/* Main Content Area */}
       <main className="relative z-10 w-full flex-1 flex flex-col items-center justify-end max-w-md mx-auto pt-4">
