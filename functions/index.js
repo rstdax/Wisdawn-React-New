@@ -7,30 +7,36 @@ const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestor
 initializeApp();
 const db = getFirestore();
 
-// ─── Badge definitions (server-side copy) ────────────────────────────────────
+// ─── Badge definitions (server-side — kept in sync with src/lib/badges.ts) ───
 const BADGE_DEFINITIONS = [
-  { id: "novice_explorer",    xp_bonus: 0,   check: (s) => s.total_xp >= 100 },
-  { id: "rising_scholar",     xp_bonus: 25,  check: (s) => s.total_xp >= 1000 },
-  { id: "knowledge_seeker",   xp_bonus: 50,  check: (s) => s.total_xp >= 2500 },
-  { id: "master_mind",        xp_bonus: 100, check: (s) => s.total_xp >= 5000 },
-  { id: "state_legend",       xp_bonus: 200, check: (s) => s.total_xp >= 10000 },
-  { id: "first_page_turned",  xp_bonus: 10,  check: (s) => s.pdf_material_count >= 1 },
-  { id: "avid_reader",        xp_bonus: 25,  check: (s) => s.pdf_material_count >= 10 },
-  { id: "library_worm",       xp_bonus: 75,  check: (s) => s.pdf_material_count >= 50 },
-  { id: "deep_focus",         xp_bonus: 30,  check: (s) => s.deep_focus_count >= 5 },
-  { id: "first_frame",        xp_bonus: 10,  check: (s) => s.video_count >= 1 },
-  { id: "binge_learner",      xp_bonus: 25,  check: (s) => s.video_count >= 10 },
-  { id: "visual_master",      xp_bonus: 75,  check: (s) => s.video_count >= 30 },
-  { id: "test_taker",         xp_bonus: 15,  check: (s) => s.tests_completed >= 1 },
-  { id: "bullseye",           xp_bonus: 50,  check: (s) => s.has_perfect_score === true },
-  { id: "speed_demon",        xp_bonus: 40,  check: (s) => s.has_speed_demon === true },
-  { id: "test_titan",         xp_bonus: 100, check: (s) => s.tests_completed >= 15 && s.avg_score > 80 },
-  { id: "chemistry_catalyst", xp_bonus: 150, check: (s) => s.chemistry_completed === true },
-  { id: "code_cadet",         xp_bonus: 50,  check: (s) => s.coding_tests_completed >= 5 },
-  { id: "code_master",        xp_bonus: 100, check: (s) => s.coding_xp >= 2000 },
-  { id: "streak_starter",     xp_bonus: 20,  check: (s) => s.current_streak >= 3 },
-  { id: "unstoppable",        xp_bonus: 50,  check: (s) => s.current_streak >= 7 },
-  { id: "night_owl",          xp_bonus: 15,  check: (s) => s.is_night_activity === true },
+  // XP Milestones
+  { id: "novice_explorer",    xp_bonus: 0,  check: (s) => s.total_xp >= 100 },
+  { id: "rising_scholar",     xp_bonus: 10, check: (s) => s.total_xp >= 1000 },
+  { id: "knowledge_seeker",   xp_bonus: 20, check: (s) => s.total_xp >= 2500 },
+  { id: "master_mind",        xp_bonus: 30, check: (s) => s.total_xp >= 5000 },
+  { id: "state_legend",       xp_bonus: 50, check: (s) => s.total_xp >= 10000 },
+  // PDF / Material
+  { id: "first_page_turned",  xp_bonus: 5,  check: (s) => s.pdf_material_count >= 1 },
+  { id: "avid_reader",        xp_bonus: 10, check: (s) => s.pdf_material_count >= 10 },
+  { id: "library_worm",       xp_bonus: 20, check: (s) => s.pdf_material_count >= 50 },
+  { id: "deep_focus",         xp_bonus: 15, check: (s) => s.deep_focus_count >= 5 },
+  // Video
+  { id: "first_frame",        xp_bonus: 5,  check: (s) => s.video_count >= 1 },
+  { id: "binge_learner",      xp_bonus: 10, check: (s) => s.video_count >= 10 },
+  { id: "visual_master",      xp_bonus: 20, check: (s) => s.video_count >= 30 },
+  // Tests
+  { id: "test_taker",         xp_bonus: 5,  check: (s) => s.tests_completed >= 1 },
+  { id: "bullseye",           xp_bonus: 15, check: (s) => s.has_perfect_score === true },
+  { id: "speed_demon",        xp_bonus: 10, check: (s) => s.has_speed_demon === true },
+  { id: "test_titan",         xp_bonus: 25, check: (s) => s.tests_completed >= 15 && s.avg_score >= 80 },
+  // Subject Mastery
+  { id: "chemistry_catalyst", xp_bonus: 40, check: (s) => s.chemistry_completed === true },
+  { id: "code_cadet",         xp_bonus: 15, check: (s) => s.coding_tests_completed >= 5 },
+  { id: "code_master",        xp_bonus: 30, check: (s) => s.coding_xp >= 2000 },
+  // Consistency
+  { id: "streak_starter",     xp_bonus: 5,  check: (s) => s.current_streak >= 3 },
+  { id: "unstoppable",        xp_bonus: 15, check: (s) => s.current_streak >= 7 },
+  { id: "night_owl",          xp_bonus: 5,  check: (s) => s.is_night_activity === true },
 ];
 
 // ─── Content XP defaults ─────────────────────────────────────────────────────
@@ -255,19 +261,27 @@ exports.claimContentXP = onCall({ region: "asia-south1" }, async (request) => {
 
     // Award badge XP bonus
     if (totalBonusXP > 0) {
-      tx.update(userRef, {
-        total_xp:  FieldValue.increment(totalBonusXP),
+      tx.set(userRef, {
+        total_xp: FieldValue.increment(totalBonusXP),
         "stats.xp": FieldValue.increment(totalBonusXP),
         [xpField]: FieldValue.increment(totalBonusXP),
-      });
-      const bonusRef = db.collection("xp_history").doc();
-      tx.set(bonusRef, {
-        user_uid: uid, category,
-        xp_earned: totalBonusXP,
-        timestamp: Timestamp.now(),
-        transaction_type: "badge_bonus",
-        badges_awarded: newBadges,
-      });
+      }, { merge: true });
+      // Write one xp_history entry per badge with badge_id and source="badge"
+      for (const badgeId of newBadges) {
+        const badgeDef = BADGE_DEFINITIONS.find(b => b.id === badgeId);
+        if (badgeDef && badgeDef.xp_bonus > 0) {
+          const bonusRef = db.collection("xp_history").doc();
+          tx.set(bonusRef, {
+            user_uid: uid,
+            category,
+            xp_earned: badgeDef.xp_bonus,
+            source: "badge",
+            badge_id: badgeId,
+            timestamp: Timestamp.now(),
+            transaction_type: "badge_bonus",
+          });
+        }
+      }
     }
 
     return {
@@ -418,11 +432,26 @@ exports.submitMcqTest = onCall({ region: "asia-south1" }, async (request) => {
     const { newBadges, totalBonusXP } = await checkAndAwardBadges(tx, userRef, updatedUserData, nightFlag);
 
     if (totalBonusXP > 0) {
-      tx.update(userRef, {
-        total_xp:  FieldValue.increment(totalBonusXP),
+      tx.set(userRef, {
+        total_xp: FieldValue.increment(totalBonusXP),
         "stats.xp": FieldValue.increment(totalBonusXP),
         [xpField]: FieldValue.increment(totalBonusXP),
-      });
+      }, { merge: true });
+      for (const badgeId of newBadges) {
+        const badgeDef = BADGE_DEFINITIONS.find(b => b.id === badgeId);
+        if (badgeDef && badgeDef.xp_bonus > 0) {
+          const bonusRef = db.collection("xp_history").doc();
+          tx.set(bonusRef, {
+            user_uid: uid,
+            category,
+            xp_earned: badgeDef.xp_bonus,
+            source: "badge",
+            badge_id: badgeId,
+            timestamp: Timestamp.now(),
+            transaction_type: "badge_bonus",
+          });
+        }
+      }
     }
 
     return {
