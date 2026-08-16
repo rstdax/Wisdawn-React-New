@@ -95,12 +95,14 @@ function Profile() {
   const { initials, displayName, displayEmail, profile, loading, user } = useAuth();
   
   const savedTrack = typeof window !== "undefined" ? localStorage.getItem("wisdawn_track") : "school";
-  const category: LeaderboardCategory = savedTrack === "coding" ? "coding" : "school";
+  
+  // Always use "all" category for rank — matches the Rankings page default ("All" tab)
+  const rankCategory: LeaderboardCategory = "all";
   
   // Fetch live entries exactly like the rankings page
-  const { data: entries = [] } = useLeaderboard(category, "assam");
+  const { data: entries = [] } = useLeaderboard(rankCategory, "assam");
   const { data: xpData } = useXP(user?.uid);
-  const { data: myRank } = useUserRank(user?.uid, category, "assam");
+  const { data: myRank } = useUserRank(user?.uid, rankCategory, "assam");
   
   const liveXP = xpData?.total_xp ?? profile?.stats?.xp ?? 0;
   
