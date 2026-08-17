@@ -1,20 +1,14 @@
-/**
- * XP System — Production
- *
- * ALL XP is awarded ONLY through Firebase Cloud Functions.
- * No direct Firestore XP writes from the client.
- * If Cloud Functions are unavailable, XP is NOT awarded (fail secure).
- *
- * The frontend timer only decides WHEN to attempt the claim — the
- * Cloud Function is the sole authority that grants XP, verifies time,
- * scores tests, and awards badges server-side.
- */
 
 import {
   collection,
   doc,
   addDoc,
   getDoc,
+  getDocs,
+  setDoc,
+  query,
+  where,
+  limit,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -58,6 +52,8 @@ export type McqSubmitResult = {
   message: string;
   new_total_xp?: number;
   new_badges?: string[];
+  // Server returns correct keys only after submission — never before
+  answer_key?: Record<string, string>; // { [questionId]: correctKey }
 };
 
 export type ContentSession = {
@@ -72,21 +68,62 @@ export type ContentSession = {
 
 const functions = getFunctions(getApp(), "asia-south1");
 
-// ─── Session creation ─────────────────────────────────────────────────────────
+// ─── Module-level in-flight guard ────────────────────────────────────────────
+// Prevents concurrent calls for the same uid+contentId from creating two sessions
+// (handles React StrictMode double-invoke and accidental re-mounts)
+const _sessionInflight = new Map<string, Promise<string>>();
+
+// ─── Session creation — idempotent ───────────────────────────────────────────
+// Uses a deterministic doc ID (uid_contentId) so the same user+content
+// always maps to exactly one active session document.
+// If an active session already exists → reuses it.
+// If completed → throws so caller can skip the timer.
 
 export async function createContentSession(
   uid: string,
   contentId: string,
   contentType: string
 ): Promise<string> {
-  const ref = await addDoc(collection(db, "contentSessions"), {
+  const key = `${uid}_${contentId}`;
+
+  // If another call for the same key is already in progress, wait for it
+  const inflight = _sessionInflight.get(key);
+  if (inflight) return inflight;
+
+  const promise = _doCreateOrReuseSession(uid, contentId, contentType);
+  _sessionInflight.set(key, promise);
+  promise.finally(() => _sessionInflight.delete(key));
+  return promise;
+}
+
+async function _doCreateOrReuseSession(
+  uid: string,
+  contentId: string,
+  contentType: string
+): Promise<string> {
+  // Deterministic doc ID: same user + content → same document
+  const sessionDocId = `${uid}_${contentId}`;
+  const sessionRef = doc(db, "contentSessions", sessionDocId);
+  const existing = await getDoc(sessionRef);
+
+  if (existing.exists()) {
+    const data = existing.data();
+    // Reuse if active. If already claimed/expired, caller will check completedContents separately.
+    console.log(`[XP System] Reusing existing session (${data.status}):`, sessionDocId);
+    return sessionDocId;
+  }
+
+  // Create with deterministic ID using setDoc (not addDoc)
+  await setDoc(sessionRef, {
     user_uid: uid,
     content_id: contentId,
     content_type: contentType,
     started_at: serverTimestamp(),
     status: "active",
   });
-  return ref.id;
+
+  console.log("[XP System] Active content session created:", sessionDocId);
+  return sessionDocId;
 }
 
 // ─── Content XP — Cloud Function ONLY (fail secure) ───────────────────────────

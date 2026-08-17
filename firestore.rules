@@ -50,12 +50,19 @@ service cloud.firestore {
 
     // ─── Content Sessions ─────────────────────────────────────────────────────
     match /contentSessions/{sessionId} {
+      // Allow read: either the doc doesn't exist yet (existence check before create)
+      // or it belongs to the authenticated user.
+      allow read: if isSignedIn() &&
+        (resource == null || resource.data.user_uid == request.auth.uid);
+
+      // Allow create: strict field whitelist + must belong to authenticated user
       allow create: if isSignedIn() &&
         request.resource.data.user_uid == request.auth.uid &&
         request.resource.data.keys().hasOnly(['user_uid','content_id','content_type','started_at','status']) &&
         request.resource.data.status == 'active';
-      allow read: if isSignedIn() && resource.data.user_uid == request.auth.uid;
-      allow update: if false; // Cloud Functions only
+
+      // Updates and deletes are Cloud Functions / Admin SDK only
+      allow update: if false;
       allow delete: if false;
     }
 

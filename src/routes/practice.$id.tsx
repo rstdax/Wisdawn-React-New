@@ -143,7 +143,7 @@ function Practice() {
 
   const handleCheck = () => {
     if (!currentSelected || isChecked || !currentQ) return;
-    const isCorrect = currentSelected === currentQ.correctKey;
+    const isCorrect = currentSelected === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey);
     
     triggerFeedback(isCorrect ? 'success' : 'error');
     
@@ -194,8 +194,12 @@ function Practice() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, allowedSeconds, submitted]);
 
-  // LOCAL SCORE FALLBACK (Guarantees the UI is accurate regardless of network lag)
-  const localCorrectCount = questions.reduce((acc, q) => acc + (answers[q.id] === q.correctKey ? 1 : 0), 0);
+  // LOCAL SCORE FALLBACK (UI only — server result is authoritative)
+  // After submission, use server answer_key if available; before submission correctKey is stripped
+  const getCorrectKey = (q: typeof questions[0]): string | undefined =>
+    result?.answer_key?.[q.id] ?? q.correctKey;
+
+  const localCorrectCount = questions.reduce((acc, q) => acc + (answers[q.id] === getCorrectKey(q) ? 1 : 0), 0);
   const displayScore = total > 0 ? Math.round((localCorrectCount / total) * 100) : 0;
   const progressPercent = total > 0 ? (currentIndex / total) * 100 : 0;
   const currentProgress = submitted ? 100 : progressPercent;
@@ -286,7 +290,8 @@ function Practice() {
                   <div className="space-y-5">
                     {questions.map((q, i) => {
                       const chosen = answers[q.id];
-                      const isCorrect = chosen === q.correctKey;
+                      const correctK = getCorrectKey(q);
+                      const isCorrect = chosen === correctK;
                       return (
                         <div key={q.id} className={`rounded-[32px] border-2 p-6 ${isCorrect ? "border-[#58cc02] bg-[#d7ffb8]" : "border-[#ff4b4b] bg-[#ffdfe0]"}`}>
                           <div className="flex items-start gap-3 mb-5">
@@ -297,14 +302,14 @@ function Practice() {
                           <div className="space-y-3">
                             {q.options.map(o => (
                               <div key={o.key} className={`flex items-center gap-3 rounded-2xl px-5 py-3.5 text-[15px] font-bold border-2 transition-colors ${
-                                o.key === q.correctKey ? "bg-white border-[#58cc02] text-[#46a302]"
-                                : o.key === chosen && chosen !== q.correctKey ? "bg-white border-[#ff4b4b] text-[#ea2b2b]"
+                                o.key === correctK ? "bg-white border-[#58cc02] text-[#46a302]"
+                                : o.key === chosen && chosen !== correctK ? "bg-white border-[#ff4b4b] text-[#ea2b2b]"
                                 : "bg-white/40 border-transparent text-slate-500 opacity-60"
                               }`}>
                                 <span className="font-extrabold text-[17px] opacity-60">{o.key}.</span>
                                 <span>{o.text}</span>
-                                {o.key === q.correctKey && <span className="ml-auto text-[11px] font-black text-[#58cc02] uppercase tracking-widest">Correct</span>}
-                                {o.key === chosen && chosen !== q.correctKey && <span className="ml-auto text-[11px] font-black text-[#ff4b4b] uppercase tracking-widest">Your pick</span>}
+                                {o.key === correctK && <span className="ml-auto text-[11px] font-black text-[#58cc02] uppercase tracking-widest">Correct</span>}
+                                {o.key === chosen && chosen !== correctK && <span className="ml-auto text-[11px] font-black text-[#ff4b4b] uppercase tracking-widest">Your pick</span>}
                               </div>
                             ))}
                           </div>
@@ -338,8 +343,9 @@ function Practice() {
                   {currentQ.options.map(o => {
                     const isPicked = currentSelected === o.key;
                     const isLocked = isChecked;
-                    const isCorrect = isLocked && o.key === currentQ.correctKey;
-                    const isWrong = isLocked && isPicked && o.key !== currentQ.correctKey;
+                    const currentCorrectKey = result?.answer_key?.[currentQ.id] ?? currentQ.correctKey;
+                    const isCorrect = isLocked && o.key === currentCorrectKey;
+                    const isWrong = isLocked && isPicked && o.key !== currentCorrectKey;
                     
                     let btnClass = "relative flex w-full items-center gap-4 rounded-[20px] border-2 px-5 py-4 text-left text-[17px] font-bold transition-all duration-200 outline-none";
 
@@ -385,7 +391,7 @@ function Practice() {
         <footer className={`shrink-0 w-full border-t-2 transition-colors duration-300 ${
           submitted ? "bg-white border-slate-200" :
           !isChecked ? "bg-white border-slate-200" :
-          (currentSelected === currentQ.correctKey) ? "bg-[#d7ffb8] border-[#d7ffb8]" : "bg-[#ffdfe0] border-[#ffdfe0]"
+          (currentSelected === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey)) ? "bg-[#d7ffb8] border-[#d7ffb8]" : "bg-[#ffdfe0] border-[#ffdfe0]"
         }`}>
           <div className="max-w-[500px] mx-auto px-5 pt-5 pb-[max(env(safe-area-inset-bottom),24px)] relative">
             
@@ -394,7 +400,7 @@ function Practice() {
               <div className="mb-5 flex items-start gap-4 animate-in slide-in-from-bottom-2 duration-300 relative">
                 
                 {/* Floating +XP Animation for Correct Answer */}
-                {currentSelected === currentQ.correctKey && (
+                {currentSelected === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey) && (
                   <div className="absolute right-2 -top-16 flex items-center gap-1.5 animate-in zoom-in slide-in-from-bottom-5 fade-in duration-500 fill-mode-forwards drop-shadow-md">
                     <span className="text-2xl font-black text-amber-500">
                       +{Math.max(1, Math.round((test?.base_test_xp ?? 100) / total))}
@@ -402,20 +408,20 @@ function Practice() {
                   </div>
                 )}
 
-                <div className={`grid h-14 w-14 place-items-center rounded-full shrink-0 ${currentSelected === currentQ.correctKey ? "bg-white text-[#58cc02]" : "bg-white text-[#ea2b2b]"}`}>
-                  {currentSelected === currentQ.correctKey ? <Check className="h-8 w-8 stroke-[4]" /> : <X className="h-8 w-8 stroke-[4]" />}
+                <div className={`grid h-14 w-14 place-items-center rounded-full shrink-0 ${currentSelected === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey) ? "bg-white text-[#58cc02]" : "bg-white text-[#ea2b2b]"}`}>
+                  {currentSelected === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey) ? <Check className="h-8 w-8 stroke-[4]" /> : <X className="h-8 w-8 stroke-[4]" />}
                 </div>
                 <div>
-                  <h3 className={`text-[22px] font-black tracking-tight ${currentSelected === currentQ.correctKey ? "text-[#58cc02]" : "text-[#ea2b2b]"}`}>
-                    {currentSelected === currentQ.correctKey ? "Excellent!" : "Incorrect"}
+                  <h3 className={`text-[22px] font-black tracking-tight ${currentSelected === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey) ? "text-[#58cc02]" : "text-[#ea2b2b]"}`}>
+                    {currentSelected === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey) ? "Excellent!" : "Incorrect"}
                   </h3>
-                  {currentSelected !== currentQ.correctKey && (
+                  {currentSelected !== (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey) && (
                     <p className="text-[#ea2b2b] text-[15px] font-bold mt-1 leading-snug">
-                      Correct answer: {currentQ.options.find(o => o.key === currentQ.correctKey)?.text}
+                      Correct answer: {currentQ.options.find(o => o.key === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey))?.text}
                     </p>
                   )}
                   {currentQ.explanation && (
-                    <p className={`text-[14px] mt-2 font-bold opacity-90 leading-snug ${currentSelected === currentQ.correctKey ? "text-[#46a302]" : "text-[#d12424]"}`}>
+                    <p className={`text-[14px] mt-2 font-bold opacity-90 leading-snug ${currentSelected === (result?.answer_key?.[currentQ.id] ?? currentQ.correctKey) ? "text-[#46a302]" : "text-[#d12424]"}`}>
                       {currentQ.explanation}
                     </p>
                   )}

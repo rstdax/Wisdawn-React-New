@@ -467,6 +467,8 @@ exports.submitMcqTest = onCall({ region: "asia-south1" }, async (request) => {
       new_total_xp: newTotalXP + totalBonusXP,
       new_badges: newBadges,
       message: "Test submitted.",
+      // Return answer key only after submission so client can show review screen
+      answer_key: Object.fromEntries(questions.map((q) => [q.id, q.correctKey])),
     };
   });
 });
