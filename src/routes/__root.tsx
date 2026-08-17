@@ -50,27 +50,107 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+    <div
+      style={{
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        background: "#F4F7FB",
+        color: "#0F172A",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100vh",
+        margin: 0,
+        padding: "1.5rem",
+      }}
+    >
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #E2E8F0",
+          borderRadius: "1.5rem",
+          boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+          maxWidth: "28rem",
+          width: "100%",
+          textAlign: "center",
+          padding: "2.5rem 2rem",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Logo */}
+        <div
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: 700,
+            color: "#4F46E5",
+            marginBottom: "1.5rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.5rem",
+          }}
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          Wisdawn
+        </div>
+
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-0.025em", margin: "0 0 0.5rem" }}>
           This page didn't load
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p style={{ color: "#64748B", fontSize: "0.875rem", fontWeight: 500, margin: "0 0 2rem", lineHeight: 1.5 }}>
+          Something went wrong on our end. You can try refreshing or head back home to continue learning.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+
+        <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
           <button
-            onClick={() => {
-              router.invalidate();
-              reset();
+            onClick={() => { router.invalidate(); reset(); }}
+            style={{
+              padding: "0.625rem 1.25rem",
+              borderRadius: "9999px",
+              fontSize: "0.875rem",
+              fontWeight: 700,
+              fontFamily: "inherit",
+              cursor: "pointer",
+              border: "1px solid transparent",
+              background: "#4F46E5",
+              color: "#fff",
+              boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+              transition: "all 0.2s ease-in-out",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-            className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#4338CA"; (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.05)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#4F46E5"; (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
           >
             Try again
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-full border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            style={{
+              padding: "0.625rem 1.25rem",
+              borderRadius: "9999px",
+              fontSize: "0.875rem",
+              fontWeight: 700,
+              fontFamily: "inherit",
+              cursor: "pointer",
+              border: "1px solid #E2E8F0",
+              background: "#ffffff",
+              color: "#0F172A",
+              boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+              transition: "all 0.2s ease-in-out",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#F8FAFC"; (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1.05)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#ffffff"; (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)"; }}
           >
             Go home
           </a>
