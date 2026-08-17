@@ -563,7 +563,7 @@ export type McqQuestion = {
   question: string;
   imageUrl?: string;
   options: McqOption[];
-  correctKey?: string; // present for admin, stripped for students
+  correctKey: string;
   explanation?: string;
   order: number;
 };
@@ -635,12 +635,7 @@ export async function getTestQuestions(testId: string): Promise<McqQuestion[]> {
         orderBy("order", "asc")
       )
     );
-    // Strip correctKey — answer must NEVER be sent to the browser.
-    // Server-side scoring in submitMcqTest Cloud Function is the only authority.
-    return snap.docs.map((d) => {
-      const { correctKey: _stripped, ...safeFields } = d.data();
-      return { id: d.id, ...safeFields } as McqQuestion;
-    });
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as McqQuestion));
   });
 }
 
