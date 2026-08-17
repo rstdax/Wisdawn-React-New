@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardCheck, Sparkles, ArrowRight, Trophy } from "lucide-react";
+import { ClipboardCheck, Sparkles, ArrowRight, Trophy, Clock } from "lucide-react";
 import { MobileFrame } from "@/components/mobile-frame";
 import { BottomNav } from "@/components/bottom-nav";
 import { Wisby } from "@/components/wisby";
@@ -79,6 +79,7 @@ function Tests() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("All");
   const { profile, loading: authLoading, user } = useAuth();
   const { data: xpData } = useXP(user?.uid);
+  const [visibleCount, setVisibleCount] = useState(3);
 
   const { data: tests = [], isLoading: testsLoading } = useQuery({
     queryKey: ["practiceTests"],
@@ -90,7 +91,8 @@ function Tests() {
     queryKey: ["testAttempts", user?.uid],
     queryFn: () => user?.uid ? getTestAttemptsByUser(user.uid) : Promise.resolve([]),
     enabled: !!user?.uid,
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    retry: 2,
   });
   
   const savedTrack = typeof window !== "undefined" ? localStorage.getItem("wisdawn_track") : "school";
@@ -207,7 +209,7 @@ function Tests() {
               {(["All", "School", "Coding", "Results"] as const).map((filter) => (
                 <button
                   key={filter}
-                  onClick={() => setActiveFilter(filter)}
+                  onClick={() => { setActiveFilter(filter); if (filter === "Results") setVisibleCount(3); }}
                   className={`rounded-full px-4 py-2 text-xs font-bold transition-colors duration-300 border shadow-sm shrink-0 ${
                     activeFilter === filter
                       ? "bg-primary text-white border-primary"
@@ -238,35 +240,100 @@ function Tests() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {attempts.map((a: any) => {
-                    const testTitle = tests.find(t => t.id === a.test_id)?.title ?? a.test_id;
+                  {attempts.slice(0, visibleCount).map((a: any) => {
+                    const matchedTest = tests.find(t => t.id === a.test_id);
+                    const testTitle = matchedTest?.title ?? a.test_id;
+                    const pct = a.score_percentage ?? 0;
+                    const correct = a.correct_answers ?? 0;
+                    const total_q = a.total_questions ?? 0;
+                    const timeTaken = a.actual_time_seconds ?? 0;
+                    const xpEarned = a.final_xp ?? 0;
+                    const dateStr = a.submitted_at?.toDate
+                      ? new Date(a.submitted_at.toDate()).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                      : "";
+
+                    const scoreColor = pct >= 80 ? "#46a302" : pct >= 50 ? "#d97706" : "#ea2b2b";
+                    const scoreBg   = pct >= 80 ? "bg-emerald-50 border-emerald-200" : pct >= 50 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
+                    const scoreLabel = pct >= 80 ? "Excellent!" : pct >= 50 ? "Good Job!" : "Keep Practicing!";
+                    const emoji     = pct >= 80 ? "🏆" : pct >= 50 ? "👍" : "📚";
+
                     return (
-                      <div key={a.id} className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-bold text-sm text-slate-900 truncate">{testTitle}</p>
-                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${a.score_percentage >= 80 ? "bg-emerald-100 text-emerald-700" : a.score_percentage >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"}`}>
-                                {a.score_percentage}%
+                      <div key={a.id} className={`rounded-3xl border-2 bg-white shadow-sm overflow-hidden ${scoreBg}`}>
+                        {/* Top accent bar */}
+                        <div className="h-1.5 w-full" style={{ background: scoreColor }} />
+
+                        <div className="p-4">
+                          {/* Title row */}
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-extrabold text-[15px] text-slate-900 leading-tight">{testTitle}</p>
+                              {dateStr && <p className="text-[11px] text-slate-400 font-semibold mt-0.5">{dateStr}</p>}
+                            </div>
+                            <span className="text-2xl shrink-0">{emoji}</span>
+                          </div>
+
+                          {/* Score: X / Total points */}
+                          <div className="flex items-end gap-1 mb-1">
+                            <span className="text-[32px] font-black leading-none" style={{ color: scoreColor }}>
+                              {correct}
+                            </span>
+                            <span className="text-[16px] font-bold text-slate-400 mb-1">/ {total_q}</span>
+                            <span className="text-[12px] font-bold text-slate-400 mb-1 ml-0.5">questions</span>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden mb-3">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{ width: `${pct}%`, background: scoreColor }}
+                            />
+                          </div>
+
+                          {/* Stats row */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 text-[12px] font-bold text-slate-500">
+                              {/* Percentage badge */}
+                              <span
+                                className="rounded-full px-2.5 py-0.5 text-[11px] font-extrabold border"
+                                style={{ color: scoreColor, borderColor: scoreColor, background: `${scoreColor}18` }}
+                              >
+                                {pct}%  •  {scoreLabel}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-500 font-medium">
-                              {a.correct_answers}/{a.total_questions} correct • {Math.floor(a.actual_time_seconds / 60)}:{String(a.actual_time_seconds % 60).padStart(2, "0")} taken
-                            </p>
-                          </div>
-                          <div className="text-right shrink-0 flex flex-col items-end">
-                            <div className="flex items-center gap-1 justify-end">
-                              <XPCoin className="h-3.5 w-3.5" />
-                              <span className="text-sm font-extrabold text-amber-700">+{a.final_xp ?? 0}</span>
+                            <div className="flex items-center gap-3 text-[12px] font-bold text-slate-400">
+                              {/* Time */}
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {Math.floor(timeTaken / 60)}:{String(timeTaken % 60).padStart(2, "0")}
+                              </span>
+                              {/* XP */}
+                              <span className="flex items-center gap-1">
+                                <XPCoin className="h-3.5 w-3.5" />
+                                <span className="text-amber-600 font-extrabold">+{xpEarned} XP</span>
+                              </span>
                             </div>
-                            <p className="text-[10px] font-semibold text-slate-400 mt-1">
-                              {a.submitted_at?.toDate ? new Date(a.submitted_at.toDate()).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""}
-                            </p>
                           </div>
                         </div>
                       </div>
                     );
                   })}
+
+                  {/* Load More button */}
+                  {visibleCount < attempts.length && (
+                    <button
+                      onClick={() => setVisibleCount(v => v + 5)}
+                      className="w-full rounded-2xl border-2 border-dashed border-slate-200 bg-white py-3.5 text-[13px] font-extrabold text-slate-500 hover:border-primary/40 hover:text-primary transition-all duration-200"
+                    >
+                      Load More ({attempts.length - visibleCount} remaining)
+                    </button>
+                  )}
+
+                  {/* All loaded message */}
+                  {visibleCount >= attempts.length && attempts.length > 3 && (
+                    <p className="text-center text-[11px] font-bold text-slate-400 py-2">
+                      All {attempts.length} results loaded
+                    </p>
+                  )}
                 </div>
               )
             ) : loading ? (

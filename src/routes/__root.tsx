@@ -16,26 +16,177 @@ import { BottomNav } from "../components/bottom-nav";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { auth } from "../lib/firebase";
+import thumbsAsset from "../assets/wisby-thumbs.png";
 
 // Routes that do NOT require authentication
 const PUBLIC_ROUTES = ["/", "/onboarding", "/admin", "/auth"];
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+    <div
+      style={{
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        background: "#ffffff",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2rem",
+        paddingTop: "8vh",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          maxWidth: "480px",
+          width: "100%",
+          textAlign: "center",
+        }}
+      >
+        {/* 404 + Owl side by side */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem", marginBottom: "1rem" }}>
+          {/* 404 */}
+          <div
+            style={{
+              fontSize: "clamp(4.5rem, 18vw, 8rem)",
+              fontWeight: 900,
+              color: "#4F46E5",
+              lineHeight: 1,
+              letterSpacing: "-0.04em",
+            }}
+          >
+            404
+          </div>
+
+          {/* Wisby owl — right of 404 */}
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            {/* Sparkles */}
+            <svg style={{ position: "absolute", top: "2px", right: "-8px", opacity: 0.5 }} width="16" height="16" viewBox="0 0 24 24" fill="#4F46E5">
+              <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z" />
+            </svg>
+            <svg style={{ position: "absolute", bottom: "18px", right: "-18px", opacity: 0.25 }} width="11" height="11" viewBox="0 0 24 24" fill="#4F46E5">
+              <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z" />
+            </svg>
+            {/* ? bubble */}
+            <div
+              style={{
+                position: "absolute",
+                top: "6px",
+                right: "-22px",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: "#EEF2FF",
+                border: "2px solid #C7D2FE",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1rem",
+                fontWeight: 900,
+                color: "#4F46E5",
+                boxShadow: "0 2px 8px rgba(79,70,229,0.12)",
+                zIndex: 1,
+              }}
+            >
+              ?
+            </div>
+            <img
+              src={thumbsAsset}
+              alt="Wisby the WisDawn owl"
+              draggable={false}
+              style={{
+                width: "clamp(110px, 22vw, 160px)",
+                objectFit: "contain",
+                filter: "drop-shadow(0 8px 20px rgba(79,70,229,0.18))",
+                mixBlendMode: "multiply",
+                display: "block",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Heading */}
+        <h1
+          style={{
+            fontSize: "clamp(1.1rem, 3vw, 1.5rem)",
+            fontWeight: 800,
+            color: "#0F172A",
+            margin: "0 0 0.6rem",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Oops! Page is not found
+        </h1>
+
+        {/* Description */}
+        <p
+          style={{
+            fontSize: "0.9rem",
+            color: "#64748B",
+            fontWeight: 500,
+            margin: "0 0 2rem",
+            lineHeight: 1.6,
+          }}
+        >
+          Looks like this page took a wrong turn and flew off the path.
         </p>
-        <div className="mt-6">
+
+        {/* Buttons — center justified */}
+        <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.7rem 1.5rem",
+              borderRadius: "9999px",
+              background: "#4F46E5",
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              textDecoration: "none",
+              border: "2px solid #4F46E5",
+              transition: "all 0.2s",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#4338CA"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#4338CA"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#4F46E5"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#4F46E5"; }}
           >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+            </svg>
             Go home
           </Link>
+
+          <button
+            onClick={() => window.history.back()}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.7rem 1.5rem",
+              borderRadius: "9999px",
+              background: "#ffffff",
+              color: "#0F172A",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              border: "2px solid #E2E8F0",
+              transition: "all 0.2s",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#4F46E5"; (e.currentTarget as HTMLButtonElement).style.color = "#4F46E5"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#E2E8F0"; (e.currentTarget as HTMLButtonElement).style.color = "#0F172A"; }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 5l-7 7 7 7" />
+            </svg>
+            Go back
+          </button>
         </div>
       </div>
     </div>

@@ -666,16 +666,37 @@ export async function deleteTestQuestion(testId: string, questionId: string): Pr
 }
 
 export async function getTestAttemptsByUser(uid: string): Promise<any[]> {
-  const snap = await getDocs(
-    query(
-      collection(db, "testAttempts"),
-      where("user_uid", "==", uid),
-      where("status", "==", "completed"),
-      orderBy("submitted_at", "desc"),
-      limit(50)
-    )
-  );
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  try {
+    // First try with composite query (requires Firestore composite index)
+    const snap = await getDocs(
+      query(
+        collection(db, "testAttempts"),
+        where("user_uid", "==", uid),
+        where("status", "==", "completed"),
+        orderBy("submitted_at", "desc"),
+        limit(50)
+      )
+    );
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e: any) {
+    // Fallback: query without orderBy (no composite index needed), sort client-side
+    console.warn("getTestAttemptsByUser composite query failed, falling back:", e?.message);
+    const snap = await getDocs(
+      query(
+        collection(db, "testAttempts"),
+        where("user_uid", "==", uid),
+        where("status", "==", "completed"),
+        limit(50)
+      )
+    );
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Sort client-side by submitted_at descending
+    return docs.sort((a: any, b: any) => {
+      const aTs = a.submitted_at?.toMillis?.() ?? 0;
+      const bTs = b.submitted_at?.toMillis?.() ?? 0;
+      return bTs - aTs;
+    });
+  }
 }
 
 // ─── Admin auth ───────────────────────────────────────────────────────────────
